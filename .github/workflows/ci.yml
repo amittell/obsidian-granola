@@ -1,0 +1,134 @@
+name: CI
+
+on:
+    push:
+        branches: ['*']
+    pull_request:
+        branches: [main]
+
+# Cancel previous runs when new commits are pushed
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    # LAYER 1: Quick checks (runs on ALL branches)
+    # Cost: ~$0.02 per run, ~2 minutes
+    quick-checks:
+        name: Quick Checks
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '18'
+                  cache: 'npm'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Check formatting
+              run: npm run format:check
+
+            - name: TypeScript check
+              run: npm run type-check
+
+            - name: Build check
+              run: npm run build:check
+
+            - name: Quick lint
+              run: npm run lint:quick
+
+    # LAYER 2: Full test suite (only on main branch and PRs to main)
+    # Cost: ~$0.04 per run, ~4 minutes
+    full-tests:
+        name: Full Test Suite
+        runs-on: ubuntu-latest
+        timeout-minutes: 8
+        # Only run on main branch or PRs targeting main
+        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '18'
+                  cache: 'npm'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Full lint check
+              run: npm run lint
+
+            - name: Full build
+              run: npm run build
+
+            - name: Bundle size check
+              run: |
+                  npm run build
+                  size=$(wc -c < main.js)
+                  echo "Bundle size: $size bytes"
+                  # Fail if bundle is over 10KB (current: 6.6KB)
+                  if [ $size -gt 10240 ]; then
+                    echo "❌ Bundle too large: $size bytes (max: 10KB)"
+                    exit 1
+                  fi
+                  echo "✅ Bundle size OK: $size bytes"
+
+            - name: Security audit
+              run: npm audit --audit-level=moderate
+
+            # Upload build artifacts for main branch
+            - name: Upload build artifacts
+              if: github.ref == 'refs/heads/main'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: plugin-build
+                  path: |
+                      main.js
+                      manifest.json
+                      styles.css
+                  retention-days: 7
+
+    # LAYER 3: Release preparation (only on main branch)
+    # Cost: ~$0.01 per run, ~1 minute
+    release-ready:
+        name: Release Readiness
+        runs-on: ubuntu-latest
+        timeout-minutes: 3
+        needs: [quick-checks, full-tests]
+        if: github.ref == 'refs/heads/main'
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Check version consistency
+              run: |
+                  pkg_version=$(node -p "require('./package.json').version")
+                  manifest_version=$(node -p "require('./manifest.json').version")
+                  if [ "$pkg_version" != "$manifest_version" ]; then
+                    echo "❌ Version mismatch: package.json($pkg_version) != manifest.json($manifest_version)"
+                    exit 1
+                  fi
+                  echo "✅ Versions consistent: $pkg_version"
+
+            - name: Check required files
+              run: |
+                  required_files=("main.js" "manifest.json" "styles.css" "README.md")
+                  for file in "${required_files[@]}"; do
+                    if [ ! -f "$file" ]; then
+                      echo "❌ Required file missing: $file"
+                      exit 1
+                    fi
+                  done
+                  echo "✅ All required files present"

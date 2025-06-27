@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+main.js
+build/
+dist/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup and temporary files
+*.bak
+*.tmp
+*.backup
+*~
+
+# Logs
+*.log
+logs/
+
+# Git
+.git/
+
+# Environment files
+.env*
+
+# Documentation that shouldn't be formatted
+LICENSE
+CHANGELOG.md
+
+# Generated files
+coverage/
+*.tsbuildinfo
+
+# Archives
+*.zip
+*.tar.gz
+*.rar

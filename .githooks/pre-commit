@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Pre-commit hook for obsidian-granola plugin
+# Catches issues locally before they reach GitHub Actions
+
+set -e
+
+echo "🔍 Running pre-commit checks..."
+
+# Check if npm is available
+if ! command -v npm &> /dev/null; then
+    echo "❌ npm not found. Please install Node.js"
+    exit 1
+fi
+
+# Check if node_modules exists
+if [ ! -d "node_modules" ]; then
+    echo "📦 Installing dependencies..."
+    npm install
+fi
+
+# 1. Format check (fast, catches 90% of style issues)
+echo "✨ Checking code formatting..."
+if ! npm run format:check; then
+    echo "❌ Code formatting issues detected!"
+    echo "💡 Run 'npm run format' to fix automatically"
+    exit 1
+fi
+
+# 2. TypeScript compilation check (catches syntax errors)
+echo "🔧 Checking TypeScript compilation..."
+if ! npm run type-check; then
+    echo "❌ TypeScript compilation failed!"
+    echo "💡 Fix the TypeScript errors before committing"
+    exit 1
+fi
+
+# 3. Build check (ensures the plugin compiles)
+echo "📦 Testing build..."
+if ! npm run build:check; then
+    echo "❌ Build failed!"
+    echo "💡 Fix build errors before committing"
+    exit 1
+fi
+
+# 4. Quick lint check (catches obvious code issues)
+echo "🧹 Running quick lint check..."
+if ! npm run lint:quick; then
+    echo "❌ Linting issues detected!"
+    echo "💡 Run 'npm run lint:fix' to auto-fix or fix manually"
+    exit 1
+fi
+
+echo "✅ All pre-commit checks passed!"
+echo "🚀 Ready to commit"
