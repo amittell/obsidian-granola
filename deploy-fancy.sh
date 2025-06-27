@@ -9,8 +9,15 @@
 # 🎛️  CONFIGURATION VARIABLES
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Set your Obsidian vault path here
-VAULT_PATH="$HOME/Documents/ObsidianVault"
+# Check for dry-run mode
+DRY_RUN=false
+if [[ "$1" == "--dry-run" || "$1" == "-d" ]]; then
+    DRY_RUN=true
+    VAULT_PATH="/example/path/to/ObsidianVault"
+else
+    # Set your Obsidian vault path here
+    VAULT_PATH="$HOME/Documents/ObsidianVault"
+fi
 
 # Plugin name and paths
 PLUGIN_NAME="granola-importer"
@@ -148,15 +155,26 @@ cat << "EOF"
 EOF
 echo -e "${NC}"
 
-echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}${CYAN}║${NC}                    ${BLINK}🚀 ULTRA MEGA FANCY DEPLOYMENT SYSTEM 🚀${NC}                    ${BOLD}${CYAN}║${NC}"
-echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}                    ${BLINK}🚀 ULTRA MEGA FANCY DRY RUN MODE 🚀${NC}                       ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
+else
+    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║${NC}                    ${BLINK}🚀 ULTRA MEGA FANCY DEPLOYMENT SYSTEM 🚀${NC}                    ${BOLD}${CYAN}║${NC}"
+    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════════════════════╝${NC}"
+fi
 
 sleep 1
 
 # Animated intro
 echo -e "\n${PURPLE}${BOLD}"
-typewriter "Initializing quantum deployment matrix..." 0.05
+if [ "$DRY_RUN" = true ]; then
+    typewriter "Initializing quantum simulation matrix..." 0.05
+    echo -e "${YELLOW}${BOLD}🧪 DRY RUN MODE ACTIVATED - No actual deployment will occur${NC}"
+else
+    typewriter "Initializing quantum deployment matrix..." 0.05
+fi
 echo -e "${NC}"
 
 # System check with fancy animations
@@ -167,7 +185,11 @@ echo -ne "${BLUE}🔧 Checking build environment...${NC} "
 sleep 1 && echo -e "${GREEN}✅ OPTIMAL${NC}"
 
 echo -ne "${BLUE}🎯 Locating vault path...${NC} "
-sleep 1 && echo -e "${GREEN}✅ FOUND: ${CYAN}$VAULT_PATH${NC}"
+if [ "$DRY_RUN" = true ]; then
+    sleep 1 && echo -e "${YELLOW}✅ SIMULATED: ${CYAN}$VAULT_PATH${NC}"
+else
+    sleep 1 && echo -e "${GREEN}✅ FOUND: ${CYAN}$VAULT_PATH${NC}"
+fi
 
 echo -ne "${BLUE}🛡️  Security scan...${NC} "
 sleep 1 && echo -e "${GREEN}✅ SECURE${NC}"
@@ -179,9 +201,15 @@ sleep 1 && echo -e "${RAINBOW}✅ MAXIMUM FANCINESS ACHIEVED${NC}"
 echo -e "\n\n${RED}${BOLD}🏗️  COMMENCING BUILD SEQUENCE${NC}"
 echo -e "${GRAY}═══════════════════════════════${NC}"
 
-echo -e "${YELLOW}⚡ Building plugin with atomic precision...${NC}"
-npm run build > /dev/null 2>&1 &
-BUILD_PID=$!
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${YELLOW}⚡ Simulating build with quantum precision...${NC}"
+    sleep 2 &
+    BUILD_PID=$!
+else
+    echo -e "${YELLOW}⚡ Building plugin with atomic precision...${NC}"
+    npm run build > /dev/null 2>&1 &
+    BUILD_PID=$!
+fi
 
 # Fancy loading animation
 echo -ne "${CYAN}Building${NC}"
@@ -193,7 +221,15 @@ done
 wait $BUILD_PID
 BUILD_RESULT=$?
 
-if [ $BUILD_RESULT -eq 0 ]; then
+if [ "$DRY_RUN" = true ]; then
+    echo -e "\n${GREEN}${BOLD}✨ SIMULATION SUCCESSFUL! ✨${NC}"
+    
+    # Simulated bundle analysis
+    BUNDLE_SIZE="6620"
+    echo -e "\n${PURPLE}📊 Simulated Bundle Analysis:${NC}"
+    echo -e "   Size: ${BOLD}${CYAN}$BUNDLE_SIZE bytes${NC} ${GREEN}(Ultra Lean! 🪶)${NC}"
+    echo -e "   Status: ${GREEN}${BOLD}🏆 CHAMPION TIER EFFICIENCY${NC}"
+elif [ $BUILD_RESULT -eq 0 ]; then
     echo -e "\n${GREEN}${BOLD}✨ BUILD SUCCESSFUL! ✨${NC}"
     
     # Bundle size check with dramatic effect
@@ -214,22 +250,35 @@ echo -e "\n\n${PURPLE}${BOLD}🚀 INITIATING DEPLOYMENT SEQUENCE${NC}"
 echo -e "${GRAY}═══════════════════════════════════${NC}"
 
 # Create plugin directory with fanfare
-echo -e "${CYAN}📂 Creating plugin sanctuary...${NC}"
-mkdir -p "$PLUGIN_DIR" 2>/dev/null
+if [ "$DRY_RUN" = true ]; then
+    echo -e "${CYAN}📂 Simulating plugin sanctuary creation...${NC}"
+    echo -e "${YELLOW}✅ Plugin directory simulation established${NC}"
+else
+    echo -e "${CYAN}📂 Creating plugin sanctuary...${NC}"
+    mkdir -p "$PLUGIN_DIR" 2>/dev/null
 
-if [ ! -d "$PLUGIN_DIR" ]; then
-    echo -e "${RED}💀 CRITICAL ERROR: Cannot access vault at $VAULT_PATH${NC}"
-    echo -e "${YELLOW}💡 Please update VAULT_PATH variable in this script${NC}"
-    exit 1
+    if [ ! -d "$PLUGIN_DIR" ]; then
+        echo -e "${RED}💀 CRITICAL ERROR: Cannot access vault at $VAULT_PATH${NC}"
+        echo -e "${YELLOW}💡 Please update VAULT_PATH variable in this script${NC}"
+        exit 1
+    fi
+
+    echo -e "${GREEN}✅ Plugin directory established${NC}"
 fi
 
-echo -e "${GREEN}✅ Plugin directory established${NC}"
-
 # Deploy files with individual ceremony for each
-echo -e "\n${YELLOW}📦 DEPLOYING CRITICAL COMPONENTS${NC}"
+if [ "$DRY_RUN" = true ]; then
+    echo -e "\n${YELLOW}📦 SIMULATING CRITICAL COMPONENT DEPLOYMENT${NC}"
+else
+    echo -e "\n${YELLOW}📦 DEPLOYING CRITICAL COMPONENTS${NC}"
+fi
 
 for file in "${BUILD_FILES[@]}"; do
-    if [ -f "$file" ]; then
+    if [ "$DRY_RUN" = true ]; then
+        echo -ne "${BLUE}🚢 Simulating ${BOLD}$file${NC}${BLUE} deployment...${NC} "
+        sleep 0.5
+        echo -e "${YELLOW}✅ SIMULATED${NC}"
+    elif [ -f "$file" ]; then
         echo -ne "${BLUE}🚢 Deploying ${BOLD}$file${NC}${BLUE}...${NC} "
         
         # Dramatic copy with progress
@@ -242,13 +291,20 @@ for file in "${BUILD_FILES[@]}"; do
 done
 
 # Final verification with suspense
-echo -e "\n${PURPLE}🔍 FINAL VERIFICATION PROTOCOL${NC}"
-echo -e "${GRAY}════════════════════════════${NC}"
+if [ "$DRY_RUN" = true ]; then
+    echo -e "\n${PURPLE}🔍 SIMULATION VERIFICATION PROTOCOL${NC}"
+    echo -e "${GRAY}═══════════════════════════════════${NC}"
+else
+    echo -e "\n${PURPLE}🔍 FINAL VERIFICATION PROTOCOL${NC}"
+    echo -e "${GRAY}════════════════════════════${NC}"
+fi
 
 VERIFICATION_PASSED=true
 
 for file in "${BUILD_FILES[@]}"; do
-    if [ -f "$PLUGIN_DIR/$file" ]; then
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${YELLOW}✅ $file${NC} ${GRAY}→ simulated${NC}"
+    elif [ -f "$PLUGIN_DIR/$file" ]; then
         echo -e "${GREEN}✅ $file${NC} ${GRAY}→ verified${NC}"
     else
         echo -e "${RED}❌ $file${NC} ${GRAY}→ missing${NC}"
@@ -282,20 +338,36 @@ EOF
     fireworks
     
     # Final status
-    echo -e "\n${RAINBOW}🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊${NC}"
-    echo -e "${BOLD}${GREEN}DEPLOYMENT STATUS: ${BLINK}LEGENDARY SUCCESS${NC}"
+    echo -e "\n\n${RAINBOW}🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊${NC}"
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${BOLD}${YELLOW}SIMULATION STATUS: ${BLINK}LEGENDARY SUCCESS${NC}"
+    else
+        echo -e "${BOLD}${GREEN}DEPLOYMENT STATUS: ${BLINK}LEGENDARY SUCCESS${NC}"
+    fi
     echo -e "${RAINBOW}🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊🎉🎊${NC}"
     
     echo -e "\n${CYAN}${BOLD}📍 MISSION ACCOMPLISHED${NC}"
-    echo -e "${WHITE}Plugin Location: ${CYAN}$PLUGIN_DIR${NC}"
-    echo -e "${WHITE}Bundle Size: ${CYAN}$BUNDLE_SIZE bytes${NC}"
-    echo -e "${WHITE}Status: ${GREEN}Ready for Obsidian${NC}"
-    
-    echo -e "\n${YELLOW}${BOLD}🚀 NEXT STEPS:${NC}"
-    echo -e "${WHITE}1. Open Obsidian${NC}"
-    echo -e "${WHITE}2. Go to Settings → Community Plugins${NC}"
-    echo -e "${WHITE}3. Enable '${CYAN}Granola Importer${NC}${WHITE}'${NC}"
-    echo -e "${WHITE}4. Import your notes with style! ✨${NC}"
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "${WHITE}Simulated Location: ${CYAN}$PLUGIN_DIR${NC}"
+        echo -e "${WHITE}Simulated Bundle Size: ${CYAN}$BUNDLE_SIZE bytes${NC}"
+        echo -e "${WHITE}Status: ${YELLOW}Simulation Complete${NC}"
+        
+        echo -e "\n${YELLOW}${BOLD}🚀 TO RUN FOR REAL:${NC}"
+        echo -e "${WHITE}1. Update VAULT_PATH in this script${NC}"
+        echo -e "${WHITE}2. Run: ${CYAN}./deploy-fancy.sh${NC} ${WHITE}(without --dry-run)${NC}"
+        echo -e "${WHITE}3. Enable plugin in Obsidian Settings${NC}"
+        echo -e "${WHITE}4. Import your notes with style! ✨${NC}"
+    else
+        echo -e "${WHITE}Plugin Location: ${CYAN}$PLUGIN_DIR${NC}"
+        echo -e "${WHITE}Bundle Size: ${CYAN}$BUNDLE_SIZE bytes${NC}"
+        echo -e "${WHITE}Status: ${GREEN}Ready for Obsidian${NC}"
+        
+        echo -e "\n${YELLOW}${BOLD}🚀 NEXT STEPS:${NC}"
+        echo -e "${WHITE}1. Open Obsidian${NC}"
+        echo -e "${WHITE}2. Go to Settings → Community Plugins${NC}"
+        echo -e "${WHITE}3. Enable '${CYAN}Granola Importer${NC}${WHITE}'${NC}"
+        echo -e "${WHITE}4. Import your notes with style! ✨${NC}"
+    fi
     
 else
     echo -e "\n\n${RED}${BOLD}"

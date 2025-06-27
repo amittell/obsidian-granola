@@ -7,7 +7,13 @@ Two deployment options are available to deploy your Granola Importer plugin to y
 For maximum entertainment and ASCII art overload:
 
 ```bash
+# Live deployment
 ./deploy-fancy.sh
+
+# Dry run simulation (no actual deployment)
+./deploy-fancy.sh --dry-run
+# or
+./deploy-fancy.sh -d
 ```
 
 **Features:**
@@ -24,7 +30,13 @@ For maximum entertainment and ASCII art overload:
 For a clean, straightforward deployment:
 
 ```bash
+# Live deployment
 ./deploy.sh
+
+# Dry run simulation (no actual deployment)
+./deploy.sh --dry-run
+# or
+./deploy.sh -d
 ```
 
 **Features:**
@@ -34,9 +46,31 @@ For a clean, straightforward deployment:
 - Fast execution
 - Professional appearance
 
+## 🧪 Dry Run Mode
+
+Both scripts support dry run mode for testing without actual deployment:
+
+```bash
+# Test deployment without making changes
+./deploy.sh --dry-run
+./deploy-fancy.sh --dry-run
+
+# Short flag also works
+./deploy.sh -d
+./deploy-fancy.sh -d
+```
+
+**Dry Run Features:**
+
+- ✅ Simulates all deployment steps
+- ✅ Shows expected file paths and sizes
+- ✅ No actual files created or modified
+- ✅ Perfect for testing configuration
+- ✅ Uses example vault path (/example/path/to/ObsidianVault)
+
 ## ⚙️ Configuration
 
-Before running either script, update the configuration in the script file:
+Before running either script for real deployment, update the configuration in the script file:
 
 ```bash
 # Set your Obsidian vault path

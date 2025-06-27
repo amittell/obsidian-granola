@@ -23,6 +23,10 @@ For development and testing, use the deployment scripts:
 
 # Or simple, clean deployment
 ./deploy.sh
+
+# Test first with dry run mode (recommended)
+./deploy.sh --dry-run
+./deploy-fancy.sh --dry-run
 ```
 
 **Important**: Update `VAULT_PATH` in the script to point to your Obsidian vault.
