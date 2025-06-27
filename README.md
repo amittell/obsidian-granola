@@ -13,6 +13,20 @@ A lean, beautiful Obsidian plugin that imports your Granola notes with perfect f
 
 ## Installation
 
+### Quick Deployment
+
+For development and testing, use the deployment scripts:
+
+```bash
+# Ultra fancy deployment with ASCII art and animations
+./deploy-fancy.sh
+
+# Or simple, clean deployment
+./deploy.sh
+```
+
+**Important**: Update `VAULT_PATH` in the script to point to your Obsidian vault.
+
 ### Manual Installation
 
 1. Download the latest release
@@ -27,6 +41,8 @@ cd obsidian-granola
 npm install
 npm run dev
 ```
+
+See [DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md) for detailed deployment instructions.
 
 ## Usage
 
