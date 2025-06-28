@@ -146,11 +146,15 @@ export class GranolaAPI {
 	private readonly baseUrl = 'https://api.granola.ai/v2';
 
 	/**
-	 * User agent string matching the official Granola client.
-	 * Note: Update this version periodically to match the latest Granola app client.
-	 * Current version: 5.354.0 (last updated: 2024-12)
+	 * User-Agent string for API requests to mimic the official Granola client.
+	 * Version is automatically pulled from package.json to keep it in sync.
 	 */
-	private readonly userAgent = 'Granola/5.354.0';
+	private readonly userAgent: string;
+
+	/**
+	 * Default Granola client version for fallback if package.json is unavailable.
+	 */
+	private readonly defaultGranolaVersion = '5.354.0';
 
 	/** Authentication manager for API credentials */
 	private auth: GranolaAuth;
@@ -169,6 +173,38 @@ export class GranolaAPI {
 	 */
 	constructor(auth: GranolaAuth) {
 		this.auth = auth;
+		
+		// Try to get version from package.json, fall back to default
+		try {
+			const fs = require('fs');
+			const path = require('path');
+			// Try multiple possible paths for package.json
+			const possiblePaths = [
+				path.resolve(__dirname, '../../package.json'),
+				path.resolve(process.cwd(), 'package.json'),
+				path.resolve(__dirname, '../../../package.json')
+			];
+			
+			let manifest = null;
+			for (const packagePath of possiblePaths) {
+				try {
+					if (fs.existsSync(packagePath)) {
+						manifest = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+						break;
+					}
+				} catch (err) {
+					continue;
+				}
+			}
+			
+			if (manifest?.version) {
+				this.userAgent = `granola-importer/${manifest.version}`;
+			} else {
+				throw new Error('Package.json not found');
+			}
+		} catch {
+			this.userAgent = `Granola/${this.defaultGranolaVersion}`;
+		}
 	}
 
 	/**
@@ -295,10 +331,8 @@ export class GranolaAPI {
 	 */
 	private async makeRequest(
 		endpoint: string,
-		options: {
-			method: string;
+		options: RequestInit & {
 			headers: Record<string, string>;
-			body?: string;
 		}
 	): Promise<Response> {
 		const url = `${this.baseUrl}${endpoint}`;

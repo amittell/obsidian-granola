@@ -8,11 +8,11 @@ module.exports = {
   ],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
-      isolatedModules: true,
       tsconfig: {
         skipLibCheck: true,
         noImplicitAny: false,
-        strict: false
+        strict: false,
+        isolatedModules: true
       }
     }]
   },
