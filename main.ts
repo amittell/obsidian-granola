@@ -2,6 +2,10 @@ import { Plugin, Notice, TFile } from 'obsidian';
 import { GranolaAuth } from './src/auth';
 import { GranolaAPI } from './src/api';
 import { ProseMirrorConverter } from './src/converter';
+import { DuplicateDetector } from './src/services/duplicate-detector';
+import { DocumentMetadataService } from './src/services/document-metadata';
+import { SelectiveImportManager } from './src/services/import-manager';
+import { DocumentSelectionModal } from './src/ui/document-selection-modal';
 
 // Error Message Constants
 const ERROR_MESSAGES = {
@@ -51,6 +55,27 @@ export default class GranolaImporterPlugin extends Plugin {
 	private converter!: ProseMirrorConverter;
 
 	/**
+	 * Service for detecting duplicate documents in the vault.
+	 * Scans existing files and determines import status for new documents.
+	 * @private
+	 */
+	private duplicateDetector!: DuplicateDetector;
+
+	/**
+	 * Service for extracting and managing document metadata for UI display.
+	 * Provides formatted metadata, search/filter capabilities, and statistics.
+	 * @private
+	 */
+	private metadataService!: DocumentMetadataService;
+
+	/**
+	 * Service for managing selective document imports with progress tracking.
+	 * Coordinates batch processing, error handling, and user feedback.
+	 * @private
+	 */
+	private importManager!: SelectiveImportManager;
+
+	/**
 	 * Plugin lifecycle method called when the plugin is loaded.
 	 *
 	 * Initializes the authentication, API, and converter components,
@@ -74,12 +99,26 @@ export default class GranolaImporterPlugin extends Plugin {
 		this.api = new GranolaAPI(this.auth);
 		this.converter = new ProseMirrorConverter();
 
+		// Initialize selective import services
+		this.duplicateDetector = new DuplicateDetector(this.app.vault);
+		this.metadataService = new DocumentMetadataService();
+		this.importManager = new SelectiveImportManager(this.app, this.app.vault, this.converter);
+
 		// Register command in Obsidian's command palette
 		this.addCommand({
 			id: 'import-granola-notes',
-			name: 'Import Granola Notes',
+			name: 'Import Granola Notes (Selective)',
 			callback: () => {
-				this.importGranolaNotes();
+				this.openImportModal();
+			},
+		});
+
+		// Debug command for API response inspection
+		this.addCommand({
+			id: 'debug-granola-api',
+			name: 'Debug Granola API Response',
+			callback: () => {
+				this.debugAPIResponse();
 			},
 		});
 	}
@@ -104,110 +143,201 @@ export default class GranolaImporterPlugin extends Plugin {
 	}
 
 	/**
-	 * Imports all documents from the user's Granola account into Obsidian.
+	 * Debug method to inspect API response structure and diagnose content issues.
 	 *
-	 * This method orchestrates the complete import process:
-	 * 1. Loads and validates Granola credentials
-	 * 2. Fetches all documents from the Granola API
-	 * 3. Converts ProseMirror JSON to Markdown format
-	 * 4. Creates or updates files in the Obsidian vault
-	 * 5. Provides real-time progress feedback to the user
-	 * 6. Handles errors gracefully with categorized error messages
+	 * This method provides detailed analysis of the Granola API response to help
+	 * identify why note content might be empty during import. It checks all
+	 * content fields (notes, notes_plain, notes_markdown) and provides statistics.
 	 *
 	 * @async
-	 * @returns {Promise<void>} Resolves when import process completes
-	 * @throws {Error} Various error types for different failure scenarios:
-	 *   - Credential errors: Invalid or expired authentication
-	 *   - Network errors: Connection or API failures
-	 *   - Rate limit errors: Too many requests to Granola API
-	 *   - Vault errors: File system or permission issues
+	 * @returns {Promise<void>} Resolves when debug analysis is complete
+	 */
+	async debugAPIResponse(): Promise<void> {
+		const debugNotice = new Notice('Starting API response debug analysis...', 0);
+		
+		try {
+			// Load credentials
+			await this.api.loadCredentials();
+			debugNotice.setMessage('Fetching documents from Granola API...');
+			
+			// Fetch documents
+			const documents = await this.api.getAllDocuments();
+			debugNotice.hide();
+			
+			if (documents.length === 0) {
+				new Notice('❌ No documents found in Granola account', 5000);
+				return;
+			}
+			
+			// Analyze first few documents
+			const samplesToAnalyze = Math.min(3, documents.length);
+			let analysisReport = `📊 Granola API Debug Report\n`;
+			analysisReport += `Total documents: ${documents.length}\n`;
+			analysisReport += `Analyzing first ${samplesToAnalyze} documents:\n\n`;
+			
+			let docsWithNotes = 0;
+			let docsWithPlain = 0;
+			let docsWithMarkdown = 0;
+			let docsWithAnyContent = 0;
+			
+			// Detailed analysis of sample documents
+			for (let i = 0; i < samplesToAnalyze; i++) {
+				const doc = documents[i];
+				analysisReport += `--- Document ${i + 1}: "${doc.title}" ---\n`;
+				analysisReport += `ID: ${doc.id}\n`;
+				analysisReport += `Created: ${doc.created_at}\n`;
+				
+				// Check content fields
+				const hasNotes = doc.notes && doc.notes.content && doc.notes.content.length > 0;
+				const hasPlain = doc.notes_plain && doc.notes_plain.trim().length > 0;
+				const hasMarkdown = doc.notes_markdown && doc.notes_markdown.trim().length > 0;
+				
+				analysisReport += `Notes (ProseMirror): ${hasNotes ? '✅' : '❌'}\n`;
+				if (hasNotes && doc.notes?.content) {
+					analysisReport += `  - Nodes: ${doc.notes.content.length}\n`;
+				}
+				
+				analysisReport += `Notes Plain: ${hasPlain ? '✅' : '❌'}\n`;
+				if (hasPlain) {
+					analysisReport += `  - Length: ${doc.notes_plain.length} chars\n`;
+				}
+				
+				analysisReport += `Notes Markdown: ${hasMarkdown ? '✅' : '❌'}\n`;
+				if (hasMarkdown) {
+					analysisReport += `  - Length: ${doc.notes_markdown.length} chars\n`;
+				}
+				
+				const hasAnyContent = hasNotes || hasPlain || hasMarkdown;
+				analysisReport += `Overall Status: ${hasAnyContent ? '✅ HAS CONTENT' : '❌ NO CONTENT'}\n\n`;
+			}
+			
+			// Overall statistics
+			documents.forEach(doc => {
+				if (doc.notes && doc.notes.content && doc.notes.content.length > 0) docsWithNotes++;
+				if (doc.notes_plain && doc.notes_plain.trim().length > 0) docsWithPlain++;
+				if (doc.notes_markdown && doc.notes_markdown.trim().length > 0) docsWithMarkdown++;
+				
+				const hasContent = (doc.notes && doc.notes.content && doc.notes.content.length > 0) ||
+								 (doc.notes_plain && doc.notes_plain.trim().length > 0) ||
+								 (doc.notes_markdown && doc.notes_markdown.trim().length > 0);
+				if (hasContent) docsWithAnyContent++;
+			});
+			
+			analysisReport += `📈 Overall Statistics:\n`;
+			analysisReport += `Documents with ProseMirror: ${docsWithNotes}/${documents.length} (${(docsWithNotes/documents.length*100).toFixed(1)}%)\n`;
+			analysisReport += `Documents with Plain Text: ${docsWithPlain}/${documents.length} (${(docsWithPlain/documents.length*100).toFixed(1)}%)\n`;
+			analysisReport += `Documents with Markdown: ${docsWithMarkdown}/${documents.length} (${(docsWithMarkdown/documents.length*100).toFixed(1)}%)\n`;
+			analysisReport += `Documents with ANY content: ${docsWithAnyContent}/${documents.length} (${(docsWithAnyContent/documents.length*100).toFixed(1)}%)\n\n`;
+			
+			// Diagnosis
+			analysisReport += `🎯 Diagnosis:\n`;
+			if (docsWithAnyContent === 0) {
+				analysisReport += `❗ CRITICAL: No documents have content!\n`;
+				analysisReport += `This explains empty imports. Possible causes:\n`;
+				analysisReport += `- API credentials lack content access\n`;
+				analysisReport += `- Granola API format changed\n`;
+				analysisReport += `- Documents genuinely empty\n`;
+			} else if (docsWithNotes === 0 && docsWithMarkdown > 0) {
+				analysisReport += `💡 ProseMirror missing, markdown available\n`;
+				analysisReport += `Issue likely in ProseMirror validation\n`;
+			} else if (docsWithNotes > 0) {
+				analysisReport += `💡 ProseMirror exists - conversion issue\n`;
+			}
+			
+			// Test conversion on first document with content
+			const testDoc = documents.find(doc => 
+				(doc.notes && doc.notes.content && doc.notes.content.length > 0) ||
+				(doc.notes_plain && doc.notes_plain.trim().length > 0) ||
+				(doc.notes_markdown && doc.notes_markdown.trim().length > 0)
+			);
+			
+			if (testDoc) {
+				analysisReport += `\n🧪 Testing Conversion:\n`;
+				try {
+					const converted = this.converter.convertDocument(testDoc);
+					analysisReport += `✅ Conversion successful\n`;
+					analysisReport += `Filename: ${converted.filename}\n`;
+					analysisReport += `Content length: ${converted.content.length} chars\n`;
+					
+					// Check if date-prefix filename is working
+					if (converted.filename.match(/^\d{4}-\d{2}-\d{2} - /)) {
+						analysisReport += `✅ Date-prefixed filename working\n`;
+					} else {
+						analysisReport += `⚠️ Date-prefixed filename not applied\n`;
+					}
+					
+				} catch (conversionError) {
+					analysisReport += `❌ Conversion failed: ${conversionError instanceof Error ? conversionError.message : 'Unknown error'}\n`;
+				}
+			}
+			
+			console.log(analysisReport);
+			new Notice('✅ Debug analysis complete - check console for full report', 5000);
+			
+		} catch (error) {
+			debugNotice.hide();
+			console.error('Debug API Response Error:', error);
+			
+			let errorMessage = 'Debug analysis failed: ';
+			if (error instanceof Error) {
+				const message = error.message.toLowerCase();
+				if (message.includes('credentials') || message.includes('unauthorized')) {
+					errorMessage += 'Credentials issue - check Granola app login';
+				} else if (message.includes('network') || message.includes('fetch')) {
+					errorMessage += 'Network issue - check internet connection';
+				} else {
+					errorMessage += error.message;
+				}
+			} else {
+				errorMessage += 'Unknown error';
+			}
+			
+			new Notice(errorMessage, 8000);
+		}
+	}
+
+	/**
+	 * Opens the document selection modal for selective import.
+	 *
+	 * This method replaces the previous immediate import functionality with
+	 * a user-friendly modal interface that allows users to:
+	 * 1. Preview available Granola documents
+	 * 2. See import status (new, existing, updated, conflicts)
+	 * 3. Select which documents to import
+	 * 4. Monitor import progress in real-time
+	 * 5. Handle conflicts and duplicates intelligently
+	 *
+	 * The modal integrates all selective import services to provide a
+	 * comprehensive import experience with full user control.
+	 *
+	 * @returns {void}
 	 *
 	 * @example
 	 * ```typescript
-	 * // Typically called via Command Palette
-	 * await plugin.importGranolaNotes();
+	 * // Typically called via Command Palette: "Import Granola Notes (Selective)"
+	 * plugin.openImportModal();
 	 * ```
 	 *
-	 * @see {@link GranolaAuth.loadCredentials} For credential loading
-	 * @see {@link GranolaAPI.getAllDocuments} For document fetching
-	 * @see {@link ProseMirrorConverter.convertDocument} For content conversion
+	 * @see {@link DocumentSelectionModal} For the modal implementation
+	 * @see {@link DuplicateDetector} For duplicate detection logic
+	 * @see {@link SelectiveImportManager} For import coordination
 	 */
-	async importGranolaNotes(): Promise<void> {
-		const notice = new Notice('Starting Granola import...', 0);
-
+	openImportModal(): void {
 		try {
-			// Load credentials
-			notice.setMessage('Loading Granola credentials...');
-			await this.auth.loadCredentials();
-
-			// Fetch documents
-			notice.setMessage('Fetching documents from Granola...');
-			const documents = await this.api.getAllDocuments();
-
-			// Validate documents
-			if (!documents || documents.length === 0) {
-				notice.hide();
-				new Notice('No documents found in Granola account', 5000);
-				return;
-			}
-
-			notice.setMessage(`Converting ${documents.length} documents...`);
-
-			// Track progress and errors
-			let successCount = 0;
-			let errorCount = 0;
-			const errors: string[] = [];
-
-			// Convert and save documents with enhanced progress reporting
-			for (let i = 0; i < documents.length; i++) {
-				const doc = documents[i];
-				const percentage = Math.round(((i + 1) / documents.length) * 100);
-				notice.setMessage(
-					`Converting ${i + 1}/${documents.length} (${percentage}%): ${doc.title || 'Untitled'}`
-				);
-
-				try {
-					const convertedNote = this.converter.convertDocument(doc);
-
-					// Check if file already exists
-					const existingFile = this.app.vault.getAbstractFileByPath(
-						convertedNote.filename
-					);
-					if (existingFile instanceof TFile) {
-						await this.app.vault.modify(existingFile, convertedNote.content);
-					} else {
-						await this.app.vault.create(convertedNote.filename, convertedNote.content);
-					}
-
-					successCount++;
-				} catch (docError) {
-					errorCount++;
-					const errorMsg = docError instanceof Error ? docError.message : 'Unknown error';
-					errors.push(`${doc.title || 'Untitled'}: ${errorMsg}`);
-					console.warn(`Failed to convert document ${doc.title}:`, docError);
-				}
-			}
-
-			notice.hide();
-
-			// Enhanced completion message
-			if (errorCount === 0) {
-				new Notice(`Successfully imported ${successCount} notes from Granola!`, 5000);
-			} else {
-				new Notice(
-					`Import complete: ${successCount} succeeded, ${errorCount} failed. Check console for details.`,
-					8000
-				);
-				if (errors.length > 0) {
-					console.error('Import errors:', errors);
-				}
-			}
+			const modal = new DocumentSelectionModal(
+				this.app,
+				this.api,
+				this.duplicateDetector,
+				this.metadataService,
+				this.importManager,
+				this.converter
+			);
+			modal.open();
 		} catch (error) {
-			notice.hide();
-			console.error('Granola import failed:', error);
-
-			// Enhanced error categorization
-			let userMessage = 'Import failed: ';
+			console.error('Failed to open import modal:', error);
+			
+			// Provide user feedback for modal errors
+			let userMessage = 'Failed to open import dialog: ';
 			if (error instanceof Error) {
 				const message = error.message.toLowerCase();
 				if (
@@ -222,10 +352,6 @@ export default class GranolaImporterPlugin extends Plugin {
 					message.includes('connection')
 				) {
 					userMessage += ERROR_MESSAGES.NETWORK;
-				} else if (message.includes('rate limit') || message.includes('429')) {
-					userMessage += ERROR_MESSAGES.RATE_LIMIT;
-				} else if (message.includes('vault') || message.includes('file')) {
-					userMessage += ERROR_MESSAGES.FILE_SYSTEM;
 				} else {
 					userMessage += error.message;
 				}
@@ -233,7 +359,7 @@ export default class GranolaImporterPlugin extends Plugin {
 				userMessage += ERROR_MESSAGES.UNKNOWN;
 			}
 
-			new Notice(userMessage, 10000);
+			new Notice(userMessage, 8000);
 		}
 	}
 }
