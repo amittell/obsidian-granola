@@ -15,6 +15,9 @@
 		"lint:fix": "eslint . --ext .ts,.tsx --fix",
 		"analyze": "node esbuild.config.mjs production --metafile=meta.json && node -e \"const fs=require('fs'); const meta=JSON.parse(fs.readFileSync('meta.json')); console.log('Bundle size:', fs.statSync('main.js').size, 'bytes'); console.log('Dependencies:', Object.keys(meta.inputs).length, 'files'); console.log('Tree shaking savings:', Object.values(meta.outputs).reduce((acc,o)=>acc+o.bytes,0)-fs.statSync('main.js').size, 'bytes');\"",
 		"perf": "npm run analyze && npm audit --audit-level moderate",
+		"docs:build": "typedoc",
+		"docs:check": "typedoc --emit none",
+		"docs:serve": "npx http-server docs -p 8080 -o",
 		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
 	"keywords": [
@@ -36,6 +39,7 @@
 		"obsidian": "latest",
 		"prettier": "^3.0.0",
 		"tslib": "2.4.0",
+		"typedoc": "^0.25.13",
 		"typescript": "4.7.4"
 	}
 }

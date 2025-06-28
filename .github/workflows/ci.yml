@@ -44,6 +44,9 @@ jobs:
             - name: Quick lint
               run: npm run lint:quick
 
+            - name: Documentation check
+              run: npm run docs:check
+
     # LAYER 2: Full test suite (only on main branch and PRs to main)
     # Cost: ~$0.04 per run, ~4 minutes
     full-tests:
@@ -86,6 +89,17 @@ jobs:
 
             - name: Security audit
               run: npm audit --audit-level=moderate
+
+            - name: Build documentation
+              run: npm run docs:build
+
+            - name: Upload documentation
+              if: github.ref == 'refs/heads/main'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: documentation
+                  path: docs/
+                  retention-days: 30
 
             # Upload build artifacts for main branch
             - name: Upload build artifacts

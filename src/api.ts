@@ -1,49 +1,196 @@
 import { GranolaAuth } from './auth';
 
+/**
+ * Represents a document from the Granola API.
+ *
+ * Documents contain ProseMirror JSON content that needs to be converted
+ * to Markdown format for use in Obsidian. Each document includes metadata
+ * such as creation/update timestamps and a unique identifier.
+ *
+ * @interface GranolaDocument
+ * @since 1.0.0
+ */
 export interface GranolaDocument {
+	/** Unique identifier for the document */
 	id: string;
+
+	/** Human-readable title of the document */
 	title: string;
+
+	/** Document content in ProseMirror JSON format */
 	content: ProseMirrorDoc;
+
+	/** ISO timestamp when the document was created */
 	created_at: string;
+
+	/** ISO timestamp when the document was last updated */
 	updated_at: string;
 }
 
+/**
+ * Root document structure for ProseMirror content.
+ *
+ * ProseMirror documents follow a hierarchical node structure where
+ * the root document contains an array of top-level nodes (paragraphs,
+ * headings, lists, etc.).
+ *
+ * @interface ProseMirrorDoc
+ * @since 1.0.0
+ * @see {@link https://prosemirror.net/docs/ref/#model.Node} ProseMirror Node Documentation
+ */
 export interface ProseMirrorDoc {
+	/** Always 'doc' for root document nodes */
 	type: 'doc';
+
+	/** Array of top-level content nodes (paragraphs, headings, etc.) */
 	content?: ProseMirrorNode[];
 }
 
+/**
+ * Individual node within a ProseMirror document structure.
+ *
+ * Each node represents a semantic element (paragraph, heading, text, etc.)
+ * and may contain attributes, child content, text content, or formatting marks.
+ * The converter processes these nodes recursively to generate Markdown.
+ *
+ * @interface ProseMirrorNode
+ * @since 1.0.0
+ * @see {@link https://prosemirror.net/docs/ref/#model.Node} ProseMirror Node Documentation
+ */
 export interface ProseMirrorNode {
+	/** Node type (paragraph, heading, text, bulletList, etc.) */
 	type: string;
+
+	/** Node-specific attributes (e.g., heading level, link href) */
 	attrs?: Record<string, unknown>;
+
+	/** Child nodes for container elements */
 	content?: ProseMirrorNode[];
+
+	/** Text content for text nodes */
 	text?: string;
+
+	/** Formatting marks applied to text (bold, italic, code, links) */
 	marks?: Array<{
+		/** Mark type (strong, em, code, link) */
 		type: string;
+		/** Mark-specific attributes (e.g., link href) */
 		attrs?: Record<string, unknown>;
 	}>;
 }
 
+/**
+ * Request parameters for paginated document fetching.
+ *
+ * The Granola API supports pagination to handle large document collections.
+ * These parameters control how many documents are returned and from what offset.
+ *
+ * @interface GetDocumentsRequest
+ * @since 1.0.0
+ */
 export interface GetDocumentsRequest {
+	/** Maximum number of documents to return (default: 100, max: 100) */
 	limit?: number;
+
+	/** Number of documents to skip for pagination (default: 0) */
 	offset?: number;
 }
 
+/**
+ * Response structure from the Granola API document endpoint.
+ *
+ * Contains the requested documents along with pagination metadata
+ * to determine if additional requests are needed to fetch all documents.
+ *
+ * @interface GetDocumentsResponse
+ * @since 1.0.0
+ */
 export interface GetDocumentsResponse {
+	/** Array of documents returned in this page */
 	documents: GranolaDocument[];
+
+	/** Total number of documents available in the account */
 	total_count: number;
+
+	/** Whether more documents are available for pagination */
 	has_more: boolean;
 }
 
+/**
+ * HTTP client for interacting with the Granola REST API.
+ *
+ * This class handles all communication with Granola's backend services,
+ * including authentication, rate limiting, retry logic, and pagination.
+ * It provides a high-level interface for fetching documents while managing
+ * the complexities of API interaction.
+ *
+ * Features:
+ * - Automatic retry with exponential backoff
+ * - Rate limiting compliance (200ms between requests)
+ * - Pagination handling for large document collections
+ * - Comprehensive error handling and categorization
+ *
+ * @class GranolaAPI
+ * @since 1.0.0
+ *
+ * @example
+ * ```typescript
+ * const auth = new GranolaAuth();
+ * await auth.loadCredentials();
+ * const api = new GranolaAPI(auth);
+ * const documents = await api.getAllDocuments();
+ * ```
+ */
 export class GranolaAPI {
+	/** Base URL for all Granola API endpoints */
 	private readonly baseUrl = 'https://api.granola.ai/v2';
+
+	/** User agent string matching the official Granola client */
 	private readonly userAgent = 'Granola/5.354.0';
+
+	/** Authentication manager for API credentials */
 	private auth: GranolaAuth;
 
+	/**
+	 * Creates a new Granola API client.
+	 *
+	 * @param {GranolaAuth} auth - Authentication manager with loaded credentials
+	 *
+	 * @example
+	 * ```typescript
+	 * const auth = new GranolaAuth();
+	 * await auth.loadCredentials();
+	 * const api = new GranolaAPI(auth);
+	 * ```
+	 */
 	constructor(auth: GranolaAuth) {
 		this.auth = auth;
 	}
 
+	/**
+	 * Fetches a page of documents from the Granola API.
+	 *
+	 * This method retrieves a single page of documents with the specified
+	 * limit and offset. For fetching all documents, use getAllDocuments()
+	 * which handles pagination automatically.
+	 *
+	 * @async
+	 * @param {GetDocumentsRequest} options - Pagination options
+	 * @returns {Promise<GetDocumentsResponse>} Page of documents with metadata
+	 * @throws {Error} If API request fails or rate limit is exceeded
+	 *
+	 * @example
+	 * ```typescript
+	 * // Fetch first 50 documents
+	 * const response = await api.getDocuments({ limit: 50, offset: 0 });
+	 * console.log(`Found ${response.documents.length} documents`);
+	 *
+	 * // Check if more pages available
+	 * if (response.has_more) {
+	 *   const nextPage = await api.getDocuments({ limit: 50, offset: 50 });
+	 * }
+	 * ```
+	 */
 	async getDocuments(options: GetDocumentsRequest = {}): Promise<GetDocumentsResponse> {
 		const { limit = 100, offset = 0 } = options;
 
@@ -70,6 +217,31 @@ export class GranolaAPI {
 		return await response.json();
 	}
 
+	/**
+	 * Fetches all documents from the user's Granola account.
+	 *
+	 * This method automatically handles pagination by making multiple API requests
+	 * until all documents are retrieved. It includes rate limiting (200ms delay
+	 * between requests) to comply with API usage guidelines.
+	 *
+	 * @async
+	 * @returns {Promise<GranolaDocument[]>} Array of all documents in the account
+	 * @throws {Error} If any API request fails during pagination
+	 *
+	 * @example
+	 * ```typescript
+	 * try {
+	 *   const allDocuments = await api.getAllDocuments();
+	 *   console.log(`Retrieved ${allDocuments.length} total documents`);
+	 *
+	 *   for (const doc of allDocuments) {
+	 *     console.log(`Document: ${doc.title} (${doc.id})`);
+	 *   }
+	 * } catch (error) {
+	 *   console.error('Failed to fetch documents:', error.message);
+	 * }
+	 * ```
+	 */
 	async getAllDocuments(): Promise<GranolaDocument[]> {
 		const allDocuments: GranolaDocument[] = [];
 		let offset = 0;
@@ -93,6 +265,30 @@ export class GranolaAPI {
 		return allDocuments;
 	}
 
+	/**
+	 * Makes an HTTP request with retry logic and exponential backoff.
+	 *
+	 * This method implements robust error handling including:
+	 * - Up to 3 retry attempts for failed requests
+	 * - Exponential backoff delays (2^attempt * 1000ms)
+	 * - Special handling for rate limit (429) responses
+	 * - Network error recovery
+	 *
+	 * @private
+	 * @param {string} endpoint - API endpoint path (e.g., '/get-documents')
+	 * @param {RequestInit} options - Fetch options (method, headers, body, etc.)
+	 * @returns {Promise<Response>} The HTTP response object
+	 * @throws {Error} If all retry attempts fail
+	 *
+	 * @example
+	 * ```typescript
+	 * const response = await this.makeRequest('/get-documents', {
+	 *   method: 'POST',
+	 *   headers: { 'Authorization': `Bearer ${token}` },
+	 *   body: JSON.stringify({ limit: 100 })
+	 * });
+	 * ```
+	 */
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	private async makeRequest(endpoint: string, options: any): Promise<Response> {
 		const url = `${this.baseUrl}${endpoint}`;
@@ -125,6 +321,25 @@ export class GranolaAPI {
 		throw new Error('Maximum retry attempts exceeded');
 	}
 
+	/**
+	 * Utility method to pause execution for a specified duration.
+	 *
+	 * Used for implementing delays between API requests to respect
+	 * rate limits and for exponential backoff in retry logic.
+	 *
+	 * @private
+	 * @param {number} ms - Number of milliseconds to sleep
+	 * @returns {Promise<void>} Resolves after the specified delay
+	 *
+	 * @example
+	 * ```typescript
+	 * // Wait 200ms between paginated requests
+	 * await this.sleep(200);
+	 *
+	 * // Exponential backoff: wait 2 seconds on second retry
+	 * await this.sleep(2000);
+	 * ```
+	 */
 	private sleep(ms: number): Promise<void> {
 		return new Promise(resolve => setTimeout(resolve, ms));
 	}

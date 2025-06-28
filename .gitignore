@@ -30,3 +30,9 @@ Thumbs.db
 .env
 .env.local
 .env.production
+
+# Bundle analysis
+meta.json
+
+# Documentation build output
+docs/
