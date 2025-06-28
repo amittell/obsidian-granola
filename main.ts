@@ -40,33 +40,99 @@ export default class GranolaImporterPlugin extends Plugin {
 			notice.setMessage('Fetching documents from Granola...');
 			const documents = await this.api.getAllDocuments();
 
+			// Validate documents
+			if (!documents || documents.length === 0) {
+				notice.hide();
+				new Notice('No documents found in Granola account', 5000);
+				return;
+			}
+
 			notice.setMessage(`Converting ${documents.length} documents...`);
 
-			// Convert and save documents
+			// Track progress and errors
+			let successCount = 0;
+			let errorCount = 0;
+			const errors: string[] = [];
+
+			// Convert and save documents with enhanced progress reporting
 			for (let i = 0; i < documents.length; i++) {
 				const doc = documents[i];
-				notice.setMessage(`Converting document ${i + 1}/${documents.length}: ${doc.title}`);
+				const percentage = Math.round(((i + 1) / documents.length) * 100);
+				notice.setMessage(
+					`Converting ${i + 1}/${documents.length} (${percentage}%): ${doc.title || 'Untitled'}`
+				);
 
-				const convertedNote = this.converter.convertDocument(doc);
+				try {
+					const convertedNote = this.converter.convertDocument(doc);
 
-				// Check if file already exists
-				const existingFile = this.app.vault.getAbstractFileByPath(convertedNote.filename);
-				if (existingFile instanceof TFile) {
-					notice.setMessage(`Updating existing note: ${convertedNote.filename}`);
-					await this.app.vault.modify(existingFile, convertedNote.content);
-				} else {
-					notice.setMessage(`Creating new note: ${convertedNote.filename}`);
-					await this.app.vault.create(convertedNote.filename, convertedNote.content);
+					// Check if file already exists
+					const existingFile = this.app.vault.getAbstractFileByPath(
+						convertedNote.filename
+					);
+					if (existingFile instanceof TFile) {
+						await this.app.vault.modify(existingFile, convertedNote.content);
+					} else {
+						await this.app.vault.create(convertedNote.filename, convertedNote.content);
+					}
+
+					successCount++;
+				} catch (docError) {
+					errorCount++;
+					const errorMsg = docError instanceof Error ? docError.message : 'Unknown error';
+					errors.push(`${doc.title || 'Untitled'}: ${errorMsg}`);
+					console.warn(`Failed to convert document ${doc.title}:`, docError);
 				}
 			}
 
 			notice.hide();
-			new Notice(`Successfully imported ${documents.length} notes from Granola!`, 5000);
+
+			// Enhanced completion message
+			if (errorCount === 0) {
+				new Notice(`Successfully imported ${successCount} notes from Granola! 🎉`, 5000);
+			} else {
+				new Notice(
+					`Import complete: ${successCount} succeeded, ${errorCount} failed. Check console for details.`,
+					8000
+				);
+				if (errors.length > 0) {
+					console.error('Import errors:', errors);
+				}
+			}
 		} catch (error) {
 			notice.hide();
 			console.error('Granola import failed:', error);
-			const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-			new Notice(`Import failed: ${errorMessage}`, 10000);
+
+			// Enhanced error categorization
+			let userMessage = 'Import failed: ';
+			if (error instanceof Error) {
+				const message = error.message.toLowerCase();
+				if (
+					message.includes('credentials') ||
+					message.includes('unauthorized') ||
+					message.includes('invalid token')
+				) {
+					userMessage +=
+						'Please check your Granola credentials and ensure the app is properly logged in.';
+				} else if (
+					message.includes('network') ||
+					message.includes('fetch') ||
+					message.includes('connection')
+				) {
+					userMessage +=
+						'Network error - please check your internet connection and try again.';
+				} else if (message.includes('rate limit') || message.includes('429')) {
+					userMessage += 'Rate limit exceeded - please wait a moment and try again.';
+				} else if (message.includes('vault') || message.includes('file')) {
+					userMessage +=
+						'File system error - check vault permissions and available disk space.';
+				} else {
+					userMessage += error.message;
+				}
+			} else {
+				userMessage += 'Unknown error occurred. Check console for details.';
+			}
+
+			new Notice(userMessage, 10000);
 		}
 	}
 }

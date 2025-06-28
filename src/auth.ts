@@ -80,6 +80,11 @@ export class GranolaAuth {
 			throw new Error(`Invalid token type: ${config.token_type}`);
 		}
 
+		// Enhanced token format validation
+		if (!config.access_token.match(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$/)) {
+			throw new Error('Invalid token format');
+		}
+
 		if (Date.now() > config.expires_at * 1000) {
 			throw new Error('Access token has expired');
 		}
@@ -99,5 +104,40 @@ export class GranolaAuth {
 		}
 
 		return Date.now() > this.credentials.expires_at * 1000;
+	}
+
+	async refreshToken(): Promise<void> {
+		if (!this.credentials?.refresh_token) {
+			throw new Error('No refresh token available');
+		}
+
+		try {
+			// Note: This would require implementing the actual refresh endpoint
+			// For now, we'll throw an informative error directing users to re-authenticate
+			throw new Error(
+				'Token refresh not yet implemented. Please re-authenticate in the Granola app.'
+			);
+
+			// Future implementation would look like:
+			// const response = await fetch('https://api.granola.ai/auth/refresh', {
+			//     method: 'POST',
+			//     headers: { 'Content-Type': 'application/json' },
+			//     body: JSON.stringify({ refresh_token: this.credentials.refresh_token })
+			// });
+			// const newTokens = await response.json();
+			// this.credentials = { ...this.credentials, ...newTokens };
+		} catch (error) {
+			this.credentials = null; // Clear invalid credentials
+			const errorMessage = error instanceof Error ? error.message : 'Token refresh failed';
+			throw new Error(`Token refresh failed: ${errorMessage}`);
+		}
+	}
+
+	clearCredentials(): void {
+		this.credentials = null;
+	}
+
+	hasValidCredentials(): boolean {
+		return this.credentials !== null && !this.isTokenExpired();
 	}
 }

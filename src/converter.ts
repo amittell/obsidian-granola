@@ -61,6 +61,18 @@ export class ProseMirrorConverter {
 			case 'hardBreak':
 				return '\n';
 
+			case 'codeBlock':
+				return this.convertCodeBlock(node);
+
+			case 'blockquote':
+				return this.convertBlockquote(node);
+
+			case 'table':
+				return this.convertTable(node);
+
+			case 'horizontalRule':
+				return '---';
+
 			default:
 				// Handle unknown nodes by processing their content
 				if (node.content) {
@@ -146,6 +158,67 @@ export class ProseMirrorConverter {
 		}
 
 		return text;
+	}
+
+	private convertCodeBlock(node: ProseMirrorNode): string {
+		const language = (node.attrs?.language as string) || '';
+		const code = node.content?.map(child => child.text || '').join('\n') || node.text || '';
+		return `\`\`\`${language}\n${code}\n\`\`\``;
+	}
+
+	private convertBlockquote(node: ProseMirrorNode): string {
+		if (!node.content) {
+			return '> ';
+		}
+
+		return node.content
+			.map(child => {
+				const content = this.convertNode(child);
+				return content
+					.split('\n')
+					.map(line => `> ${line}`)
+					.join('\n');
+			})
+			.join('\n');
+	}
+
+	private convertTable(node: ProseMirrorNode): string {
+		if (!node.content) {
+			return '';
+		}
+
+		const rows = node.content.map(row => this.convertTableRow(row));
+
+		if (rows.length === 0) {
+			return '';
+		}
+
+		// Add header separator after first row
+		if (rows.length > 0) {
+			const headerSeparator = this.generateTableHeaderSeparator(rows[0]);
+			rows.splice(1, 0, headerSeparator);
+		}
+
+		return rows.join('\n');
+	}
+
+	private convertTableRow(node: ProseMirrorNode): string {
+		if (!node.content) {
+			return '|  |';
+		}
+
+		const cells = node.content.map(cell => {
+			const content = cell.content?.map(child => this.convertNode(child)).join('') || '';
+			return ` ${content.trim()} `;
+		});
+
+		return `|${cells.join('|')}|`;
+	}
+
+	private generateTableHeaderSeparator(headerRow: string): string {
+		const cellCount = (headerRow.match(/\|/g) || []).length - 1;
+		const separators = Array(cellCount).fill(' --- ');
+		return `|${separators.join('|')}|`;
 	}
 
 	private generateFrontmatter(doc: GranolaDocument): NoteFrontmatter {
