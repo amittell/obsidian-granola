@@ -17,7 +17,7 @@
 		"lint": "eslint . --ext .ts,.tsx --max-warnings 0",
 		"lint:quick": "eslint main.ts src/ --ext .ts --max-warnings 0",
 		"lint:fix": "eslint . --ext .ts,.tsx --fix",
-		"analyze": "node esbuild.config.mjs production --metafile=meta.json && node -e \"const fs=require('fs'); const meta=JSON.parse(fs.readFileSync('meta.json')); console.log('Bundle size:', fs.statSync('main.js').size, 'bytes'); console.log('Dependencies:', Object.keys(meta.inputs).length, 'files'); console.log('Tree shaking savings:', Object.values(meta.outputs).reduce((acc,o)=>acc+o.bytes,0)-fs.statSync('main.js').size, 'bytes');\"",
+		"analyze": "node esbuild.config.mjs production --metafile=meta.json && node -e \"const fs=require('fs'); const meta=JSON.parse(fs.readFileSync('meta.json')); const inputSize=Object.values(meta.inputs).reduce((acc,i)=>acc+i.bytes,0); const outputSize=fs.statSync('main.js').size; console.log('Bundle size:', outputSize, 'bytes'); console.log('Dependencies:', Object.keys(meta.inputs).length, 'files'); console.log('Size reduction:', inputSize-outputSize, 'bytes (' + Math.round((1-outputSize/inputSize)*100) + '% smaller)');\"",
 		"perf": "npm run analyze && npm audit --audit-level moderate",
 		"docs:build": "typedoc",
 		"docs:check": "typedoc --emit none",
