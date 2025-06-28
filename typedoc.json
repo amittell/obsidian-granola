@@ -1,0 +1,38 @@
+{
+	"$schema": "https://typedoc.org/schema.json",
+	"entryPoints": ["main.ts", "src/auth.ts", "src/api.ts", "src/converter.ts"],
+	"out": "docs",
+	"name": "Obsidian Granola Importer",
+	"readme": "README.md",
+	"excludePrivate": false,
+	"excludeProtected": false,
+	"excludeExternals": true,
+	"excludeNotDocumented": false,
+	"includeVersion": true,
+	"sort": ["source-order"],
+	"kindSortOrder": ["Module", "Class", "Interface", "Function", "Variable"],
+	"categorizeByGroup": true,
+	"defaultCategory": "Other",
+	"categoryOrder": ["Classes", "Interfaces", "Functions", "*"],
+	"gitRevision": "main",
+	"gitRemote": "origin",
+	"hideGenerator": false,
+	"visibilityFilters": {
+		"protected": false,
+		"private": false,
+		"inherited": true,
+		"external": false
+	},
+	"searchInComments": true,
+	"cleanOutputDir": true,
+	"titleLink": "https://github.com/amittell/obsidian-granola",
+	"navigationLinks": {
+		"GitHub": "https://github.com/amittell/obsidian-granola",
+		"Issues": "https://github.com/amittell/obsidian-granola/issues"
+	},
+	"sidebarLinks": {
+		"Obsidian": "https://obsidian.md/",
+		"Granola": "https://granola.ai/"
+	},
+	"theme": "default"
+}

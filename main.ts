@@ -3,18 +3,69 @@ import { GranolaAuth } from './src/auth';
 import { GranolaAPI } from './src/api';
 import { ProseMirrorConverter } from './src/converter';
 
+/**
+ * Obsidian plugin for importing notes from Granola AI.
+ *
+ * This plugin enables seamless import of documents from a Granola account into Obsidian,
+ * converting ProseMirror JSON content to Markdown format with proper frontmatter.
+ *
+ * @example
+ * ```typescript
+ * // Plugin is automatically instantiated by Obsidian
+ * // Users can trigger import via Command Palette: "Import Granola Notes"
+ * ```
+ *
+ * @author Claude AI Assistant
+ * @version 1.0.0
+ * @since 1.0.0
+ */
 export default class GranolaImporterPlugin extends Plugin {
+	/**
+	 * Authentication manager for Granola API credentials.
+	 * Handles loading, validation, and token management.
+	 * @private
+	 */
 	private auth!: GranolaAuth;
+
+	/**
+	 * API client for communicating with Granola's REST API.
+	 * Provides methods for fetching documents and handling rate limiting.
+	 * @private
+	 */
 	private api!: GranolaAPI;
+
+	/**
+	 * Document converter for transforming ProseMirror JSON to Markdown.
+	 * Handles complex node types, formatting, and frontmatter generation.
+	 * @private
+	 */
 	private converter!: ProseMirrorConverter;
 
-	async onload() {
+	/**
+	 * Plugin lifecycle method called when the plugin is loaded.
+	 *
+	 * Initializes the authentication, API, and converter components,
+	 * then registers the import command in Obsidian's command palette.
+	 *
+	 * @async
+	 * @returns {Promise<void>} Resolves when plugin initialization is complete
+	 * @throws {Error} If plugin initialization fails
+	 *
+	 * @example
+	 * ```typescript
+	 * // Called automatically by Obsidian when plugin is enabled
+	 * await plugin.onload();
+	 * ```
+	 */
+	async onload(): Promise<void> {
 		console.log('Loading Granola Importer Plugin');
 
+		// Initialize core components
 		this.auth = new GranolaAuth();
 		this.api = new GranolaAPI(this.auth);
 		this.converter = new ProseMirrorConverter();
 
+		// Register command in Obsidian's command palette
 		this.addCommand({
 			id: 'import-granola-notes',
 			name: 'Import Granola Notes',
@@ -24,11 +75,55 @@ export default class GranolaImporterPlugin extends Plugin {
 		});
 	}
 
-	onunload() {
+	/**
+	 * Plugin lifecycle method called when the plugin is unloaded.
+	 *
+	 * Performs cleanup operations and logs the unload event.
+	 * Currently no specific cleanup is required as all resources
+	 * are managed automatically.
+	 *
+	 * @returns {void}
+	 *
+	 * @example
+	 * ```typescript
+	 * // Called automatically by Obsidian when plugin is disabled
+	 * plugin.onunload();
+	 * ```
+	 */
+	onunload(): void {
 		console.log('Unloading Granola Importer Plugin');
 	}
 
-	async importGranolaNotes() {
+	/**
+	 * Imports all documents from the user's Granola account into Obsidian.
+	 *
+	 * This method orchestrates the complete import process:
+	 * 1. Loads and validates Granola credentials
+	 * 2. Fetches all documents from the Granola API
+	 * 3. Converts ProseMirror JSON to Markdown format
+	 * 4. Creates or updates files in the Obsidian vault
+	 * 5. Provides real-time progress feedback to the user
+	 * 6. Handles errors gracefully with categorized error messages
+	 *
+	 * @async
+	 * @returns {Promise<void>} Resolves when import process completes
+	 * @throws {Error} Various error types for different failure scenarios:
+	 *   - Credential errors: Invalid or expired authentication
+	 *   - Network errors: Connection or API failures
+	 *   - Rate limit errors: Too many requests to Granola API
+	 *   - Vault errors: File system or permission issues
+	 *
+	 * @example
+	 * ```typescript
+	 * // Typically called via Command Palette
+	 * await plugin.importGranolaNotes();
+	 * ```
+	 *
+	 * @see {@link GranolaAuth.loadCredentials} For credential loading
+	 * @see {@link GranolaAPI.getAllDocuments} For document fetching
+	 * @see {@link ProseMirrorConverter.convertDocument} For content conversion
+	 */
+	async importGranolaNotes(): Promise<void> {
 		const notice = new Notice('Starting Granola import...', 0);
 
 		try {
