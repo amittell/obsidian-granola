@@ -116,6 +116,13 @@ export interface GetDocumentsResponse {
 	has_more: boolean;
 }
 
+// API Configuration Constants
+const DEFAULT_PAGE_SIZE = 100;
+const RATE_LIMIT_DELAY_MS = 200;
+const MAX_RETRY_ATTEMPTS = 3;
+const EXPONENTIAL_BACKOFF_BASE_MS = 1000;
+const DEFAULT_GRANOLA_VERSION = '5.354.0';
+
 /**
  * HTTP client for interacting with the Granola REST API.
  *
@@ -203,7 +210,7 @@ export class GranolaAPI {
 				throw new Error('Package.json not found');
 			}
 		} catch {
-			this.userAgent = `Granola/${this.defaultGranolaVersion}`;
+			this.userAgent = `Granola/${DEFAULT_GRANOLA_VERSION}`;
 		}
 	}
 
@@ -232,7 +239,7 @@ export class GranolaAPI {
 	 * ```
 	 */
 	async getDocuments(options: GetDocumentsRequest = {}): Promise<GetDocumentsResponse> {
-		const { limit = 100, offset = 0 } = options;
+		const { limit = DEFAULT_PAGE_SIZE, offset = 0 } = options;
 
 		const response = await this.makeRequest('/get-documents', {
 			method: 'POST',
@@ -285,7 +292,7 @@ export class GranolaAPI {
 	async getAllDocuments(): Promise<GranolaDocument[]> {
 		const allDocuments: GranolaDocument[] = [];
 		let offset = 0;
-		const limit = 100;
+		const limit = DEFAULT_PAGE_SIZE;
 		let hasMore = true;
 
 		while (hasMore) {
@@ -298,7 +305,7 @@ export class GranolaAPI {
 
 			// Rate limiting: wait between requests
 			if (hasMore) {
-				await this.sleep(200); // 200ms delay
+				await this.sleep(RATE_LIMIT_DELAY_MS); // Rate limiting delay
 			}
 		}
 
@@ -338,12 +345,12 @@ export class GranolaAPI {
 		const url = `${this.baseUrl}${endpoint}`;
 
 		// Retry logic with exponential backoff
-		for (let attempt = 1; attempt <= 3; attempt++) {
+		for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
 			try {
 				const response = await fetch(url, options);
 
-				if (response.status === 429 && attempt < 3) {
-					const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
+				if (response.status === 429 && attempt < MAX_RETRY_ATTEMPTS) {
+					const delay = Math.pow(2, attempt) * EXPONENTIAL_BACKOFF_BASE_MS; // Exponential backoff
 					await this.sleep(delay);
 					continue;
 				}
@@ -357,7 +364,7 @@ export class GranolaAPI {
 					);
 				}
 
-				const delay = Math.pow(2, attempt) * 1000;
+				const delay = Math.pow(2, attempt) * EXPONENTIAL_BACKOFF_BASE_MS;
 				await this.sleep(delay);
 			}
 		}

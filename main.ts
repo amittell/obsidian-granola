@@ -3,6 +3,15 @@ import { GranolaAuth } from './src/auth';
 import { GranolaAPI } from './src/api';
 import { ProseMirrorConverter } from './src/converter';
 
+// Error Message Constants
+const ERROR_MESSAGES = {
+	CREDENTIALS: 'Please check your Granola credentials and ensure the app is properly logged in.',
+	NETWORK: 'Network error - please check your internet connection and try again.',
+	RATE_LIMIT: 'Rate limit exceeded - please wait a moment and try again.',
+	FILE_SYSTEM: 'File system error - check vault permissions and available disk space.',
+	UNKNOWN: 'Unknown error occurred. Check console for details.'
+} as const;
+
 /**
  * Obsidian plugin for importing notes from Granola AI.
  *
@@ -15,7 +24,7 @@ import { ProseMirrorConverter } from './src/converter';
  * // Users can trigger import via Command Palette: "Import Granola Notes"
  * ```
  *
- * @author Claude AI Assistant
+ * @author Alex Mittell
  * @version 1.0.0
  * @since 1.0.0
  */
@@ -58,7 +67,7 @@ export default class GranolaImporterPlugin extends Plugin {
 	 * ```
 	 */
 	async onload(): Promise<void> {
-		console.log('Loading Granola Importer Plugin');
+		// Plugin initialization
 
 		// Initialize core components
 		this.auth = new GranolaAuth();
@@ -91,7 +100,7 @@ export default class GranolaImporterPlugin extends Plugin {
 	 * ```
 	 */
 	onunload(): void {
-		console.log('Unloading Granola Importer Plugin');
+		// Plugin cleanup
 	}
 
 	/**
@@ -183,7 +192,7 @@ export default class GranolaImporterPlugin extends Plugin {
 
 			// Enhanced completion message
 			if (errorCount === 0) {
-				new Notice(`Successfully imported ${successCount} notes from Granola! 🎉`, 5000);
+				new Notice(`Successfully imported ${successCount} notes from Granola!`, 5000);
 			} else {
 				new Notice(
 					`Import complete: ${successCount} succeeded, ${errorCount} failed. Check console for details.`,
@@ -206,25 +215,22 @@ export default class GranolaImporterPlugin extends Plugin {
 					message.includes('unauthorized') ||
 					message.includes('invalid token')
 				) {
-					userMessage +=
-						'Please check your Granola credentials and ensure the app is properly logged in.';
+					userMessage += ERROR_MESSAGES.CREDENTIALS;
 				} else if (
 					message.includes('network') ||
 					message.includes('fetch') ||
 					message.includes('connection')
 				) {
-					userMessage +=
-						'Network error - please check your internet connection and try again.';
+					userMessage += ERROR_MESSAGES.NETWORK;
 				} else if (message.includes('rate limit') || message.includes('429')) {
-					userMessage += 'Rate limit exceeded - please wait a moment and try again.';
+					userMessage += ERROR_MESSAGES.RATE_LIMIT;
 				} else if (message.includes('vault') || message.includes('file')) {
-					userMessage +=
-						'File system error - check vault permissions and available disk space.';
+					userMessage += ERROR_MESSAGES.FILE_SYSTEM;
 				} else {
 					userMessage += error.message;
 				}
 			} else {
-				userMessage += 'Unknown error occurred. Check console for details.';
+				userMessage += ERROR_MESSAGES.UNKNOWN;
 			}
 
 			new Notice(userMessage, 10000);

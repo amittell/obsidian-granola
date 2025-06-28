@@ -2,6 +2,10 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { homedir, platform } from 'os';
 
+// Authentication Constants
+const JWT_PARTS_COUNT = 3;
+const TIMESTAMP_CONVERSION_FACTOR = 1000;
+
 /**
  * Represents the authentication credentials required for Granola API access.
  *
@@ -217,11 +221,11 @@ export class GranolaAuth {
 
 		// Enhanced JWT format validation - should have exactly 3 non-empty parts
 		const tokenParts = config.access_token.split('.');
-		if (tokenParts.length !== 3 || tokenParts.some(part => part.length === 0)) {
+		if (tokenParts.length !== JWT_PARTS_COUNT || tokenParts.some(part => part.length === 0)) {
 			throw new Error('Invalid token format');
 		}
 
-		if (Date.now() > config.expires_at * 1000) {
+		if (Date.now() > config.expires_at * TIMESTAMP_CONVERSION_FACTOR) {
 			throw new Error('Access token has expired');
 		}
 	}
@@ -273,7 +277,7 @@ export class GranolaAuth {
 			return true;
 		}
 
-		return Date.now() > this.credentials.expires_at * 1000;
+		return Date.now() > this.credentials.expires_at * TIMESTAMP_CONVERSION_FACTOR;
 	}
 
 	/**

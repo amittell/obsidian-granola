@@ -1,5 +1,8 @@
 import { ProseMirrorDoc, ProseMirrorNode, GranolaDocument } from './api';
 
+// Converter Constants
+const MAX_FILENAME_LENGTH = 100;
+
 /**
  * Represents a successfully converted document ready for Obsidian import.
  *
@@ -728,6 +731,6 @@ export class ProseMirrorConverter {
 			.replace(/[<>:"/\\|?*]/g, '-')
 			.replace(/\s+/g, ' ')
 			.trim()
-			.substring(0, 100); // Limit length
+			.substring(0, MAX_FILENAME_LENGTH); // Limit length
 	}
 }

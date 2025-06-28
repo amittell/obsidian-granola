@@ -83,24 +83,20 @@ describe('GranolaImporterPlugin Integration', () => {
       });
     });
 
-    it('should log loading message', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-
+    it('should initialize plugin components', async () => {
       await plugin.onload();
 
-      expect(consoleSpy).toHaveBeenCalledWith('Loading Granola Importer Plugin');
-      consoleSpy.mockRestore();
+      // Verify plugin components are initialized
+      expect((plugin as any).auth).toBeDefined();
+      expect((plugin as any).api).toBeDefined();
+      expect((plugin as any).converter).toBeDefined();
     });
   });
 
   describe('onunload', () => {
-    it('should log unloading message', () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-
-      plugin.onunload();
-
-      expect(consoleSpy).toHaveBeenCalledWith('Unloading Granola Importer Plugin');
-      consoleSpy.mockRestore();
+    it('should complete cleanup', () => {
+      // onunload method should execute without errors
+      expect(() => plugin.onunload()).not.toThrow();
     });
   });
 
