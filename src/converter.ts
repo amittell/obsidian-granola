@@ -427,6 +427,12 @@ export class ProseMirrorConverter {
 	 * language specification if provided in the node attributes.
 	 * Handles multi-line code content properly.
 	 *
+	 * TODO: Add unit tests to cover edge cases:
+	 * - Empty content nodes
+	 * - Missing language attributes
+	 * - Multiline content with various line endings
+	 * - Content with special characters or backticks
+	 *
 	 * @private
 	 * @param {ProseMirrorNode} node - Code block node with optional language
 	 * @returns {string} Fenced Markdown code block
@@ -498,6 +504,12 @@ export class ProseMirrorConverter {
 	 * Processes table rows and generates a properly formatted Markdown table
 	 * with pipe separators. Automatically adds a header separator row after
 	 * the first row to comply with Markdown table syntax.
+	 *
+	 * TODO: Add unit tests to cover edge cases:
+	 * - Tables with no content
+	 * - Single row tables
+	 * - Tables with missing cells
+	 * - Complex nested content in cells
 	 *
 	 * @private
 	 * @param {ProseMirrorNode} node - Table node containing row nodes
@@ -590,6 +602,11 @@ export class ProseMirrorConverter {
 	 * Creates the required separator row that goes between the header
 	 * and data rows in Markdown tables. Counts the number of columns
 	 * from the header row and generates appropriate "---" separators.
+	 *
+	 * TODO: Add unit tests to cover edge cases:
+	 * - Header rows with no pipes
+	 * - Header rows with escaped pipes
+	 * - Malformed header rows
 	 *
 	 * @private
 	 * @param {string} headerRow - The header row string to analyze

@@ -215,8 +215,8 @@ export class GranolaAuth {
 			throw new Error(`Invalid token type: ${config.token_type}`);
 		}
 
-		// Enhanced token format validation
-		if (!config.access_token.match(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$/)) {
+		// Enhanced token format validation - JWT should have exactly 3 parts separated by dots
+		if (!config.access_token.includes('.') || config.access_token.split('.').length !== 3) {
 			throw new Error('Invalid token format');
 		}
 

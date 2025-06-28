@@ -145,7 +145,11 @@ export class GranolaAPI {
 	/** Base URL for all Granola API endpoints */
 	private readonly baseUrl = 'https://api.granola.ai/v2';
 
-	/** User agent string matching the official Granola client */
+	/**
+	 * User agent string matching the official Granola client.
+	 * Note: Update this version periodically to match the latest Granola app client.
+	 * Current version: 5.354.0 (last updated: 2024-12)
+	 */
 	private readonly userAgent = 'Granola/5.354.0';
 
 	/** Authentication manager for API credentials */
@@ -276,7 +280,7 @@ export class GranolaAPI {
 	 *
 	 * @private
 	 * @param {string} endpoint - API endpoint path (e.g., '/get-documents')
-	 * @param {RequestInit} options - Fetch options (method, headers, body, etc.)
+	 * @param {object} options - Fetch options (method, headers, body, etc.)
 	 * @returns {Promise<Response>} The HTTP response object
 	 * @throws {Error} If all retry attempts fail
 	 *
@@ -289,8 +293,14 @@ export class GranolaAPI {
 	 * });
 	 * ```
 	 */
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	private async makeRequest(endpoint: string, options: any): Promise<Response> {
+	private async makeRequest(
+		endpoint: string,
+		options: {
+			method: string;
+			headers: Record<string, string>;
+			body?: string;
+		}
+	): Promise<Response> {
 		const url = `${this.baseUrl}${endpoint}`;
 
 		// Retry logic with exponential backoff
