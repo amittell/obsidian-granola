@@ -292,15 +292,15 @@ export class ProseMirrorConverter {
 	}
 
 	/**
-	 * Validates whether a ProseMirror document has valid structure.
+	 * Validates whether a ProseMirror document has valid structure and extractable content.
 	 *
 	 * This function validates the basic structure of a ProseMirror document
-	 * but does not reject documents based on text extraction failures.
-	 * Content extraction should happen during conversion, not validation.
+	 * and also checks if the document contains actual extractable content
+	 * (not just empty paragraphs).
 	 *
 	 * @private
 	 * @param {ProseMirrorDoc} doc - ProseMirror document to validate
-	 * @returns {boolean} True if document has valid structure
+	 * @returns {boolean} True if document has valid structure AND extractable content
 	 */
 	private isValidProseMirrorDoc(doc: ProseMirrorDoc): boolean {
 		if (!doc) {
@@ -330,9 +330,53 @@ export class ProseMirrorConverter {
 			JSON.stringify(doc, null, 2)
 		);
 
-		// Only validate structure - let conversion handle text extraction
-		this.logger.debug(`ProseMirror doc structure validation passed`);
+		// Check if document contains only empty paragraphs
+		const hasActualContent = this.hasExtractableContent(doc.content);
+		if (!hasActualContent) {
+			this.logger.debug(`ProseMirror doc contains only empty paragraphs - no extractable content`);
+			return false;
+		}
+
+		this.logger.debug(`ProseMirror doc structure validation passed with extractable content`);
 		return true;
+	}
+
+	/**
+	 * Checks if ProseMirror content nodes contain extractable text content.
+	 *
+	 * This method performs a quick scan to determine if nodes contain actual
+	 * text content or only empty structural elements (like empty paragraphs).
+	 * It's used to avoid processing documents that appear valid structurally
+	 * but contain no meaningful content.
+	 *
+	 * @private
+	 * @param {ProseMirrorNode[]} nodes - Array of ProseMirror nodes to check
+	 * @returns {boolean} True if any node contains extractable text content
+	 */
+	private hasExtractableContent(nodes: ProseMirrorNode[]): boolean {
+		for (const node of nodes) {
+			// Direct text content
+			if (node.text && node.text.trim()) {
+				this.logger.debug(`Found extractable text: "${node.text.trim()}"`);
+				return true;
+			}
+
+			// Non-empty content arrays - recursively check
+			if (node.content && Array.isArray(node.content) && node.content.length > 0) {
+				if (this.hasExtractableContent(node.content)) {
+					return true;
+				}
+			}
+
+			// Non-paragraph structural elements with content indicate meaningful structure
+			if (node.type && node.type !== 'paragraph' && node.content && node.content.length > 0) {
+				this.logger.debug(`Found structural content node: ${node.type} with ${node.content.length} children`);
+				return true;
+			}
+		}
+
+		this.logger.debug(`No extractable content found in ${nodes.length} nodes`);
+		return false;
 	}
 
 	/**
