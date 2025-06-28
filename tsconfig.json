@@ -17,8 +17,9 @@
 		"skipLibCheck": true,
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
-		"resolveJsonModule": true
+		"resolveJsonModule": true,
+		"isolatedModules": true
 	},
 	"include": ["**/*.ts", "**/*.tsx"],
-	"exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
+	"exclude": ["node_modules", "build", "dist", "**/*.test.ts", "**/*.spec.ts", "tests/**/*"]
 }

@@ -19,6 +19,8 @@ else
     VAULT_PATH="$HOME/Documents/ObsidianVault"
 fi
 
+VAULT_PATH="/Users/alex/Documents/Alex's Messy Mind"
+
 # Plugin name and paths
 PLUGIN_NAME="granola-importer"
 PLUGIN_DIR="$VAULT_PATH/.obsidian/plugins/$PLUGIN_NAME"
