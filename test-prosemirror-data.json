@@ -1,0 +1,205 @@
+{
+  "validDocumentWithContent": {
+    "id": "test-doc-1",
+    "title": "Weekly Team Sync",
+    "created_at": "2025-06-21T14:30:00.000Z",
+    "updated_at": "2025-06-21T15:00:00.000Z",
+    "user_id": "user-123",
+    "notes": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "heading",
+          "attrs": { "level": 1 },
+          "content": [
+            { "type": "text", "text": "Team Sync - June 21, 2025" }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Today we discussed the following key points:" }
+          ]
+        },
+        {
+          "type": "bulletList",
+          "content": [
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "text", "text": "Project status updates" }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "text", "text": "Resource allocation for Q3" }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": { "level": 2 },
+          "content": [
+            { "type": "text", "text": "Action Items" }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Follow up with " },
+            { "type": "text", "text": "marketing team", "marks": [{ "type": "strong" }] },
+            { "type": "text", "text": " by Friday." }
+          ]
+        }
+      ]
+    },
+    "notes_plain": "Team Sync - June 21, 2025\n\nToday we discussed the following key points:\n- Project status updates\n- Resource allocation for Q3\n\nAction Items\nFollow up with marketing team by Friday.",
+    "notes_markdown": "# Team Sync - June 21, 2025\n\nToday we discussed the following key points:\n\n- Project status updates\n- Resource allocation for Q3\n\n## Action Items\n\nFollow up with **marketing team** by Friday."
+  },
+  "emptyProseMirrorDoc": {
+    "id": "test-doc-2",
+    "title": "Empty Meeting Notes",
+    "created_at": "2025-06-20T10:00:00.000Z",
+    "updated_at": "2025-06-20T10:05:00.000Z",
+    "user_id": "user-123",
+    "notes": {
+      "type": "doc",
+      "content": []
+    },
+    "notes_plain": "",
+    "notes_markdown": ""
+  },
+  "invalidProseMirrorDoc": {
+    "id": "test-doc-3",
+    "title": "Corrupted Document",
+    "created_at": "2025-06-19T09:00:00.000Z",
+    "updated_at": "2025-06-19T09:15:00.000Z",
+    "user_id": "user-123",
+    "notes": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "" }
+          ]
+        }
+      ]
+    },
+    "notes_plain": "This document has actual plain text content despite broken ProseMirror structure.",
+    "notes_markdown": ""
+  },
+  "fallbackToMarkdown": {
+    "id": "test-doc-4",
+    "title": "Fallback Test",
+    "created_at": "2025-06-18T16:20:00.000Z",
+    "updated_at": "2025-06-18T16:25:00.000Z",
+    "user_id": "user-123",
+    "notes": null,
+    "notes_plain": "This is plain text fallback content.\n\nIt should be used when ProseMirror fails.",
+    "notes_markdown": "# Fallback Test\n\nThis is **markdown** fallback content.\n\nIt should be preferred over plain text."
+  },
+  "onlyPlainTextAvailable": {
+    "id": "test-doc-5",
+    "title": "Plain Text Only",
+    "created_at": "2025-06-17T11:45:00.000Z",
+    "updated_at": "2025-06-17T11:50:00.000Z",
+    "user_id": "user-123",
+    "notes": null,
+    "notes_plain": "Only plain text is available for this document.\n\nNo ProseMirror or Markdown content exists.",
+    "notes_markdown": ""
+  },
+  "complexProseMirrorDoc": {
+    "id": "test-doc-6",
+    "title": "Alex <> Shannon 1:1",
+    "created_at": "2025-06-21T14:30:00.000Z",
+    "updated_at": "2025-06-21T15:00:00.000Z",
+    "user_id": "user-123",
+    "notes": {
+      "type": "doc",
+      "content": [
+        {
+          "type": "heading",
+          "attrs": { "level": 1 },
+          "content": [
+            { "type": "text", "text": "1:1 Meeting - Alex & Shannon" }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Meeting date: " },
+            { "type": "text", "text": "June 21, 2025", "marks": [{ "type": "em" }] }
+          ]
+        },
+        {
+          "type": "heading",
+          "attrs": { "level": 2 },
+          "content": [
+            { "type": "text", "text": "Discussion Topics" }
+          ]
+        },
+        {
+          "type": "orderedList",
+          "content": [
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "text", "text": "Q3 project roadmap" }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "text", "text": "Team performance review" }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "listItem",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    { "type": "text", "text": "Career development goals" }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            { "type": "text", "text": "Key takeaway: Focus on " },
+            { "type": "text", "text": "automated testing", "marks": [{ "type": "code" }] },
+            { "type": "text", "text": " improvements." }
+          ]
+        }
+      ]
+    },
+    "notes_plain": "1:1 Meeting - Alex & Shannon\n\nMeeting date: June 21, 2025\n\nDiscussion Topics\n1. Q3 project roadmap\n2. Team performance review\n3. Career development goals\n\nKey takeaway: Focus on automated testing improvements.",
+    "notes_markdown": "# 1:1 Meeting - Alex & Shannon\n\nMeeting date: *June 21, 2025*\n\n## Discussion Topics\n\n1. Q3 project roadmap\n2. Team performance review\n3. Career development goals\n\nKey takeaway: Focus on `automated testing` improvements."
+  }
+}

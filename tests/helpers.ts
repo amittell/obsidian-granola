@@ -1,18 +1,34 @@
 import { jest } from '@jest/globals';
+import { Logger, DEFAULT_SETTINGS } from '../src/settings';
 
-export const mockCredentials = {
+export const mockCognitoTokens = {
   access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
-  token_type: 'bearer',
-  expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
-  refresh_token: 'test-refresh-token'
+  token_type: 'Bearer',
+  expires_in: 3600, // 1 hour in seconds
+  refresh_token: 'test-refresh-token',
+  id_token: 'test-id-token'
 };
 
-export const mockSupabaseConfig = JSON.stringify(mockCredentials);
+// Legacy format for backward compatibility
+export const mockCredentials = {
+  access_token: mockCognitoTokens.access_token,
+  token_type: 'bearer',
+  expires_at: Math.floor(Date.now() / 1000) + 3600,
+  refresh_token: mockCognitoTokens.refresh_token
+};
+
+export const mockSupabaseConfig = JSON.stringify({
+  cognito_tokens: JSON.stringify(mockCognitoTokens),
+  user_info: JSON.stringify({
+    id: 'test-user-id',
+    email: 'test@example.com'
+  })
+});
 
 export const mockDocument = {
   id: 'test-doc-id',
   title: 'Test Document',
-  content: {
+  notes: {
     type: 'doc' as const,
     content: [
       {
@@ -26,13 +42,16 @@ export const mockDocument = {
       }
     ]
   },
+  notes_plain: 'Test content',
+  notes_markdown: 'Test content',
   created_at: '2025-01-01T00:00:00.000Z',
-  updated_at: '2025-01-01T00:00:00.000Z'
+  updated_at: '2025-01-01T00:00:00.000Z',
+  user_id: 'test-user-id'
 };
 
 export const mockApiResponse = {
-  documents: [mockDocument],
-  nextCursor: null
+  docs: [mockDocument],
+  deleted: []
 };
 
 export function createMockFs() {
@@ -83,4 +102,28 @@ export function expectToThrow(fn: () => any, message?: string | RegExp) {
   } else {
     expect(fn).toThrow();
   }
+}
+
+// Helper to create expired cognito tokens
+export const mockExpiredCognitoTokens = {
+  ...mockCognitoTokens,
+  expires_in: -3600 // Expired 1 hour ago
+};
+
+// Helper to create invalid token format
+export const mockInvalidTokenFormat = {
+  ...mockCognitoTokens,
+  access_token: 'invalid.token' // Only 2 parts instead of 3
+};
+
+// Helper to create a mock logger for tests
+export function createMockLogger(): Logger {
+  return new Logger({
+    ...DEFAULT_SETTINGS,
+    debug: {
+      enabled: false,
+      logLevel: 0, // Error only
+      saveToFile: false
+    }
+  });
 }

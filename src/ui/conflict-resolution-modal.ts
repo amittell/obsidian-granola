@@ -1,7 +1,6 @@
 import { Modal, App, ButtonComponent, TFile } from 'obsidian';
 import { GranolaDocument } from '../api';
 import { DocumentDisplayMetadata } from '../services/document-metadata';
-import { DuplicateCheckResult } from '../services/duplicate-detector';
 
 /**
  * User's choice for resolving a document conflict.

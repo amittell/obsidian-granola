@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { GranolaAuth } from '../../src/auth';
-import { mockCredentials } from '../helpers';
+import { mockCredentials, mockCognitoTokens, mockSupabaseConfig, mockExpiredCognitoTokens, mockInvalidTokenFormat } from '../helpers';
 
 // Mock the filesystem and OS modules
 jest.mock('fs/promises', () => ({
@@ -30,7 +30,7 @@ describe('GranolaAuth', () => {
     const mockOs = require('os');
     const mockPath = require('path');
     
-    mockFs.readFile.mockResolvedValue(JSON.stringify(mockCredentials));
+    mockFs.readFile.mockResolvedValue(mockSupabaseConfig);
     mockOs.platform.mockReturnValue('darwin');
     mockOs.homedir.mockReturnValue('/Users/test');
     mockPath.join.mockImplementation((...args: string[]) => args.join('/'));
@@ -44,9 +44,9 @@ describe('GranolaAuth', () => {
       const credentials = await auth.loadCredentials();
       
       expect(credentials).toEqual({
-        access_token: mockCredentials.access_token,
-        refresh_token: mockCredentials.refresh_token,
-        token_type: 'bearer',
+        access_token: mockCognitoTokens.access_token,
+        refresh_token: mockCognitoTokens.refresh_token,
+        token_type: 'bearer', // normalized to lowercase
         expires_at: expect.any(Number)
       });
     });
@@ -76,7 +76,10 @@ describe('GranolaAuth', () => {
 
     it('should throw error if required fields are missing', async () => {
       const mockFs = require('fs/promises');
-      const invalidConfig = { access_token: 'test' }; // missing other fields
+      const invalidConfig = {
+        cognito_tokens: JSON.stringify({ access_token: 'test' }), // missing other fields
+        user_info: '{}'
+      };
       mockFs.readFile.mockResolvedValue(JSON.stringify(invalidConfig));
       
       await expect(auth.loadCredentials()).rejects.toThrow('Missing required field');
@@ -85,8 +88,11 @@ describe('GranolaAuth', () => {
     it('should throw error if token type is not bearer', async () => {
       const mockFs = require('fs/promises');
       const invalidConfig = {
-        ...mockCredentials,
-        token_type: 'basic'
+        cognito_tokens: JSON.stringify({
+          ...mockCognitoTokens,
+          token_type: 'basic'
+        }),
+        user_info: '{}'
       };
       mockFs.readFile.mockResolvedValue(JSON.stringify(invalidConfig));
       
@@ -96,8 +102,8 @@ describe('GranolaAuth', () => {
     it('should throw error if token format is invalid', async () => {
       const mockFs = require('fs/promises');
       const invalidConfig = {
-        ...mockCredentials,
-        access_token: 'invalid-token-format'
+        cognito_tokens: JSON.stringify(mockInvalidTokenFormat),
+        user_info: '{}'
       };
       mockFs.readFile.mockResolvedValue(JSON.stringify(invalidConfig));
       
@@ -107,8 +113,8 @@ describe('GranolaAuth', () => {
     it('should throw error if token is expired', async () => {
       const mockFs = require('fs/promises');
       const expiredConfig = {
-        ...mockCredentials,
-        expires_at: Math.floor(Date.now() / 1000) - 3600 // 1 hour ago
+        cognito_tokens: JSON.stringify(mockExpiredCognitoTokens),
+        user_info: '{}'
       };
       mockFs.readFile.mockResolvedValue(JSON.stringify(expiredConfig));
       

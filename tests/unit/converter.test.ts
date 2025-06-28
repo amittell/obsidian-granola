@@ -1,12 +1,13 @@
 import { jest } from '@jest/globals';
 import { ProseMirrorConverter } from '../../src/converter';
 import { GranolaDocument } from '../../src/api';
+import { createMockLogger } from '../helpers';
 
 describe('ProseMirrorConverter', () => {
   let converter: ProseMirrorConverter;
 
   beforeEach(() => {
-    converter = new ProseMirrorConverter();
+    converter = new ProseMirrorConverter(createMockLogger());
   });
 
   describe('convertDocument', () => {
@@ -15,7 +16,8 @@ describe('ProseMirrorConverter', () => {
       title: 'Test Document',
       created_at: '2024-01-01T10:00:00Z',
       updated_at: '2024-01-01T11:00:00Z',
-      content: {
+      user_id: 'test-user-id',
+      notes: {
         type: 'doc',
         content: [
           {
@@ -28,13 +30,15 @@ describe('ProseMirrorConverter', () => {
             content: [{ type: 'text', text: 'Test content' }]
           }
         ]
-      }
+      },
+      notes_plain: 'Test Heading\nTest content',
+      notes_markdown: '# Test Heading\nTest content'
     };
 
     it('should convert document with complete structure', () => {
       const result = converter.convertDocument(mockDocument);
 
-      expect(result.filename).toBe('Test Document.md');
+      expect(result.filename).toBe('2024-01-01 - Test Document.md');
       expect(result.content).toContain('---');
       expect(result.content).toContain('id: test-doc-id');
       expect(result.content).toContain('title: "Test Document"');
@@ -53,19 +57,22 @@ describe('ProseMirrorConverter', () => {
       const docWithoutTitle = { ...mockDocument, title: '' };
       const result = converter.convertDocument(docWithoutTitle);
 
-      expect(result.filename).toBe('Untitled-test-doc-id.md');
+      expect(result.filename).toBe('2024-01-01 - Untitled-test-doc-id.md');
       expect(result.frontmatter.title).toBe('Untitled');
     });
 
     it('should handle empty document content', () => {
       const emptyDoc = {
         ...mockDocument,
-        content: { type: 'doc' as const, content: [] }
+        notes: { type: 'doc' as const, content: [] },
+        notes_plain: '',
+        notes_markdown: ''
       };
       const result = converter.convertDocument(emptyDoc);
 
       expect(result.content).toContain('---');
-      expect(result.content).not.toContain('# ');
+      expect(result.content).toContain('# Test Document'); // Now creates placeholder content with title
+      expect(result.content).toContain('This document appears to have no extractable content');
     });
   });
 

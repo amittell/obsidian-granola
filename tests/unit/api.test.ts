@@ -44,11 +44,12 @@ describe('GranolaAPI', () => {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer test-token',
-            'User-Agent': 'Granola/5.354.0'
+            'User-Agent': 'obsidian-granola-importer/1.0.0'
           },
           body: JSON.stringify({
             limit: 100,
-            offset: 0
+            offset: 0,
+            include_last_viewed_panel: true
           })
         }
       );
@@ -67,7 +68,8 @@ describe('GranolaAPI', () => {
         expect.objectContaining({
           body: JSON.stringify({
             limit: 50,
-            offset: 25
+            offset: 25,
+            include_last_viewed_panel: true
           })
         })
       );
@@ -98,28 +100,13 @@ describe('GranolaAPI', () => {
   });
 
   describe('getAllDocuments', () => {
-    it('should fetch all documents with pagination', async () => {
-      const page1Response = {
-        documents: [mockDocument],
-        total_count: 2,
-        has_more: true
-      };
-      const page2Response = {
-        documents: [{ ...mockDocument, id: 'doc-2' }],
-        total_count: 2,
-        has_more: false
+    it('should fetch all documents in single request', async () => {
+      const apiResponse = {
+        docs: [mockDocument, { ...mockDocument, id: 'doc-2' }],
+        deleted: ['deleted-doc-1']
       };
 
-      const mockFetch = jest.fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: jest.fn().mockResolvedValue(page1Response as any)
-        } as unknown as Response)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: jest.fn().mockResolvedValue(page2Response as any)
-        } as unknown as Response);
-
+      const mockFetch = createMockFetch(apiResponse);
       global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
 
       const result = await api.getAllDocuments();
@@ -127,17 +114,16 @@ describe('GranolaAPI', () => {
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe(mockDocument.id);
       expect(result[1].id).toBe('doc-2');
-      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle single page response', async () => {
-      const singlePageResponse = {
-        documents: [mockDocument],
-        total_count: 1,
-        has_more: false
+    it('should handle single document response', async () => {
+      const singleDocResponse = {
+        docs: [mockDocument],
+        deleted: []
       };
 
-      const mockFetch = createMockFetch(singlePageResponse);
+      const mockFetch = createMockFetch(singleDocResponse);
       global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
 
       const result = await api.getAllDocuments();
@@ -149,9 +135,8 @@ describe('GranolaAPI', () => {
 
     it('should handle empty response', async () => {
       const emptyResponse = {
-        documents: [],
-        total_count: 0,
-        has_more: false
+        docs: [],
+        deleted: []
       };
 
       const mockFetch = createMockFetch(emptyResponse);
@@ -163,35 +148,21 @@ describe('GranolaAPI', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
-    it('should apply rate limiting between requests', async () => {
-      const page1Response = {
-        documents: [mockDocument],
-        total_count: 2,
-        has_more: true
-      };
-      const page2Response = {
-        documents: [{ ...mockDocument, id: 'doc-2' }],
-        total_count: 2,
-        has_more: false
+    it('should not apply rate limiting for single request', async () => {
+      const apiResponse = {
+        docs: [mockDocument, { ...mockDocument, id: 'doc-2' }],
+        deleted: []
       };
 
-      const mockFetch = jest.fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: jest.fn().mockResolvedValue(page1Response as any)
-        } as unknown as Response)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: jest.fn().mockResolvedValue(page2Response as any)
-        } as unknown as Response);
-
+      const mockFetch = createMockFetch(apiResponse);
       global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
 
       const sleepSpy = jest.spyOn(api as any, 'sleep').mockResolvedValue(undefined);
 
       await api.getAllDocuments();
 
-      expect(sleepSpy).toHaveBeenCalledWith(200);
+      expect(sleepSpy).not.toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
       sleepSpy.mockRestore();
     });
   });
@@ -356,43 +327,25 @@ describe('GranolaAPI', () => {
   });
 
   describe('integration scenarios', () => {
-    it('should handle complete pagination workflow', async () => {
-      const responses = [
-        {
-          documents: Array(100).fill(mockDocument).map((_, i) => ({ ...mockDocument, id: `doc-${i}` })),
-          total_count: 250,
-          has_more: true
-        },
-        {
-          documents: Array(100).fill(mockDocument).map((_, i) => ({ ...mockDocument, id: `doc-${i + 100}` })),
-          total_count: 250,
-          has_more: true
-        },
-        {
-          documents: Array(50).fill(mockDocument).map((_, i) => ({ ...mockDocument, id: `doc-${i + 200}` })),
-          total_count: 250,
-          has_more: false
-        }
-      ];
+    it('should handle large document collections', async () => {
+      const largeResponse = {
+        docs: Array(250).fill(mockDocument).map((_, i) => ({ ...mockDocument, id: `doc-${i}` })),
+        deleted: Array(10).fill('').map((_, i) => `deleted-doc-${i}`)
+      };
 
-      const mockFetch = jest.fn();
-      responses.forEach((response, index) => {
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          json: jest.fn().mockResolvedValue(response as any)
-        } as unknown as Response);
-      });
-
+      const mockFetch = createMockFetch(largeResponse);
       global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
-      const sleepSpy = jest.spyOn(api as any, 'sleep').mockResolvedValue(undefined);
 
       const result = await api.getAllDocuments();
 
       expect(result).toHaveLength(250);
-      expect(mockFetch).toHaveBeenCalledTimes(3);
-      expect(sleepSpy).toHaveBeenCalledTimes(2); // Sleep between pages, not after last
-
-      sleepSpy.mockRestore();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      
+      // Verify all documents have correct structure
+      result.forEach((doc, index) => {
+        expect(doc.id).toBe(`doc-${index}`);
+        expect(doc.title).toBe(mockDocument.title);
+      });
     });
   });
 });

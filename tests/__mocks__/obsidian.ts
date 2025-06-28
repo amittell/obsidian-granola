@@ -12,6 +12,28 @@ export class Plugin {
   onload() {}
   onunload() {}
   addCommand(command: any) {}
+  addSettingTab(tab: any) {}
+  loadData() { return Promise.resolve({}); }
+  saveData(data: any) { return Promise.resolve(); }
+}
+
+export class PluginSettingTab {
+  app: any;
+  plugin: any;
+  containerEl: any;
+  
+  constructor(app: any, plugin: any) {
+    this.app = app;
+    this.plugin = plugin;
+    this.containerEl = {
+      empty: jest.fn(),
+      createEl: jest.fn(),
+      createDiv: jest.fn()
+    };
+  }
+  
+  display() {}
+  hide() {}
 }
 
 export class Notice {

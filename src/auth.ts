@@ -42,6 +42,32 @@ export interface GranolaCredentials {
 }
 
 /**
+ * OAuth token structure within the Granola configuration file.
+ *
+ * This interface represents the parsed cognito_tokens JSON string
+ * from the supabase.json file. Contains AWS Cognito OAuth tokens.
+ *
+ * @interface CognitoTokens
+ * @since 1.0.0
+ */
+export interface CognitoTokens {
+	/** JWT access token from AWS Cognito OAuth flow */
+	access_token: string;
+
+	/** Refresh token for token renewal (not yet implemented) */
+	refresh_token: string;
+
+	/** OAuth token type, typically "Bearer" (capitalized) */
+	token_type: string;
+
+	/** Token expiration time in seconds from now */
+	expires_in: number;
+
+	/** JWT ID token containing user information */
+	id_token: string;
+}
+
+/**
  * Configuration structure for Supabase authentication data.
  *
  * This interface mirrors the structure of the supabase.json file
@@ -52,17 +78,11 @@ export interface GranolaCredentials {
  * @since 1.0.0
  */
 export interface SupabaseConfig {
-	/** JWT access token from Granola OAuth flow */
-	access_token: string;
+	/** Stringified JSON containing AWS Cognito OAuth tokens */
+	cognito_tokens: string;
 
-	/** Refresh token for token renewal (not yet implemented) */
-	refresh_token: string;
-
-	/** OAuth token type, expected to be "bearer" */
-	token_type: string;
-
-	/** Unix timestamp of token expiration */
-	expires_at: number;
+	/** Stringified JSON containing user profile information */
+	user_info: string;
 }
 
 /**
@@ -127,13 +147,19 @@ export class GranolaAuth {
 			const configData = await readFile(configPath, 'utf-8');
 			const config: SupabaseConfig = JSON.parse(configData);
 
-			this.validateCredentials(config);
+			// Parse the nested cognito_tokens JSON string
+			const cognitoTokens: CognitoTokens = JSON.parse(config.cognito_tokens);
+
+			this.validateCredentials(cognitoTokens);
+
+			// Convert expires_in (seconds from now) to expires_at (unix timestamp)
+			const expiresAt = Math.floor(Date.now() / TIMESTAMP_CONVERSION_FACTOR) + cognitoTokens.expires_in;
 
 			this.credentials = {
-				access_token: config.access_token,
-				refresh_token: config.refresh_token,
-				token_type: config.token_type,
-				expires_at: config.expires_at,
+				access_token: cognitoTokens.access_token,
+				refresh_token: cognitoTokens.refresh_token,
+				token_type: cognitoTokens.token_type.toLowerCase(), // Normalize to lowercase
+				expires_at: expiresAt,
 			};
 
 			return this.credentials;
@@ -183,49 +209,50 @@ export class GranolaAuth {
 	 *
 	 * Performs comprehensive validation including:
 	 * - Required field presence check
-	 * - Token type verification (must be "bearer")
+	 * - Token type verification (must be "bearer" case-insensitive)
 	 * - JWT token format validation using regex
-	 * - Token expiration check against current time
+	 * - Token expiration check using expires_in field
 	 *
 	 * @private
-	 * @param {SupabaseConfig} config - The configuration object to validate
+	 * @param {CognitoTokens} tokens - The cognito tokens object to validate
 	 * @throws {Error} If any validation check fails
 	 *
 	 * @example
 	 * ```typescript
 	 * try {
-	 *   this.validateCredentials(config);
+	 *   this.validateCredentials(tokens);
 	 *   console.log('Credentials are valid');
 	 * } catch (error) {
 	 *   console.error('Invalid credentials:', error.message);
 	 * }
 	 * ```
 	 */
-	private validateCredentials(config: SupabaseConfig): void {
-		const required: (keyof SupabaseConfig)[] = [
+	private validateCredentials(tokens: CognitoTokens): void {
+		const required: (keyof CognitoTokens)[] = [
 			'access_token',
 			'refresh_token',
 			'token_type',
-			'expires_at',
+			'expires_in',
 		];
 
 		for (const field of required) {
-			if (!config[field]) {
+			if (!tokens[field]) {
 				throw new Error(`Missing required field: ${field}`);
 			}
 		}
 
-		if (config.token_type !== 'bearer') {
-			throw new Error(`Invalid token type: ${config.token_type}`);
+		if (tokens.token_type.toLowerCase() !== 'bearer') {
+			throw new Error(`Invalid token type: ${tokens.token_type}`);
 		}
 
 		// Enhanced JWT format validation - should have exactly 3 non-empty parts
-		const tokenParts = config.access_token.split('.');
+		const tokenParts = tokens.access_token.split('.');
 		if (tokenParts.length !== JWT_PARTS_COUNT || tokenParts.some(part => part.length === 0)) {
 			throw new Error('Invalid token format');
 		}
 
-		if (Date.now() > config.expires_at * TIMESTAMP_CONVERSION_FACTOR) {
+		// Check if token will expire soon (expires_in is in seconds)
+		if (tokens.expires_in <= 0) {
 			throw new Error('Access token has expired');
 		}
 	}

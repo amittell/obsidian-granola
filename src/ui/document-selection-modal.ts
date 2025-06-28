@@ -1,4 +1,4 @@
-import { Modal, App, Setting, ButtonComponent, TextComponent } from 'obsidian';
+import { Modal, App, ButtonComponent, TextComponent, Notice, TFile } from 'obsidian';
 import { GranolaDocument, GranolaAPI } from '../api';
 import { DuplicateDetector } from '../services/duplicate-detector';
 import { DocumentMetadataService, DocumentDisplayMetadata, DocumentFilter, DocumentSort } from '../services/document-metadata';
@@ -498,6 +498,9 @@ export class DocumentSelectionModal extends Modal {
 	 * @param {ImportProgress} result - Final import results
 	 */
 	private showImportComplete(result: ImportProgress): void {
+		// Reset importing state to re-enable buttons
+		this.setImporting(false);
+		
 		this.progressEl.empty();
 		
 		const summary = this.progressEl.createDiv('import-summary');
@@ -512,10 +515,61 @@ export class DocumentSelectionModal extends Modal {
 			stats.createEl('p', { text: `⏭️ ${result.skipped} documents skipped` });
 		}
 
-		const closeBtn = new ButtonComponent(summary)
+		// Get successfully imported files for opening
+		const allDocProgress = this.importManager.getAllDocumentProgress();
+		const importedFiles = allDocProgress
+			.filter(progress => progress.status === 'completed' && progress.file)
+			.map(progress => progress.file!)
+			.filter(file => file !== undefined);
+
+		// Add buttons for next actions
+		const buttonsDiv = summary.createDiv('import-complete-buttons');
+		
+		// If there are imported files, show "Open Imported Notes" button
+		if (importedFiles.length > 0) {
+			const openNotesBtn = new ButtonComponent(buttonsDiv)
+				.setButtonText(`Open Imported Notes (${importedFiles.length})`)
+				.setCta()
+				.onClick(() => {
+					this.openImportedFiles(importedFiles);
+					this.close();
+				});
+		}
+
+		// Always show close button
+		const closeBtn = new ButtonComponent(buttonsDiv)
 			.setButtonText('Close')
-			.setCta()
 			.onClick(() => this.close());
+	}
+
+	/**
+	 * Opens multiple imported files in new tabs.
+	 * 
+	 * @private
+	 * @param {TFile[]} files - Array of imported files to open
+	 */
+	private async openImportedFiles(files: TFile[]): Promise<void> {
+		try {
+			// Open each file in a new tab
+			for (const file of files) {
+				// Create a new leaf (tab) for each file
+				const leaf = this.app.workspace.getLeaf('tab');
+				await leaf.openFile(file);
+			}
+			
+			// Focus the first opened file if available
+			if (files.length > 0) {
+				const firstFileLeaf = this.app.workspace.getLeavesOfType('markdown')
+					.find(leaf => (leaf.view as any).file === files[0]);
+				if (firstFileLeaf) {
+					this.app.workspace.setActiveLeaf(firstFileLeaf);
+				}
+			}
+		} catch (error) {
+			console.error('Error opening imported files:', error);
+			// Show a user-friendly notice
+			new Notice('Error opening imported files. Please check the console for details.', 5000);
+		}
 	}
 
 	/**

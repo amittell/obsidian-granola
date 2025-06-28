@@ -3,7 +3,7 @@ import { GranolaAuth } from './auth';
 /**
  * Represents a document from the Granola API.
  *
- * Documents contain ProseMirror JSON content that needs to be converted
+ * Documents contain ProseMirror JSON content under the 'notes' field that needs to be converted
  * to Markdown format for use in Obsidian. Each document includes metadata
  * such as creation/update timestamps and a unique identifier.
  *
@@ -18,13 +18,33 @@ export interface GranolaDocument {
 	title: string;
 
 	/** Document content in ProseMirror JSON format */
-	content: ProseMirrorDoc;
+	notes: ProseMirrorDoc;
+
+	/** Plain text version of the notes */
+	notes_plain: string;
+
+	/** Markdown version of the notes */
+	notes_markdown: string;
+
+	/** Last viewed panel containing the actual content */
+	last_viewed_panel?: {
+		/** Panel content in ProseMirror JSON format */
+		content?: ProseMirrorDoc;
+		/** Additional panel metadata */
+		[key: string]: any;
+	};
 
 	/** ISO timestamp when the document was created */
 	created_at: string;
 
 	/** ISO timestamp when the document was last updated */
 	updated_at: string;
+
+	/** User ID of the document owner */
+	user_id: string;
+
+	/** Additional metadata fields */
+	[key: string]: any;
 }
 
 /**
@@ -99,21 +119,18 @@ export interface GetDocumentsRequest {
 /**
  * Response structure from the Granola API document endpoint.
  *
- * Contains the requested documents along with pagination metadata
- * to determine if additional requests are needed to fetch all documents.
+ * Contains the requested documents along with deleted document information.
+ * Note: The API no longer uses pagination - all documents are returned in a single request.
  *
  * @interface GetDocumentsResponse
  * @since 1.0.0
  */
 export interface GetDocumentsResponse {
-	/** Array of documents returned in this page */
-	documents: GranolaDocument[];
+	/** Array of active documents */
+	docs: GranolaDocument[];
 
-	/** Total number of documents available in the account */
-	total_count: number;
-
-	/** Whether more documents are available for pagination */
-	has_more: boolean;
+	/** Array of deleted document IDs */
+	deleted: string[];
 }
 
 // API Configuration Constants
@@ -121,7 +138,6 @@ const DEFAULT_PAGE_SIZE = 100;
 const RATE_LIMIT_DELAY_MS = 200;
 const MAX_RETRY_ATTEMPTS = 3;
 const EXPONENTIAL_BACKOFF_BASE_MS = 1000;
-const DEFAULT_GRANOLA_VERSION = '5.354.0';
 
 /**
  * HTTP client for interacting with the Granola REST API.
@@ -153,15 +169,10 @@ export class GranolaAPI {
 	private readonly baseUrl = 'https://api.granola.ai/v2';
 
 	/**
-	 * User-Agent string for API requests to mimic the official Granola client.
+	 * User-Agent string for API requests identifying this plugin.
 	 * Version is automatically pulled from package.json to keep it in sync.
 	 */
 	private readonly userAgent: string;
-
-	/**
-	 * Default Granola client version for fallback if package.json is unavailable.
-	 */
-	private readonly defaultGranolaVersion = '5.354.0';
 
 	/** Authentication manager for API credentials */
 	private auth: GranolaAuth;
@@ -181,61 +192,60 @@ export class GranolaAPI {
 	constructor(auth: GranolaAuth) {
 		this.auth = auth;
 		
-		// Try to get version from package.json, fall back to default
+		// Get version from package.json, fall back to static version
 		try {
 			const fs = require('fs');
 			const path = require('path');
-			// Try multiple possible paths for package.json
-			const possiblePaths = [
-				path.resolve(__dirname, '../../package.json'),
-				path.resolve(process.cwd(), 'package.json'),
-				path.resolve(__dirname, '../../../package.json')
-			];
 			
-			let manifest = null;
-			for (const packagePath of possiblePaths) {
-				try {
-					if (fs.existsSync(packagePath)) {
-						manifest = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
-						break;
-					}
-				} catch (err) {
-					continue;
+			// Try the most likely path first (relative to built main.js)
+			const packagePath = path.resolve(__dirname, '../package.json');
+			
+			if (fs.existsSync(packagePath)) {
+				const manifest = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+				if (manifest?.name && manifest?.version) {
+					this.userAgent = `${manifest.name}/${manifest.version}`;
+				} else {
+					throw new Error('Invalid package.json format');
 				}
-			}
-			
-			if (manifest?.version) {
-				this.userAgent = `granola-importer/${manifest.version}`;
 			} else {
 				throw new Error('Package.json not found');
 			}
 		} catch {
-			this.userAgent = `Granola/${DEFAULT_GRANOLA_VERSION}`;
+			// Fallback to static version if package.json is unavailable
+			this.userAgent = 'obsidian-granola-importer/1.0.0';
 		}
 	}
 
 	/**
-	 * Fetches a page of documents from the Granola API.
+	 * Loads and validates Granola credentials.
+	 * This method should be called before making any API requests.
+	 * 
+	 * @async
+	 * @returns {Promise<void>} Resolves when credentials are loaded and validated
+	 * @throws {Error} If credential loading fails
+	 */
+	async loadCredentials(): Promise<void> {
+		await this.auth.loadCredentials();
+	}
+
+	/**
+	 * Fetches documents from the Granola API.
 	 *
-	 * This method retrieves a single page of documents with the specified
-	 * limit and offset. For fetching all documents, use getAllDocuments()
-	 * which handles pagination automatically.
+	 * Note: The Granola API now returns all documents in a single request.
+	 * The limit and offset parameters are kept for backward compatibility
+	 * but may not have any effect on the actual API response.
 	 *
 	 * @async
-	 * @param {GetDocumentsRequest} options - Pagination options
-	 * @returns {Promise<GetDocumentsResponse>} Page of documents with metadata
+	 * @param {GetDocumentsRequest} options - Request options (may be ignored by API)
+	 * @returns {Promise<GetDocumentsResponse>} All documents with metadata
 	 * @throws {Error} If API request fails or rate limit is exceeded
 	 *
 	 * @example
 	 * ```typescript
-	 * // Fetch first 50 documents
-	 * const response = await api.getDocuments({ limit: 50, offset: 0 });
-	 * console.log(`Found ${response.documents.length} documents`);
-	 *
-	 * // Check if more pages available
-	 * if (response.has_more) {
-	 *   const nextPage = await api.getDocuments({ limit: 50, offset: 50 });
-	 * }
+	 * // Fetch all documents
+	 * const response = await api.getDocuments();
+	 * console.log(`Found ${response.docs.length} documents`);
+	 * console.log(`Deleted documents: ${response.deleted.length}`);
 	 * ```
 	 */
 	async getDocuments(options: GetDocumentsRequest = {}): Promise<GetDocumentsResponse> {
@@ -251,6 +261,7 @@ export class GranolaAPI {
 			body: JSON.stringify({
 				limit,
 				offset,
+				include_last_viewed_panel: true,
 			}),
 		});
 
@@ -267,13 +278,12 @@ export class GranolaAPI {
 	/**
 	 * Fetches all documents from the user's Granola account.
 	 *
-	 * This method automatically handles pagination by making multiple API requests
-	 * until all documents are retrieved. It includes rate limiting (200ms delay
-	 * between requests) to comply with API usage guidelines.
+	 * The Granola API now returns all documents in a single request,
+	 * so no pagination handling is required.
 	 *
 	 * @async
 	 * @returns {Promise<GranolaDocument[]>} Array of all documents in the account
-	 * @throws {Error} If any API request fails during pagination
+	 * @throws {Error} If the API request fails
 	 *
 	 * @example
 	 * ```typescript
@@ -290,26 +300,15 @@ export class GranolaAPI {
 	 * ```
 	 */
 	async getAllDocuments(): Promise<GranolaDocument[]> {
-		const allDocuments: GranolaDocument[] = [];
-		let offset = 0;
-		const limit = DEFAULT_PAGE_SIZE;
-		let hasMore = true;
+		const response = await this.getDocuments();
 
-		while (hasMore) {
-			const response = await this.getDocuments({ limit, offset });
-
-			allDocuments.push(...response.documents);
-
-			hasMore = response.has_more;
-			offset += limit;
-
-			// Rate limiting: wait between requests
-			if (hasMore) {
-				await this.sleep(RATE_LIMIT_DELAY_MS); // Rate limiting delay
-			}
+		// Handle the new API response format
+		if (response.docs && Array.isArray(response.docs)) {
+			return response.docs;
+		} else {
+			console.error('Unexpected API response format:', response);
+			throw new Error('API returned unexpected response format');
 		}
-
-		return allDocuments;
 	}
 
 	/**

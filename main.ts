@@ -1,4 +1,4 @@
-import { Plugin, Notice, TFile } from 'obsidian';
+import { Plugin, Notice } from 'obsidian';
 import { GranolaAuth } from './src/auth';
 import { GranolaAPI } from './src/api';
 import { ProseMirrorConverter } from './src/converter';
@@ -6,6 +6,7 @@ import { DuplicateDetector } from './src/services/duplicate-detector';
 import { DocumentMetadataService } from './src/services/document-metadata';
 import { SelectiveImportManager } from './src/services/import-manager';
 import { DocumentSelectionModal } from './src/ui/document-selection-modal';
+import { GranolaSettings, DEFAULT_SETTINGS, Logger, GranolaSettingTab } from './src/settings';
 
 // Error Message Constants
 const ERROR_MESSAGES = {
@@ -36,16 +37,16 @@ export default class GranolaImporterPlugin extends Plugin {
 	/**
 	 * Authentication manager for Granola API credentials.
 	 * Handles loading, validation, and token management.
-	 * @private
+	 * @public
 	 */
-	private auth!: GranolaAuth;
+	auth!: GranolaAuth;
 
 	/**
 	 * API client for communicating with Granola's REST API.
 	 * Provides methods for fetching documents and handling rate limiting.
-	 * @private
+	 * @public
 	 */
-	private api!: GranolaAPI;
+	api!: GranolaAPI;
 
 	/**
 	 * Document converter for transforming ProseMirror JSON to Markdown.
@@ -76,6 +77,20 @@ export default class GranolaImporterPlugin extends Plugin {
 	private importManager!: SelectiveImportManager;
 
 	/**
+	 * Plugin settings with default values and persistence.
+	 * Contains all configuration options for the plugin.
+	 * @public
+	 */
+	settings!: GranolaSettings;
+
+	/**
+	 * Centralized logger that respects debug settings.
+	 * Replaces direct console.log calls throughout the plugin.
+	 * @public
+	 */
+	logger!: Logger;
+
+	/**
 	 * Plugin lifecycle method called when the plugin is loaded.
 	 *
 	 * Initializes the authentication, API, and converter components,
@@ -92,17 +107,22 @@ export default class GranolaImporterPlugin extends Plugin {
 	 * ```
 	 */
 	async onload(): Promise<void> {
-		// Plugin initialization
+		// Load settings and initialize logger
+		await this.loadSettings();
+		this.logger = new Logger(this.settings);
 
 		// Initialize core components
 		this.auth = new GranolaAuth();
 		this.api = new GranolaAPI(this.auth);
-		this.converter = new ProseMirrorConverter();
+		this.converter = new ProseMirrorConverter(this.logger);
 
 		// Initialize selective import services
 		this.duplicateDetector = new DuplicateDetector(this.app.vault);
 		this.metadataService = new DocumentMetadataService();
 		this.importManager = new SelectiveImportManager(this.app, this.app.vault, this.converter);
+
+		// Register settings tab
+		this.addSettingTab(new GranolaSettingTab(this.app, this));
 
 		// Register command in Obsidian's command palette
 		this.addCommand({
@@ -271,12 +291,13 @@ export default class GranolaImporterPlugin extends Plugin {
 				}
 			}
 			
+			this.logger.info('Debug analysis complete');
 			console.log(analysisReport);
 			new Notice('✅ Debug analysis complete - check console for full report', 5000);
 			
 		} catch (error) {
 			debugNotice.hide();
-			console.error('Debug API Response Error:', error);
+			this.logger.error('Debug API Response Error:', error);
 			
 			let errorMessage = 'Debug analysis failed: ';
 			if (error instanceof Error) {
@@ -334,7 +355,7 @@ export default class GranolaImporterPlugin extends Plugin {
 			);
 			modal.open();
 		} catch (error) {
-			console.error('Failed to open import modal:', error);
+			this.logger.error('Failed to open import modal:', error);
 			
 			// Provide user feedback for modal errors
 			let userMessage = 'Failed to open import dialog: ';
@@ -361,5 +382,25 @@ export default class GranolaImporterPlugin extends Plugin {
 
 			new Notice(userMessage, 8000);
 		}
+	}
+
+	/**
+	 * Loads plugin settings from disk, using defaults if none exist.
+	 *
+	 * @async
+	 * @returns {Promise<void>} Resolves when settings are loaded
+	 */
+	async loadSettings(): Promise<void> {
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+	}
+
+	/**
+	 * Saves current plugin settings to disk.
+	 *
+	 * @async
+	 * @returns {Promise<void>} Resolves when settings are saved
+	 */
+	async saveSettings(): Promise<void> {
+		await this.saveData(this.settings);
 	}
 }

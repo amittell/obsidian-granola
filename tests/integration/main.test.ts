@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import GranolaImporterPlugin from '../../main';
 import { mockApp, mockVault, Notice } from '../__mocks__/obsidian';
-import { createMockFs, mockDocument, mockCredentials } from '../helpers';
+import { createMockFs, mockDocument, mockCredentials, createMockLogger } from '../helpers';
 
 // Mock the source modules completely
 jest.mock('../../src/auth', () => ({
@@ -27,7 +27,7 @@ jest.mock('../../src/api', () => ({
 }));
 
 jest.mock('../../src/converter', () => ({
-  ProseMirrorConverter: jest.fn().mockImplementation(() => ({
+  ProseMirrorConverter: jest.fn().mockImplementation((logger) => ({
     convertDocument: jest.fn().mockReturnValue({
       filename: 'Test Document.md',
       content: '---\nid: test-doc-id\ntitle: "Test Document"\n---\n\n# Test Document\n\nTest content',
@@ -113,7 +113,7 @@ describe('GranolaImporterPlugin Integration', () => {
       
       const mockAuthInstance = new GranolaAuth();
       const mockApiInstance = new GranolaAPI();
-      const mockConverterInstance = new ProseMirrorConverter();
+      const mockConverterInstance = new ProseMirrorConverter(createMockLogger());
       
       (plugin as any).auth = mockAuthInstance;
       (plugin as any).api = mockApiInstance;
@@ -164,7 +164,7 @@ describe('GranolaImporterPlugin Integration', () => {
       
       const mockAuthInstance = new GranolaAuth();
       const mockApiInstance = new GranolaAPI();
-      const mockConverterInstance = new ProseMirrorConverter();
+      const mockConverterInstance = new ProseMirrorConverter(createMockLogger());
       
       (plugin as any).auth = mockAuthInstance;
       (plugin as any).api = mockApiInstance;

@@ -1,4 +1,5 @@
 import { ProseMirrorDoc, ProseMirrorNode, GranolaDocument } from './api';
+import { Logger } from './settings';
 
 // Converter Constants
 const MAX_FILENAME_LENGTH = 100;
@@ -72,7 +73,7 @@ export interface NoteFrontmatter {
  *
  * @example
  * ```typescript
- * const converter = new ProseMirrorConverter();
+ * const converter = new ProseMirrorConverter(logger);
  * const granolaDoc = await api.getDocument('doc-id');
  * const convertedNote = converter.convertDocument(granolaDoc);
  *
@@ -81,6 +82,11 @@ export interface NoteFrontmatter {
  * ```
  */
 export class ProseMirrorConverter {
+	private logger: Logger;
+
+	constructor(logger: Logger) {
+		this.logger = logger;
+	}
 	/**
 	 * Converts a complete Granola document to Obsidian-compatible Markdown.
 	 *
@@ -106,9 +112,97 @@ export class ProseMirrorConverter {
 	 * ```
 	 */
 	convertDocument(doc: GranolaDocument): ConvertedNote {
-		const markdown = this.convertProseMirrorToMarkdown(doc.content);
+		// Debug logging for content analysis
+		this.logger.debug(`========== Processing document: ${doc.id} - "${doc.title}" ==========`);
+		this.logger.debug(`Document created_at: ${doc.created_at}`);
+		this.logger.debug(`Document updated_at: ${doc.updated_at}`);
+		this.logger.debug(`Notes field exists: ${!!doc.notes}`);
+		this.logger.debug(`Notes plain exists: ${!!doc.notes_plain}`);
+		this.logger.debug(`Notes markdown exists: ${!!doc.notes_markdown}`);
+		this.logger.debug(`Last viewed panel exists: ${!!doc.last_viewed_panel}`);
+		this.logger.debug(`Last viewed panel content exists: ${!!(doc.last_viewed_panel?.content)}`);
+		
+		if (doc.last_viewed_panel?.content) {
+			this.logger.debug(`Last viewed panel content type: ${doc.last_viewed_panel.content.type}`);
+			this.logger.debug(`Last viewed panel content array length: ${doc.last_viewed_panel.content.content ? doc.last_viewed_panel.content.content.length : 'NO CONTENT ARRAY'}`);
+			this.logger.debug(`Last viewed panel full structure:`, JSON.stringify(doc.last_viewed_panel.content, null, 2));
+		}
+		
+		if (doc.notes) {
+			this.logger.debug(`Notes structure type: ${doc.notes.type}`);
+			this.logger.debug(`Notes content array length: ${doc.notes.content ? doc.notes.content.length : 'NO CONTENT ARRAY'}`);
+			this.logger.debug(`Notes full structure:`, JSON.stringify(doc.notes, null, 2));
+		}
+		
+		if (doc.notes_plain) {
+			this.logger.debug(`Notes plain length: ${doc.notes_plain.length}`);
+			this.logger.debug(`Notes plain preview: ${doc.notes_plain.substring(0, 200)}`);
+		}
+		if (doc.notes_markdown) {
+			this.logger.debug(`Notes markdown length: ${doc.notes_markdown.length}`);
+			this.logger.debug(`Notes markdown preview: ${doc.notes_markdown.substring(0, 200)}`);
+		}
+
+		// Content validation and fallback logic
+		let markdown = '';
+		let contentSource = 'unknown';
+
+		// Try last_viewed_panel.content first (the correct location per reverse engineering)
+		if (doc.last_viewed_panel?.content && this.isValidProseMirrorDoc(doc.last_viewed_panel.content)) {
+			this.logger.debug(`Attempting conversion from last_viewed_panel.content`);
+			markdown = this.convertProseMirrorToMarkdown(doc.last_viewed_panel.content);
+			contentSource = 'last_viewed_panel';
+			this.logger.debug(`Last viewed panel conversion result - length: ${markdown.length}`);
+			if (markdown.trim()) {
+				this.logger.debug(`Last viewed panel conversion successful`);
+			} else {
+				this.logger.warn(`Last viewed panel conversion produced empty content despite valid structure`);
+			}
+		}
+		
+		// Fallback: Try ProseMirror conversion from notes field
+		if (!markdown.trim() && doc.notes && this.isValidProseMirrorDoc(doc.notes)) {
+			this.logger.debug(`Attempting conversion from notes field as fallback`);
+			markdown = this.convertProseMirrorToMarkdown(doc.notes);
+			contentSource = 'prosemirror';
+			this.logger.debug(`Notes field conversion result - length: ${markdown.length}`);
+			if (markdown.trim()) {
+				this.logger.debug(`Notes field conversion successful`);
+			} else {
+				this.logger.warn(`Notes field conversion produced empty content despite valid structure`);
+			}
+		}
+
+		// Fallback to notes_markdown if ProseMirror conversion failed or is empty
+		if (!markdown.trim() && doc.notes_markdown && doc.notes_markdown.trim()) {
+			markdown = doc.notes_markdown.trim();
+			contentSource = 'markdown';
+			this.logger.debug(`Using notes_markdown fallback, length: ${markdown.length}`);
+		}
+
+		// Final fallback to notes_plain if everything else failed
+		if (!markdown.trim() && doc.notes_plain && doc.notes_plain.trim()) {
+			markdown = doc.notes_plain.trim();
+			contentSource = 'plain';
+			this.logger.debug(`Using notes_plain fallback, length: ${markdown.length}`);
+		}
+
+		// Log final content status
+		this.logger.info(`Final content source: ${contentSource}`);
+		this.logger.info(`Final markdown length: ${markdown.length}`);
+		this.logger.debug(`Content preview: ${markdown.substring(0, 200)}...`);
+
+		// Handle documents that appear empty but might have content in Granola
+		if (!markdown.trim()) {
+			this.logger.warn(`WARNING: No content extracted for document ${doc.id} - "${doc.title}"`);
+			this.logger.warn(`Creating placeholder document - content may need to be manually synced from Granola`);
+			
+			// Create a helpful placeholder instead of failing completely
+			markdown = `# ${doc.title}\n\n*This document appears to have no extractable content from the Granola API.*\n\n*Possible causes:*\n- Content exists in Granola but wasn't included in the API response\n- Document was created but never had content added\n- Sync issue between Granola desktop app and API\n\n*To fix: Check the original document in Granola and manually copy content if needed.*\n\n---\n*Document ID: ${doc.id}*\n*Created: ${doc.created_at}*\n*Updated: ${doc.updated_at}*`;
+		}
+		
 		const frontmatter = this.generateFrontmatter(doc);
-		const filename = this.sanitizeFilename(doc.title || `Untitled-${doc.id}`);
+		const filename = this.generateDatePrefixedFilename(doc);
 
 		const content = this.generateFileContent(frontmatter, markdown);
 
@@ -117,6 +211,150 @@ export class ProseMirrorConverter {
 			content,
 			frontmatter,
 		};
+	}
+
+	/**
+	 * Generates a date-prefixed filename using the document's created_at timestamp.
+	 *
+	 * Creates filenames in the format: "YYYY-MM-DD - Title.md"
+	 * This prevents duplicate filenames for recurring meetings with identical titles
+	 * while making files sortable and searchable by date.
+	 *
+	 * @private
+	 * @param {GranolaDocument} doc - Source document with title and created_at
+	 * @returns {string} Date-prefixed filename without extension
+	 *
+	 * @example
+	 * ```typescript
+	 * const doc = {
+	 *   title: 'Alex <> Shannon 1:1',
+	 *   created_at: '2025-06-21T14:30:00.000Z',
+	 *   id: 'abc123'
+	 * };
+	 * const filename = this.generateDatePrefixedFilename(doc);
+	 * // Result: "2025-06-21 - Alex  Shannon 1-1"
+	 * ```
+	 */
+	private generateDatePrefixedFilename(doc: GranolaDocument): string {
+		this.logger.debug(`Generating date-prefixed filename for: ${doc.id}`);
+		this.logger.debug(`Original title: "${doc.title}"`);
+		this.logger.debug(`Created at: ${doc.created_at}`);
+
+		// Extract date from created_at timestamp
+		let datePrefix = '';
+		try {
+			const createdDate = new Date(doc.created_at);
+			if (isNaN(createdDate.getTime())) {
+				this.logger.warn(`Invalid created_at date: ${doc.created_at}`);
+				datePrefix = 'INVALID-DATE';
+			} else {
+				// Format as YYYY-MM-DD
+				const year = createdDate.getFullYear();
+				const month = (createdDate.getMonth() + 1).toString().padStart(2, '0');
+				const day = createdDate.getDate().toString().padStart(2, '0');
+				datePrefix = `${year}-${month}-${day}`;
+			}
+		} catch (error) {
+			this.logger.error(`Error parsing date: ${error}`);
+			datePrefix = 'INVALID-DATE';
+		}
+
+		// Get sanitized title
+		const title = doc.title || `Untitled-${doc.id}`;
+		const sanitizedTitle = this.sanitizeFilename(title);
+
+		// Combine date prefix with title
+		const filename = `${datePrefix} - ${sanitizedTitle}`;
+		
+		this.logger.debug(`Generated filename: "${filename}"`);
+		
+		return filename;
+	}
+
+	/**
+	 * Validates whether a ProseMirror document has valid structure.
+	 *
+	 * This function validates the basic structure of a ProseMirror document
+	 * but does not reject documents based on text extraction failures.
+	 * Content extraction should happen during conversion, not validation.
+	 *
+	 * @private
+	 * @param {ProseMirrorDoc} doc - ProseMirror document to validate
+	 * @returns {boolean} True if document has valid structure
+	 */
+	private isValidProseMirrorDoc(doc: ProseMirrorDoc): boolean {
+		if (!doc) {
+			this.logger.debug(`ProseMirror doc is null/undefined`);
+			return false;
+		}
+
+		if (doc.type !== 'doc') {
+			this.logger.debug(`ProseMirror doc has invalid type: ${doc.type}`);
+			return false;
+		}
+
+		if (!doc.content || !Array.isArray(doc.content)) {
+			this.logger.debug(`ProseMirror doc has no content array`);
+			return false;
+		}
+
+		if (doc.content.length === 0) {
+			this.logger.debug(`ProseMirror doc has empty content array`);
+			return false;
+		}
+
+		// Log document structure for debugging
+		this.logger.debug(`ProseMirror validation - Content nodes: ${doc.content.length}`);
+		this.logger.debug(`ProseMirror validation - Document structure:`, JSON.stringify(doc, null, 2));
+
+		// Only validate structure - let conversion handle text extraction
+		this.logger.debug(`ProseMirror doc structure validation passed`);
+		return true;
+	}
+
+	/**
+	 * Recursively extracts all text content from ProseMirror nodes.
+	 *
+	 * @private
+	 * @param {ProseMirrorNode[]} nodes - Array of ProseMirror nodes to extract text from
+	 * @returns {string} Concatenated text content from all nodes
+	 */
+	private extractTextFromNodes(nodes: ProseMirrorNode[]): string {
+		let text = '';
+		
+		this.logger.debug(`extractTextFromNodes called with ${nodes.length} nodes`);
+		
+		for (let i = 0; i < nodes.length; i++) {
+			const node = nodes[i];
+			this.logger.debug(`Processing node ${i}:`, JSON.stringify(node, null, 2));
+			
+			try {
+				// Method 1: Direct text node
+				if (node.text) {
+					this.logger.debug(`Found direct text: "${node.text}"`);
+					text += node.text;
+				}
+				
+				// Method 2: Node with children - recurse
+				if (node.content && Array.isArray(node.content) && node.content.length > 0) {
+					this.logger.debug(`Node has ${node.content.length} children, recursing...`);
+					const childText = this.extractTextFromNodes(node.content);
+					this.logger.debug(`Child text extracted: "${childText}"`);
+					text += childText;
+				}
+				
+				// Method 3: Special case for empty content arrays that might have text in attrs
+				if (node.type === 'paragraph' && (!node.content || node.content.length === 0)) {
+					this.logger.debug(`Empty paragraph node, checking attrs:`, node.attrs);
+				}
+				
+			} catch (error) {
+				this.logger.warn(`Error extracting text from node:`, error, node);
+				// Continue with other nodes even if one fails
+			}
+		}
+		
+		return text;
 	}
 
 	/**
@@ -144,14 +382,55 @@ export class ProseMirrorConverter {
 	 * ```
 	 */
 	private convertProseMirrorToMarkdown(doc: ProseMirrorDoc): string {
-		if (!doc.content || doc.content.length === 0) {
-			return '';
-		}
+		this.logger.debug(`convertProseMirrorToMarkdown called with:`, doc);
+		
+		try {
+			// Handle undefined/null doc
+			if (!doc) {
+				this.logger.debug(`Document is null/undefined`);
+				return '';
+			}
+			
+			if (!doc.content || doc.content.length === 0) {
+				this.logger.debug(`Document content is empty or missing`);
+				this.logger.debug(`Doc structure:`, JSON.stringify(doc, null, 2));
+				return '';
+			}
 
-		return doc.content
-			.map(node => this.convertNode(node))
-			.join('\n\n')
-			.trim();
+			this.logger.debug(`Converting ${doc.content.length} top-level nodes`);
+			
+			const convertedNodes: string[] = [];
+			
+			for (let index = 0; index < doc.content.length; index++) {
+				const node = doc.content[index];
+				try {
+					this.logger.debug(`Converting node ${index}:`, node.type, node);
+					const converted = this.convertNode(node);
+					this.logger.debug(`Node ${index} converted to:`, converted);
+					convertedNodes.push(converted);
+				} catch (nodeError) {
+					const errorMsg = nodeError instanceof Error ? nodeError.message : 'Unknown error';
+					this.logger.error(`Error converting node ${index} (${node.type}):`, errorMsg);
+					this.logger.error(`Problematic node:`, JSON.stringify(node, null, 2));
+					
+					// Add a placeholder for failed nodes so conversion can continue
+					convertedNodes.push(`[Error converting ${node.type || 'unknown'} node: ${errorMsg}]`);
+				}
+			}
+
+			const result = convertedNodes.join('\n\n').trim();
+			this.logger.debug(`Final conversion result:`, result);
+			
+			return result;
+			
+		} catch (error) {
+			const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+			this.logger.error(`Fatal error in ProseMirror conversion:`, errorMsg);
+			this.logger.error(`Document structure:`, JSON.stringify(doc, null, 2));
+			
+			// Return error information for debugging
+			return `[Error: ProseMirror conversion failed - ${errorMsg}]`;
+		}
 	}
 
 	/**
@@ -430,12 +709,6 @@ export class ProseMirrorConverter {
 	 * language specification if provided in the node attributes.
 	 * Handles multi-line code content properly.
 	 *
-	 * TODO: Add unit tests to cover edge cases:
-	 * - Empty content nodes
-	 * - Missing language attributes
-	 * - Multiline content with various line endings
-	 * - Content with special characters or backticks
-	 *
 	 * @private
 	 * @param {ProseMirrorNode} node - Code block node with optional language
 	 * @returns {string} Fenced Markdown code block
@@ -507,12 +780,6 @@ export class ProseMirrorConverter {
 	 * Processes table rows and generates a properly formatted Markdown table
 	 * with pipe separators. Automatically adds a header separator row after
 	 * the first row to comply with Markdown table syntax.
-	 *
-	 * TODO: Add unit tests to cover edge cases:
-	 * - Tables with no content
-	 * - Single row tables
-	 * - Tables with missing cells
-	 * - Complex nested content in cells
 	 *
 	 * @private
 	 * @param {ProseMirrorNode} node - Table node containing row nodes
@@ -605,11 +872,6 @@ export class ProseMirrorConverter {
 	 * Creates the required separator row that goes between the header
 	 * and data rows in Markdown tables. Counts the number of columns
 	 * from the header row and generates appropriate "---" separators.
-	 *
-	 * TODO: Add unit tests to cover edge cases:
-	 * - Header rows with no pipes
-	 * - Header rows with escaped pipes
-	 * - Malformed header rows
 	 *
 	 * @private
 	 * @param {string} headerRow - The header row string to analyze
