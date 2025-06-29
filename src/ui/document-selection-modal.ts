@@ -566,7 +566,11 @@ export class DocumentSelectionModal extends Modal {
 	}
 
 	/**
-	 * Opens multiple imported files in new tabs.
+	 * Opens multiple imported files in new tabs with auto-scroll functionality.
+	 *
+	 * Opens each imported file in a new tab and automatically scrolls to the top
+	 * of the document to ensure the user can immediately see the content. This
+	 * provides a smooth user experience when reviewing newly imported documents.
 	 *
 	 * @private
 	 * @param {TFile[]} files - Array of imported files to open
@@ -578,6 +582,9 @@ export class DocumentSelectionModal extends Modal {
 				// Create a new leaf (tab) for each file
 				const leaf = this.app.workspace.getLeaf('tab');
 				await leaf.openFile(file);
+				
+				// Auto-scroll to top of the document for better UX
+				await this.autoScrollToTop(leaf);
 			}
 
 			// Focus the first opened file if available
@@ -587,12 +594,76 @@ export class DocumentSelectionModal extends Modal {
 					.find(leaf => (leaf.view as any).file === files[0]);
 				if (firstFileLeaf) {
 					this.app.workspace.setActiveLeaf(firstFileLeaf);
+					// Ensure the focused file is also scrolled to top
+					await this.autoScrollToTop(firstFileLeaf);
 				}
 			}
 		} catch (error) {
 			console.error('Error opening imported files:', error);
 			// Show a user-friendly notice
 			new Notice('Error opening imported files. Please check the console for details.', 5000);
+		}
+	}
+
+	/**
+	 * Auto-scrolls a leaf (tab) to the top of the document with smooth animation.
+	 *
+	 * This method provides enhanced user experience by ensuring that newly opened
+	 * imported files are positioned at the top, making the content immediately
+	 * visible and readable. Uses smooth scrolling animation when supported.
+	 *
+	 * @private
+	 * @param {any} leaf - The Obsidian workspace leaf to scroll
+	 */
+	private async autoScrollToTop(leaf: any): Promise<void> {
+		try {
+			// Small delay to ensure the view is fully loaded
+			await new Promise(resolve => setTimeout(resolve, 100));
+
+			// Get the editor or content element
+			const view = leaf.view;
+			if (!view) {
+				return;
+			}
+
+			// Try multiple methods to scroll to top based on different view types
+			if (view.editor && view.editor.scrollTo) {
+				// CodeMirror editor (source mode)
+				view.editor.scrollTo(null, 0);
+			} else if (view.contentEl) {
+				// Reading mode or other views with contentEl
+				const scrollElement = view.contentEl.querySelector('.markdown-reading-view') || 
+									 view.contentEl.querySelector('.markdown-source-view') ||
+									 view.contentEl.querySelector('.view-content') ||
+									 view.contentEl;
+
+				if (scrollElement && scrollElement.scrollTo) {
+					scrollElement.scrollTo({
+						top: 0,
+						behavior: 'smooth'
+					});
+				}
+			}
+
+			// Fallback: try to find any scrollable element in the leaf
+			if (leaf.containerEl) {
+				const scrollableElements = leaf.containerEl.querySelectorAll(
+					'.cm-scroller, .markdown-reading-view, .view-content, .workspace-leaf-content'
+				);
+
+				for (const element of scrollableElements) {
+					if (element.scrollTo) {
+						element.scrollTo({
+							top: 0,
+							behavior: 'smooth'
+						});
+						break; // Only scroll the first scrollable element found
+					}
+				}
+			}
+		} catch (error) {
+			// Silently handle errors in auto-scroll to avoid disrupting file opening
+			console.debug('Auto-scroll failed (non-critical):', error);
 		}
 	}
 
