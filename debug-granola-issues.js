@@ -324,10 +324,7 @@ class DebugConverter {
     generateFileContent(doc, markdown) {
         const frontmatter = [
             '---',
-            `id: ${doc.id}`,
-            `title: "${(doc.title || 'Untitled').replace(/"/g, '\\"')}"`,
             `created: ${doc.created_at}`,
-            `updated: ${doc.updated_at}`,
             `source: Granola`,
             '---',
             ''
