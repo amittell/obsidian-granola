@@ -31,7 +31,7 @@ export interface GranolaDocument {
 		/** Panel content in ProseMirror JSON format */
 		content?: ProseMirrorDoc;
 		/** Additional panel metadata */
-		[key: string]: any;
+		[key: string]: unknown;
 	};
 
 	/** ISO timestamp when the document was created */
@@ -44,7 +44,7 @@ export interface GranolaDocument {
 	user_id: string;
 
 	/** Additional metadata fields */
-	[key: string]: any;
+	[key: string]: unknown;
 }
 
 /**
@@ -135,6 +135,7 @@ export interface GetDocumentsResponse {
 
 // API Configuration Constants
 const DEFAULT_PAGE_SIZE = 100;
+// const RATE_LIMIT_DELAY_MS = 200; // Currently unused but may be needed for rate limiting
 const MAX_RETRY_ATTEMPTS = 3;
 const EXPONENTIAL_BACKOFF_BASE_MS = 1000;
 
@@ -336,8 +337,7 @@ export class GranolaAPI {
 	 */
 	private async makeRequest(
 		endpoint: string,
-		options: {
-			method?: string;
+		options: { method?: string; body?: string } & {
 			headers: Record<string, string>;
 			body?: string;
 		}

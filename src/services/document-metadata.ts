@@ -1,4 +1,4 @@
-import { GranolaDocument } from '../api';
+import { GranolaDocument, ProseMirrorDoc, ProseMirrorNode } from '../api';
 import { DuplicateCheckResult } from './duplicate-detector';
 
 /**
@@ -390,13 +390,20 @@ export class DocumentMetadataService {
 	 * @param {any} proseMirrorDoc - ProseMirror document
 	 * @returns {string} Extracted text
 	 */
-	private extractTextFromProseMirror(proseMirrorDoc: any): string {
+	private extractTextFromProseMirror(
+		proseMirrorDoc: ProseMirrorDoc | Record<string, unknown>
+	): string {
 		if (!proseMirrorDoc || !proseMirrorDoc.content) {
 			return 'No content available';
 		}
 
-		const extractText = (node: any): string => {
-			if (node.text) {
+		const extractText = (node: ProseMirrorNode | Record<string, unknown>): string => {
+			if (
+				typeof node === 'object' &&
+				node &&
+				'text' in node &&
+				typeof node.text === 'string'
+			) {
 				return node.text;
 			}
 			if (node.content && Array.isArray(node.content)) {
@@ -405,8 +412,13 @@ export class DocumentMetadataService {
 			return '';
 		};
 
-		const text = proseMirrorDoc.content
-			.map(extractText)
+		const content = (proseMirrorDoc as { content?: unknown[] }).content;
+		if (!Array.isArray(content)) {
+			return 'No content available';
+		}
+
+		const text = content
+			.map(node => extractText(node as ProseMirrorNode | Record<string, unknown>))
 			.join(' ')
 			.trim()
 			.replace(/\s+/g, ' ')

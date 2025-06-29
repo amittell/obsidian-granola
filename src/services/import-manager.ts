@@ -679,7 +679,9 @@ export class SelectiveImportManager {
 				break;
 
 			default:
-				throw new Error(`Unknown resolution action: ${(resolution as any).action}`);
+				throw new Error(
+					`Unknown resolution action: ${(resolution as { action: string }).action}`
+				);
 		}
 
 		this.updateDocumentProgress(doc.id, {
@@ -700,7 +702,10 @@ export class SelectiveImportManager {
 	 * @param {any} convertedNote - Converted document
 	 * @param {boolean} createBackup - Whether to create backup
 	 */
-	private async handleOverwrite(convertedNote: any, createBackup: boolean): Promise<void> {
+	private async handleOverwrite(
+		convertedNote: { filename: string; content: string },
+		createBackup: boolean
+	): Promise<void> {
 		const existingFile = this.vault.getAbstractFileByPath(convertedNote.filename);
 
 		if (existingFile instanceof TFile) {
@@ -722,7 +727,10 @@ export class SelectiveImportManager {
 	 * @param {any} convertedNote - Converted document
 	 * @param {'append' | 'prepend'} strategy - Merge strategy
 	 */
-	private async handleMerge(convertedNote: any, strategy: 'append' | 'prepend'): Promise<void> {
+	private async handleMerge(
+		convertedNote: { filename: string; content: string },
+		strategy: 'append' | 'prepend'
+	): Promise<void> {
 		const existingFile = this.vault.getAbstractFileByPath(convertedNote.filename);
 
 		if (existingFile instanceof TFile) {
@@ -761,7 +769,10 @@ export class SelectiveImportManager {
 	 * @param {any} convertedNote - Converted document
 	 * @param {string} newFilename - New filename to use
 	 */
-	private async handleRename(convertedNote: any, newFilename: string): Promise<void> {
+	private async handleRename(
+		convertedNote: { content: string },
+		newFilename: string
+	): Promise<void> {
 		await this.vault.create(newFilename, convertedNote.content);
 	}
 

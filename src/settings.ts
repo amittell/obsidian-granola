@@ -165,7 +165,7 @@ export class Logger {
 	/**
 	 * Logs an error message.
 	 */
-	error(message: string, ...args: any[]): void {
+	error(message: string, ...args: unknown[]): void {
 		if (this.settings.debug.logLevel >= LogLevel.ERROR) {
 			console.error(`[Granola Importer] ${message}`, ...args);
 		}
@@ -174,7 +174,7 @@ export class Logger {
 	/**
 	 * Logs a warning message.
 	 */
-	warn(message: string, ...args: any[]): void {
+	warn(message: string, ...args: unknown[]): void {
 		if (this.settings.debug.logLevel >= LogLevel.WARN) {
 			console.warn(`[Granola Importer] ${message}`, ...args);
 		}
@@ -183,7 +183,7 @@ export class Logger {
 	/**
 	 * Logs an info message.
 	 */
-	info(message: string, ...args: any[]): void {
+	info(message: string, ...args: unknown[]): void {
 		if (this.settings.debug.logLevel >= LogLevel.INFO) {
 			console.info(`[Granola Importer] ${message}`, ...args);
 		}
@@ -192,7 +192,7 @@ export class Logger {
 	/**
 	 * Logs a debug message.
 	 */
-	debug(message: string, ...args: any[]): void {
+	debug(message: string, ...args: unknown[]): void {
 		if (this.settings.debug.enabled && this.settings.debug.logLevel >= LogLevel.DEBUG) {
 			console.log(`[Granola Importer Debug] ${message}`, ...args);
 		}
