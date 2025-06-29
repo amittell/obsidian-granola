@@ -1,4 +1,4 @@
-import { Modal, App, ButtonComponent, TextComponent, Notice, TFile } from 'obsidian';
+import { Modal, App, ButtonComponent, TextComponent, Notice, TFile, WorkspaceLeaf, MarkdownView } from 'obsidian';
 import { GranolaDocument, GranolaAPI } from '../api';
 import { DuplicateDetector } from '../services/duplicate-detector';
 import {
@@ -90,6 +90,8 @@ export class DocumentSelectionModal extends Modal {
 	/**
 	 * Called when the modal is opened.
 	 * Initializes the UI and loads documents.
+	 * 
+	 * @returns {Promise<void>} Resolves when modal initialization is complete
 	 */
 	async onOpen(): Promise<void> {
 		this.modalContentEl = this.contentEl;
@@ -226,6 +228,7 @@ export class DocumentSelectionModal extends Modal {
 	 *
 	 * @private
 	 * @async
+	 * @returns {Promise<void>} Resolves when document loading is complete
 	 */
 	private async loadDocuments(): Promise<void> {
 		if (this.isLoading) return;
@@ -280,6 +283,7 @@ export class DocumentSelectionModal extends Modal {
 	 *
 	 * @private
 	 * @async
+	 * @returns {Promise<void>} Resolves when document refresh is complete
 	 */
 	private async refreshDocuments(): Promise<void> {
 		this.showMainView(); // Ensure main view is visible when refreshing
@@ -401,6 +405,7 @@ export class DocumentSelectionModal extends Modal {
 	 *
 	 * @private
 	 * @async
+	 * @returns {Promise<void>} Resolves when import process is complete
 	 */
 	private async startImport(): Promise<void> {
 		const selectedDocs = this.documentMetadata.filter(doc => doc.selected);
@@ -574,6 +579,7 @@ export class DocumentSelectionModal extends Modal {
 	 *
 	 * @private
 	 * @param {TFile[]} files - Array of imported files to open
+	 * @returns {Promise<void>} Resolves when files are opened and positioned
 	 */
 	private async openImportedFiles(files: TFile[]): Promise<void> {
 		try {
@@ -591,7 +597,7 @@ export class DocumentSelectionModal extends Modal {
 			if (files.length > 0) {
 				const firstFileLeaf = this.app.workspace
 					.getLeavesOfType('markdown')
-					.find(leaf => (leaf.view as any).file === files[0]);
+					.find(leaf => (leaf.view as MarkdownView).file === files[0]);
 				if (firstFileLeaf) {
 					this.app.workspace.setActiveLeaf(firstFileLeaf);
 					// Ensure the focused file is also scrolled to top
@@ -613,9 +619,10 @@ export class DocumentSelectionModal extends Modal {
 	 * visible and readable. Uses smooth scrolling animation when supported.
 	 *
 	 * @private
-	 * @param {any} leaf - The Obsidian workspace leaf to scroll
+	 * @param {WorkspaceLeaf} leaf - The Obsidian workspace leaf to scroll
+	 * @returns {Promise<void>} Resolves after auto-scroll attempts complete
 	 */
-	private async autoScrollToTop(leaf: any): Promise<void> {
+	private async autoScrollToTop(leaf: WorkspaceLeaf): Promise<void> {
 		try {
 			// Small delay to ensure the view is fully loaded
 			await new Promise(resolve => setTimeout(resolve, 100));
@@ -627,17 +634,17 @@ export class DocumentSelectionModal extends Modal {
 			}
 
 			// Try multiple methods to scroll to top based on different view types
-			if (view.editor && view.editor.scrollTo) {
+			if ((view as any).editor?.scrollTo) {
 				// CodeMirror editor (source mode)
-				view.editor.scrollTo(null, 0);
-			} else if (view.contentEl) {
+				(view as any).editor.scrollTo(null, 0);
+			} else if ((view as any).contentEl) {
 				// Reading mode or other views with contentEl
-				const scrollElement = view.contentEl.querySelector('.markdown-reading-view') || 
-									view.contentEl.querySelector('.markdown-source-view') ||
-									view.contentEl.querySelector('.view-content') ||
-									view.contentEl;
+				const scrollElement = (view as any).contentEl.querySelector('.markdown-reading-view') || 
+					(view as any).contentEl.querySelector('.markdown-source-view') ||
+					(view as any).contentEl.querySelector('.view-content') ||
+					(view as any).contentEl;
 
-				if (scrollElement && scrollElement.scrollTo) {
+				if (scrollElement?.scrollTo) {
 					scrollElement.scrollTo({
 						top: 0,
 						behavior: 'smooth'
@@ -646,8 +653,8 @@ export class DocumentSelectionModal extends Modal {
 			}
 
 			// Fallback: try to find any scrollable element in the leaf
-			if (leaf.containerEl) {
-				const scrollableElements = leaf.containerEl.querySelectorAll(
+			if ((leaf as any).containerEl) {
+				const scrollableElements = (leaf as any).containerEl.querySelectorAll(
 					'.cm-scroller, .markdown-reading-view, .view-content, .workspace-leaf-content'
 				);
 
