@@ -143,13 +143,13 @@ export class DuplicateDetector {
 				};
 			}
 
-			// Check if a file with this exact filename exists (non-Granola)
-			const existingFile = this.vault.getAbstractFileByPath(filename);
-			if (existingFile instanceof TFile) {
+			// Check if a file with this exact filename exists (non-Granola) in any folder
+			const existingFile = this.findFileByBasename(filename);
+			if (existingFile) {
 				return {
 					status: 'CONFLICT',
 					existingFile,
-					reason: `File already exists: ${filename}`,
+					reason: `File already exists: ${existingFile.path}`,
 					requiresUserChoice: true
 				};
 			}
@@ -485,6 +485,18 @@ export class DuplicateDetector {
 
 		// Combine date prefix with title and add extension
 		return `${datePrefix} - ${sanitizedTitle}.md`;
+	}
+
+	/**
+	 * Finds a file by its basename anywhere in the vault.
+	 * 
+	 * @private
+	 * @param {string} filename - The filename to search for (with extension)
+	 * @returns {TFile | null} The file if found, null otherwise
+	 */
+	private findFileByBasename(filename: string): TFile | null {
+		const allFiles = this.vault.getMarkdownFiles();
+		return allFiles.find(file => file.name === filename) || null;
 	}
 
 	/**
