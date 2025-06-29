@@ -5,16 +5,16 @@ import { DocumentDisplayMetadata } from '../services/document-metadata';
 /**
  * User's choice for resolving a document conflict.
  */
-export type ConflictResolution = 
+export type ConflictResolution =
 	| { action: 'skip'; reason: string }
 	| { action: 'overwrite'; createBackup: boolean }
 	| { action: 'merge'; strategy: 'append' | 'prepend' }
 	| { action: 'rename'; newFilename: string }
-	| { action: 'view-diff'; } // For future implementation
+	| { action: 'view-diff' }; // For future implementation
 
 /**
  * Modal for resolving import conflicts when documents already exist.
- * 
+ *
  * This modal provides users with clear options for handling conflicts,
  * showing them what will happen and letting them make informed decisions
  * about their data.
@@ -66,9 +66,9 @@ export class ConflictResolutionModal extends Modal {
 	onClose(): void {
 		// If modal was closed without resolution, default to skip
 		if (this.resolve) {
-			this.resolve({ 
-				action: 'skip', 
-				reason: 'User cancelled conflict resolution' 
+			this.resolve({
+				action: 'skip',
+				reason: 'User cancelled conflict resolution',
 			});
 		}
 	}
@@ -80,7 +80,7 @@ export class ConflictResolutionModal extends Modal {
 		// Header
 		const header = this.contentEl.createDiv('conflict-header');
 		header.createEl('h2', { text: 'Import Conflict Detected' });
-		
+
 		const status = header.createEl('div', { cls: 'conflict-status' });
 		status.innerHTML = this.getStatusMessage();
 
@@ -120,7 +120,7 @@ export class ConflictResolutionModal extends Modal {
 		container.createEl('h3', { text: 'Document Information' });
 
 		const table = container.createEl('table', { cls: 'document-info-table' });
-		
+
 		// Title
 		const titleRow = table.createEl('tr');
 		titleRow.createEl('td', { text: 'Title:', cls: 'info-label' });
@@ -153,10 +153,10 @@ export class ConflictResolutionModal extends Modal {
 		container.createEl('h3', { text: 'Conflict Details' });
 
 		const detailsBox = container.createDiv('conflict-details-box');
-		
+
 		// Show preview of both versions
 		const comparison = detailsBox.createDiv('content-comparison');
-		
+
 		// Granola version preview
 		const granolaPreview = comparison.createDiv('version-preview granola-version');
 		granolaPreview.createEl('h4', { text: '📥 Granola Version (Incoming)' });
@@ -180,10 +180,10 @@ export class ConflictResolutionModal extends Modal {
 		// Skip option
 		this.createResolutionOption(optionsGrid, {
 			title: '⏭️ Skip This Document',
-			description: 'Leave existing file unchanged, don\'t import this document',
+			description: "Leave existing file unchanged, don't import this document",
 			action: () => this.resolveWith({ action: 'skip', reason: 'User chose to skip' }),
 			buttonText: 'Skip',
-			buttonClass: 'skip-button'
+			buttonClass: 'skip-button',
 		});
 
 		// Overwrite option
@@ -192,7 +192,7 @@ export class ConflictResolutionModal extends Modal {
 			description: 'Overwrite the existing file with the Granola version',
 			action: () => this.showOverwriteOptions(),
 			buttonText: 'Replace',
-			buttonClass: 'overwrite-button'
+			buttonClass: 'overwrite-button',
 		});
 
 		// Merge option
@@ -202,7 +202,7 @@ export class ConflictResolutionModal extends Modal {
 				description: 'Combine the existing content with the Granola version',
 				action: () => this.showMergeOptions(),
 				buttonText: 'Merge',
-				buttonClass: 'merge-button'
+				buttonClass: 'merge-button',
 			});
 		}
 
@@ -212,14 +212,12 @@ export class ConflictResolutionModal extends Modal {
 			description: 'Import the Granola document with a different filename',
 			action: () => this.showRenameOptions(),
 			buttonText: 'Rename',
-			buttonClass: 'rename-button'
+			buttonClass: 'rename-button',
 		});
 
 		// Cancel option
 		const cancelDiv = container.createDiv('cancel-option');
-		new ButtonComponent(cancelDiv)
-			.setButtonText('Cancel Import')
-			.onClick(() => this.close());
+		new ButtonComponent(cancelDiv).setButtonText('Cancel Import').onClick(() => this.close());
 	}
 
 	private createResolutionOption(
@@ -233,7 +231,7 @@ export class ConflictResolutionModal extends Modal {
 		}
 	): void {
 		const optionDiv = container.createDiv('resolution-option');
-		
+
 		const content = optionDiv.createDiv('option-content');
 		content.createEl('h4', { text: options.title });
 		content.createEl('p', { text: options.description });
@@ -248,33 +246,33 @@ export class ConflictResolutionModal extends Modal {
 	private showOverwriteOptions(): void {
 		const confirmDiv = this.contentEl.createDiv('confirmation-dialog');
 		confirmDiv.createEl('h4', { text: '⚠️ Confirm Replacement' });
-		confirmDiv.createEl('p', { 
-			text: 'This will permanently replace the existing file. This action cannot be undone.' 
+		confirmDiv.createEl('p', {
+			text: 'This will permanently replace the existing file. This action cannot be undone.',
 		});
 
 		const backupOption = confirmDiv.createDiv('backup-option');
-		const backupCheckbox = backupOption.createEl('input', { type: 'checkbox' }) as HTMLInputElement;
+		const backupCheckbox = backupOption.createEl('input', {
+			type: 'checkbox',
+		}) as HTMLInputElement;
 		backupCheckbox.checked = true;
-		backupOption.createEl('label', { 
+		backupOption.createEl('label', {
 			text: ' Create backup of existing file before replacing',
-			attr: { for: backupCheckbox.id }
+			attr: { for: backupCheckbox.id },
 		});
 
 		const buttons = confirmDiv.createDiv('confirmation-buttons');
-		
-		new ButtonComponent(buttons)
-			.setButtonText('Cancel')
-			.onClick(() => {
-				confirmDiv.remove();
-			});
+
+		new ButtonComponent(buttons).setButtonText('Cancel').onClick(() => {
+			confirmDiv.remove();
+		});
 
 		new ButtonComponent(buttons)
 			.setButtonText('Replace File')
 			.setClass('mod-warning')
 			.onClick(() => {
-				this.resolveWith({ 
-					action: 'overwrite', 
-					createBackup: backupCheckbox.checked 
+				this.resolveWith({
+					action: 'overwrite',
+					createBackup: backupCheckbox.checked,
 				});
 			});
 	}
@@ -284,33 +282,27 @@ export class ConflictResolutionModal extends Modal {
 		mergeDiv.createEl('h4', { text: '🔗 Choose Merge Strategy' });
 
 		const appendOption = mergeDiv.createDiv('merge-option');
-		new ButtonComponent(appendOption)
-			.setButtonText('Append Granola Content')
-			.onClick(() => {
-				this.resolveWith({ action: 'merge', strategy: 'append' });
-			});
-		appendOption.createEl('p', { 
+		new ButtonComponent(appendOption).setButtonText('Append Granola Content').onClick(() => {
+			this.resolveWith({ action: 'merge', strategy: 'append' });
+		});
+		appendOption.createEl('p', {
 			text: 'Add the Granola content to the end of the existing file',
-			cls: 'merge-description'
+			cls: 'merge-description',
 		});
 
 		const prependOption = mergeDiv.createDiv('merge-option');
-		new ButtonComponent(prependOption)
-			.setButtonText('Prepend Granola Content')
-			.onClick(() => {
-				this.resolveWith({ action: 'merge', strategy: 'prepend' });
-			});
-		prependOption.createEl('p', { 
+		new ButtonComponent(prependOption).setButtonText('Prepend Granola Content').onClick(() => {
+			this.resolveWith({ action: 'merge', strategy: 'prepend' });
+		});
+		prependOption.createEl('p', {
 			text: 'Add the Granola content to the beginning of the existing file',
-			cls: 'merge-description'
+			cls: 'merge-description',
 		});
 
 		const cancelButton = mergeDiv.createDiv('merge-cancel');
-		new ButtonComponent(cancelButton)
-			.setButtonText('Cancel')
-			.onClick(() => {
-				mergeDiv.remove();
-			});
+		new ButtonComponent(cancelButton).setButtonText('Cancel').onClick(() => {
+			mergeDiv.remove();
+		});
 	}
 
 	private showRenameOptions(): void {
@@ -318,21 +310,19 @@ export class ConflictResolutionModal extends Modal {
 		renameDiv.createEl('h4', { text: '📝 Enter New Filename' });
 
 		const inputContainer = renameDiv.createDiv('filename-input-container');
-		const input = inputContainer.createEl('input', { 
+		const input = inputContainer.createEl('input', {
 			type: 'text',
 			value: this.generateAlternativeFilename(),
-			cls: 'filename-input'
+			cls: 'filename-input',
 		}) as HTMLInputElement;
 
 		inputContainer.createEl('span', { text: '.md', cls: 'filename-extension' });
 
 		const buttons = renameDiv.createDiv('rename-buttons');
-		
-		new ButtonComponent(buttons)
-			.setButtonText('Cancel')
-			.onClick(() => {
-				renameDiv.remove();
-			});
+
+		new ButtonComponent(buttons).setButtonText('Cancel').onClick(() => {
+			renameDiv.remove();
+		});
 
 		new ButtonComponent(buttons)
 			.setButtonText('Import with New Name')
@@ -340,9 +330,9 @@ export class ConflictResolutionModal extends Modal {
 			.onClick(() => {
 				const newFilename = input.value.trim();
 				if (newFilename) {
-					this.resolveWith({ 
-						action: 'rename', 
-						newFilename: `${newFilename}.md`
+					this.resolveWith({
+						action: 'rename',
+						newFilename: `${newFilename}.md`,
 					});
 				}
 			});
@@ -361,7 +351,7 @@ export class ConflictResolutionModal extends Modal {
 
 	private getExistingPreview(): string {
 		if (!this.existingContent) return 'Could not load existing content';
-		
+
 		// Remove frontmatter for preview
 		const contentAfterFrontmatter = this.existingContent.replace(/^---\n[\s\S]*?\n---\n/, '');
 		return contentAfterFrontmatter.substring(0, 300) + '...';
@@ -369,7 +359,10 @@ export class ConflictResolutionModal extends Modal {
 
 	private generateAlternativeFilename(): string {
 		const baseTitle = this.document.title || 'Untitled';
-		const sanitized = baseTitle.replace(/[<>:"/\\|?*]/g, '-').replace(/\s+/g, ' ').trim();
+		const sanitized = baseTitle
+			.replace(/[<>:"/\\|?*]/g, '-')
+			.replace(/\s+/g, ' ')
+			.trim();
 		const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 		return `${sanitized} (Granola ${timestamp})`;
 	}

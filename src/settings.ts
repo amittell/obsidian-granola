@@ -8,7 +8,7 @@ export enum LogLevel {
 	ERROR = 0,
 	WARN = 1,
 	INFO = 2,
-	DEBUG = 3
+	DEBUG = 3,
 }
 
 /**
@@ -20,7 +20,7 @@ export enum ImportStrategy {
 	/** Update existing documents with newer content */
 	UPDATE_EXISTING = 'update',
 	/** Always prompt user for conflict resolution */
-	ALWAYS_PROMPT = 'prompt'
+	ALWAYS_PROMPT = 'prompt',
 }
 
 /**
@@ -36,7 +36,7 @@ export enum DatePrefixFormat {
 	/** YYYY.MM.DD format (dot separated) */
 	DOT_DATE = 'YYYY.MM.DD',
 	/** No date prefix */
-	NONE = 'none'
+	NONE = 'none',
 }
 
 /**
@@ -50,7 +50,7 @@ export enum ContentPriority {
 	/** Only use last_viewed_panel (most reliable) */
 	PANEL_ONLY = 'panel_only',
 	/** Only use notes field */
-	NOTES_ONLY = 'notes_only'
+	NOTES_ONLY = 'notes_only',
 }
 
 /**
@@ -165,7 +165,7 @@ export class Logger {
 	/**
 	 * Logs an error message.
 	 */
-	error(message: string, ...args: any[]): void {
+	error(message: string, ...args: unknown[]): void {
 		if (this.settings.debug.logLevel >= LogLevel.ERROR) {
 			console.error(`[Granola Importer] ${message}`, ...args);
 		}
@@ -174,7 +174,7 @@ export class Logger {
 	/**
 	 * Logs a warning message.
 	 */
-	warn(message: string, ...args: any[]): void {
+	warn(message: string, ...args: unknown[]): void {
 		if (this.settings.debug.logLevel >= LogLevel.WARN) {
 			console.warn(`[Granola Importer] ${message}`, ...args);
 		}
@@ -183,7 +183,7 @@ export class Logger {
 	/**
 	 * Logs an info message.
 	 */
-	info(message: string, ...args: any[]): void {
+	info(message: string, ...args: unknown[]): void {
 		if (this.settings.debug.logLevel >= LogLevel.INFO) {
 			console.info(`[Granola Importer] ${message}`, ...args);
 		}
@@ -192,7 +192,7 @@ export class Logger {
 	/**
 	 * Logs a debug message.
 	 */
-	debug(message: string, ...args: any[]): void {
+	debug(message: string, ...args: unknown[]): void {
 		if (this.settings.debug.enabled && this.settings.debug.logLevel >= LogLevel.DEBUG) {
 			console.log(`[Granola Importer Debug] ${message}`, ...args);
 		}
@@ -266,7 +266,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 					.setLimits(5, 120, 5)
 					.setValue(this.plugin.settings.connection.timeoutMs / 1000)
 					.setDynamicTooltip()
-					.onChange(async (value) => {
+					.onChange(async value => {
 						this.plugin.settings.connection.timeoutMs = value * 1000;
 						await this.plugin.saveSettings();
 					});
@@ -284,15 +284,15 @@ export class GranolaSettingTab extends PluginSettingTab {
 		// Debug mode toggle
 		new Setting(containerEl)
 			.setName('Enable debug mode')
-			.setDesc('Show detailed logging for troubleshooting. Disable this to reduce console noise.')
+			.setDesc(
+				'Show detailed logging for troubleshooting. Disable this to reduce console noise.'
+			)
 			.addToggle(toggle => {
-				toggle
-					.setValue(this.plugin.settings.debug.enabled)
-					.onChange(async (value) => {
-						this.plugin.settings.debug.enabled = value;
-						this.plugin.logger.updateSettings(this.plugin.settings);
-						await this.plugin.saveSettings();
-					});
+				toggle.setValue(this.plugin.settings.debug.enabled).onChange(async value => {
+					this.plugin.settings.debug.enabled = value;
+					this.plugin.logger.updateSettings(this.plugin.settings);
+					await this.plugin.saveSettings();
+				});
 			});
 
 		// Log level
@@ -306,7 +306,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 					.addOption(LogLevel.INFO.toString(), 'Info and above')
 					.addOption(LogLevel.DEBUG.toString(), 'All messages')
 					.setValue(this.plugin.settings.debug.logLevel.toString())
-					.onChange(async (value) => {
+					.onChange(async value => {
 						this.plugin.settings.debug.logLevel = parseInt(value) as LogLevel;
 						this.plugin.logger.updateSettings(this.plugin.settings);
 						await this.plugin.saveSettings();
@@ -332,7 +332,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 					.addOption(ImportStrategy.UPDATE_EXISTING, 'Update existing with newer content')
 					.addOption(ImportStrategy.ALWAYS_PROMPT, 'Always ask what to do')
 					.setValue(this.plugin.settings.import.strategy)
-					.onChange(async (value) => {
+					.onChange(async value => {
 						this.plugin.settings.import.strategy = value as ImportStrategy;
 						await this.plugin.saveSettings();
 					});
@@ -341,12 +341,13 @@ export class GranolaSettingTab extends PluginSettingTab {
 		// Default import folder
 		new Setting(containerEl)
 			.setName('Import folder')
-			.setDesc('Default folder in your vault for imported documents (leave empty for vault root)')
+			.setDesc(
+				'Default folder in your vault for imported documents (leave empty for vault root)'
+			)
 			.addText(text => {
-				text
-					.setPlaceholder('e.g., Meetings/Granola')
+				text.setPlaceholder('e.g., Meetings/Granola')
 					.setValue(this.plugin.settings.import.defaultFolder)
-					.onChange(async (value) => {
+					.onChange(async value => {
 						this.plugin.settings.import.defaultFolder = value;
 						await this.plugin.saveSettings();
 					});
@@ -355,14 +356,12 @@ export class GranolaSettingTab extends PluginSettingTab {
 		// Create folders toggle
 		new Setting(containerEl)
 			.setName('Create folders')
-			.setDesc('Automatically create folders if they don\'t exist')
+			.setDesc("Automatically create folders if they don't exist")
 			.addToggle(toggle => {
-				toggle
-					.setValue(this.plugin.settings.import.createFolders)
-					.onChange(async (value) => {
-						this.plugin.settings.import.createFolders = value;
-						await this.plugin.saveSettings();
-					});
+				toggle.setValue(this.plugin.settings.import.createFolders).onChange(async value => {
+					this.plugin.settings.import.createFolders = value;
+					await this.plugin.saveSettings();
+				});
 			});
 	}
 
@@ -377,7 +376,9 @@ export class GranolaSettingTab extends PluginSettingTab {
 		// Date prefix format
 		new Setting(containerEl)
 			.setName('Date prefix format')
-			.setDesc('Format for date prefixes in filenames (prevents duplicate names for recurring meetings)')
+			.setDesc(
+				'Format for date prefixes in filenames (prevents duplicate names for recurring meetings)'
+			)
 			.addDropdown(dropdown => {
 				dropdown
 					.addOption(DatePrefixFormat.ISO_DATE, 'YYYY-MM-DD (2025-06-28)')
@@ -386,7 +387,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 					.addOption(DatePrefixFormat.DOT_DATE, 'YYYY.MM.DD (2025.06.28)')
 					.addOption(DatePrefixFormat.NONE, 'No date prefix')
 					.setValue(this.plugin.settings.content.datePrefixFormat)
-					.onChange(async (value) => {
+					.onChange(async value => {
 						this.plugin.settings.content.datePrefixFormat = value as DatePrefixFormat;
 						await this.plugin.saveSettings();
 					});
@@ -403,7 +404,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 					.addOption(ContentPriority.PANEL_ONLY, 'Panel only')
 					.addOption(ContentPriority.NOTES_ONLY, 'Notes only')
 					.setValue(this.plugin.settings.content.contentPriority)
-					.onChange(async (value) => {
+					.onChange(async value => {
 						this.plugin.settings.content.contentPriority = value as ContentPriority;
 						await this.plugin.saveSettings();
 					});
@@ -418,7 +419,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 					.setLimits(50, 200, 10)
 					.setValue(this.plugin.settings.import.maxFilenameLength)
 					.setDynamicTooltip()
-					.onChange(async (value) => {
+					.onChange(async value => {
 						this.plugin.settings.import.maxFilenameLength = value;
 						await this.plugin.saveSettings();
 					});
@@ -438,12 +439,10 @@ export class GranolaSettingTab extends PluginSettingTab {
 			.setName('Auto-close import modal')
 			.setDesc('Automatically close the import dialog after successful import')
 			.addToggle(toggle => {
-				toggle
-					.setValue(this.plugin.settings.ui.autoCloseModal)
-					.onChange(async (value) => {
-						this.plugin.settings.ui.autoCloseModal = value;
-						await this.plugin.saveSettings();
-					});
+				toggle.setValue(this.plugin.settings.ui.autoCloseModal).onChange(async value => {
+					this.plugin.settings.ui.autoCloseModal = value;
+					await this.plugin.saveSettings();
+				});
 			});
 
 		// Progress notifications
@@ -453,7 +452,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 			.addToggle(toggle => {
 				toggle
 					.setValue(this.plugin.settings.ui.showProgressNotifications)
-					.onChange(async (value) => {
+					.onChange(async value => {
 						this.plugin.settings.ui.showProgressNotifications = value;
 						await this.plugin.saveSettings();
 					});
@@ -466,7 +465,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 			.addToggle(toggle => {
 				toggle
 					.setValue(this.plugin.settings.ui.selectAllByDefault)
-					.onChange(async (value) => {
+					.onChange(async value => {
 						this.plugin.settings.ui.selectAllByDefault = value;
 						await this.plugin.saveSettings();
 					});
@@ -492,7 +491,8 @@ export class GranolaSettingTab extends PluginSettingTab {
 				this.plugin.settings.connection.lastValidated = Date.now();
 				await this.plugin.saveSettings();
 
-				statusEl.innerHTML = '<span style="color: green;">✅ Connected successfully!</span>';
+				statusEl.innerHTML =
+					'<span style="color: green;">✅ Connected successfully!</span>';
 				new Notice('✅ Granola connection test successful!', 3000);
 			} else {
 				throw new Error('Invalid response format');

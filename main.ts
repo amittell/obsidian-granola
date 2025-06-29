@@ -14,7 +14,7 @@ const ERROR_MESSAGES = {
 	NETWORK: 'Network error - please check your internet connection and try again.',
 	RATE_LIMIT: 'Rate limit exceeded - please wait a moment and try again.',
 	FILE_SYSTEM: 'File system error - check vault permissions and available disk space.',
-	UNKNOWN: 'Unknown error occurred. Check console for details.'
+	UNKNOWN: 'Unknown error occurred. Check console for details.',
 } as const;
 
 /**
@@ -174,81 +174,82 @@ export default class GranolaImporterPlugin extends Plugin {
 	 */
 	async debugAPIResponse(): Promise<void> {
 		const debugNotice = new Notice('Starting API response debug analysis...', 0);
-		
+
 		try {
 			// Load credentials
 			await this.api.loadCredentials();
 			debugNotice.setMessage('Fetching documents from Granola API...');
-			
+
 			// Fetch documents
 			const documents = await this.api.getAllDocuments();
 			debugNotice.hide();
-			
+
 			if (documents.length === 0) {
 				new Notice('❌ No documents found in Granola account', 5000);
 				return;
 			}
-			
+
 			// Analyze first few documents
 			const samplesToAnalyze = Math.min(3, documents.length);
 			let analysisReport = `📊 Granola API Debug Report\n`;
 			analysisReport += `Total documents: ${documents.length}\n`;
 			analysisReport += `Analyzing first ${samplesToAnalyze} documents:\n\n`;
-			
+
 			let docsWithNotes = 0;
 			let docsWithPlain = 0;
 			let docsWithMarkdown = 0;
 			let docsWithAnyContent = 0;
-			
+
 			// Detailed analysis of sample documents
 			for (let i = 0; i < samplesToAnalyze; i++) {
 				const doc = documents[i];
 				analysisReport += `--- Document ${i + 1}: "${doc.title}" ---\n`;
 				analysisReport += `ID: ${doc.id}\n`;
 				analysisReport += `Created: ${doc.created_at}\n`;
-				
+
 				// Check content fields
 				const hasNotes = doc.notes && doc.notes.content && doc.notes.content.length > 0;
 				const hasPlain = doc.notes_plain && doc.notes_plain.trim().length > 0;
 				const hasMarkdown = doc.notes_markdown && doc.notes_markdown.trim().length > 0;
-				
+
 				analysisReport += `Notes (ProseMirror): ${hasNotes ? '✅' : '❌'}\n`;
 				if (hasNotes && doc.notes?.content) {
 					analysisReport += `  - Nodes: ${doc.notes.content.length}\n`;
 				}
-				
+
 				analysisReport += `Notes Plain: ${hasPlain ? '✅' : '❌'}\n`;
 				if (hasPlain) {
 					analysisReport += `  - Length: ${doc.notes_plain.length} chars\n`;
 				}
-				
+
 				analysisReport += `Notes Markdown: ${hasMarkdown ? '✅' : '❌'}\n`;
 				if (hasMarkdown) {
 					analysisReport += `  - Length: ${doc.notes_markdown.length} chars\n`;
 				}
-				
+
 				const hasAnyContent = hasNotes || hasPlain || hasMarkdown;
 				analysisReport += `Overall Status: ${hasAnyContent ? '✅ HAS CONTENT' : '❌ NO CONTENT'}\n\n`;
 			}
-			
+
 			// Overall statistics
 			documents.forEach(doc => {
 				if (doc.notes && doc.notes.content && doc.notes.content.length > 0) docsWithNotes++;
 				if (doc.notes_plain && doc.notes_plain.trim().length > 0) docsWithPlain++;
 				if (doc.notes_markdown && doc.notes_markdown.trim().length > 0) docsWithMarkdown++;
-				
-				const hasContent = (doc.notes && doc.notes.content && doc.notes.content.length > 0) ||
-								 (doc.notes_plain && doc.notes_plain.trim().length > 0) ||
-								 (doc.notes_markdown && doc.notes_markdown.trim().length > 0);
+
+				const hasContent =
+					(doc.notes && doc.notes.content && doc.notes.content.length > 0) ||
+					(doc.notes_plain && doc.notes_plain.trim().length > 0) ||
+					(doc.notes_markdown && doc.notes_markdown.trim().length > 0);
 				if (hasContent) docsWithAnyContent++;
 			});
-			
+
 			analysisReport += `📈 Overall Statistics:\n`;
-			analysisReport += `Documents with ProseMirror: ${docsWithNotes}/${documents.length} (${(docsWithNotes/documents.length*100).toFixed(1)}%)\n`;
-			analysisReport += `Documents with Plain Text: ${docsWithPlain}/${documents.length} (${(docsWithPlain/documents.length*100).toFixed(1)}%)\n`;
-			analysisReport += `Documents with Markdown: ${docsWithMarkdown}/${documents.length} (${(docsWithMarkdown/documents.length*100).toFixed(1)}%)\n`;
-			analysisReport += `Documents with ANY content: ${docsWithAnyContent}/${documents.length} (${(docsWithAnyContent/documents.length*100).toFixed(1)}%)\n\n`;
-			
+			analysisReport += `Documents with ProseMirror: ${docsWithNotes}/${documents.length} (${((docsWithNotes / documents.length) * 100).toFixed(1)}%)\n`;
+			analysisReport += `Documents with Plain Text: ${docsWithPlain}/${documents.length} (${((docsWithPlain / documents.length) * 100).toFixed(1)}%)\n`;
+			analysisReport += `Documents with Markdown: ${docsWithMarkdown}/${documents.length} (${((docsWithMarkdown / documents.length) * 100).toFixed(1)}%)\n`;
+			analysisReport += `Documents with ANY content: ${docsWithAnyContent}/${documents.length} (${((docsWithAnyContent / documents.length) * 100).toFixed(1)}%)\n\n`;
+
 			// Diagnosis
 			analysisReport += `🎯 Diagnosis:\n`;
 			if (docsWithAnyContent === 0) {
@@ -263,14 +264,15 @@ export default class GranolaImporterPlugin extends Plugin {
 			} else if (docsWithNotes > 0) {
 				analysisReport += `💡 ProseMirror exists - conversion issue\n`;
 			}
-			
+
 			// Test conversion on first document with content
-			const testDoc = documents.find(doc => 
-				(doc.notes && doc.notes.content && doc.notes.content.length > 0) ||
-				(doc.notes_plain && doc.notes_plain.trim().length > 0) ||
-				(doc.notes_markdown && doc.notes_markdown.trim().length > 0)
+			const testDoc = documents.find(
+				doc =>
+					(doc.notes && doc.notes.content && doc.notes.content.length > 0) ||
+					(doc.notes_plain && doc.notes_plain.trim().length > 0) ||
+					(doc.notes_markdown && doc.notes_markdown.trim().length > 0)
 			);
-			
+
 			if (testDoc) {
 				analysisReport += `\n🧪 Testing Conversion:\n`;
 				try {
@@ -278,27 +280,25 @@ export default class GranolaImporterPlugin extends Plugin {
 					analysisReport += `✅ Conversion successful\n`;
 					analysisReport += `Filename: ${converted.filename}\n`;
 					analysisReport += `Content length: ${converted.content.length} chars\n`;
-					
+
 					// Check if date-prefix filename is working
 					if (converted.filename.match(/^\d{4}-\d{2}-\d{2} - /)) {
 						analysisReport += `✅ Date-prefixed filename working\n`;
 					} else {
 						analysisReport += `⚠️ Date-prefixed filename not applied\n`;
 					}
-					
 				} catch (conversionError) {
 					analysisReport += `❌ Conversion failed: ${conversionError instanceof Error ? conversionError.message : 'Unknown error'}\n`;
 				}
 			}
-			
+
 			this.logger.info('Debug analysis complete');
 			console.log(analysisReport);
 			new Notice('✅ Debug analysis complete - check console for full report', 5000);
-			
 		} catch (error) {
 			debugNotice.hide();
 			this.logger.error('Debug API Response Error:', error);
-			
+
 			let errorMessage = 'Debug analysis failed: ';
 			if (error instanceof Error) {
 				const message = error.message.toLowerCase();
@@ -312,7 +312,7 @@ export default class GranolaImporterPlugin extends Plugin {
 			} else {
 				errorMessage += 'Unknown error';
 			}
-			
+
 			new Notice(errorMessage, 8000);
 		}
 	}
@@ -356,7 +356,7 @@ export default class GranolaImporterPlugin extends Plugin {
 			modal.open();
 		} catch (error) {
 			this.logger.error('Failed to open import modal:', error);
-			
+
 			// Provide user feedback for modal errors
 			let userMessage = 'Failed to open import dialog: ';
 			if (error instanceof Error) {

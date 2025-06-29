@@ -1,18 +1,28 @@
 import { Modal, App, ButtonComponent, TextComponent, Notice, TFile } from 'obsidian';
 import { GranolaDocument, GranolaAPI } from '../api';
 import { DuplicateDetector } from '../services/duplicate-detector';
-import { DocumentMetadataService, DocumentDisplayMetadata, DocumentFilter, DocumentSort } from '../services/document-metadata';
-import { SelectiveImportManager, ImportProgress, DocumentProgress, ImportOptions } from '../services/import-manager';
+import {
+	DocumentMetadataService,
+	DocumentDisplayMetadata,
+	DocumentFilter,
+	DocumentSort,
+} from '../services/document-metadata';
+import {
+	SelectiveImportManager,
+	ImportProgress,
+	DocumentProgress,
+	ImportOptions,
+} from '../services/import-manager';
 import { ProseMirrorConverter } from '../converter';
 
 /**
  * Modal for selecting and importing Granola documents.
- * 
+ *
  * This modal provides a comprehensive interface for users to preview,
  * select, and import Granola documents into their Obsidian vault.
  * It integrates all the selective import services to provide real-time
  * status updates, progress tracking, and user control over the import process.
- * 
+ *
  * @class DocumentSelectionModal
  * @extends Modal
  * @since 1.1.0
@@ -53,7 +63,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Creates a new document selection modal.
-	 * 
+	 *
 	 * @param {App} app - The Obsidian app instance
 	 * @param {GranolaAPI} api - API client for fetching documents
 	 * @param {DuplicateDetector} duplicateDetector - Service for detecting duplicates
@@ -100,7 +110,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Sets up the modal UI structure.
-	 * 
+	 *
 	 * @private
 	 */
 	private setupUI(): void {
@@ -136,7 +146,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Sets up the control buttons section.
-	 * 
+	 *
 	 * @private
 	 */
 	private setupControls(): void {
@@ -160,7 +170,7 @@ export class DocumentSelectionModal extends Modal {
 		// Status filter dropdown
 		const filterContainer = this.controlsEl.createDiv('filter-group');
 		filterContainer.createEl('label', { text: 'Filter by status:' });
-		
+
 		const statusSelect = filterContainer.createEl('select');
 		statusSelect.createEl('option', { value: '', text: 'All Status' });
 		statusSelect.createEl('option', { value: 'NEW', text: 'New Documents' });
@@ -168,7 +178,7 @@ export class DocumentSelectionModal extends Modal {
 		statusSelect.createEl('option', { value: 'CONFLICT', text: 'Conflicts' });
 		statusSelect.createEl('option', { value: 'EXISTS', text: 'Already Exists' });
 
-		statusSelect.addEventListener('change', (e) => {
+		statusSelect.addEventListener('change', e => {
 			const target = e.target as HTMLSelectElement;
 			this.applyStatusFilter(target.value);
 		});
@@ -176,7 +186,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Sets up the search input section.
-	 * 
+	 *
 	 * @private
 	 */
 	private setupSearch(): void {
@@ -185,12 +195,12 @@ export class DocumentSelectionModal extends Modal {
 
 		this.searchInput = new TextComponent(searchContainer)
 			.setPlaceholder('Search titles and content...')
-			.onChange((value) => this.applyTextFilter(value));
+			.onChange(value => this.applyTextFilter(value));
 	}
 
 	/**
 	 * Sets up the footer buttons.
-	 * 
+	 *
 	 * @private
 	 */
 	private setupFooter(): void {
@@ -213,7 +223,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Loads documents from the API and processes them.
-	 * 
+	 *
 	 * @private
 	 * @async
 	 */
@@ -257,7 +267,6 @@ export class DocumentSelectionModal extends Modal {
 
 			this.renderDocumentList();
 			this.updateFooterButtons();
-
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Unknown error';
 			this.showError(`Failed to load documents: ${message}`);
@@ -268,7 +277,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Refreshes the document list.
-	 * 
+	 *
 	 * @private
 	 * @async
 	 */
@@ -279,7 +288,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Renders the document list with current filtering and sorting.
-	 * 
+	 *
 	 * @private
 	 */
 	private renderDocumentList(): void {
@@ -319,7 +328,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Renders a single document item in the list.
-	 * 
+	 *
 	 * @private
 	 * @param {HTMLElement} container - Container element
 	 * @param {DocumentDisplayMetadata} doc - Document metadata
@@ -331,7 +340,7 @@ export class DocumentSelectionModal extends Modal {
 		// Checkbox
 		const checkbox = item.createEl('input', {
 			type: 'checkbox',
-			cls: 'document-checkbox'
+			cls: 'document-checkbox',
 		}) as HTMLInputElement;
 		checkbox.checked = doc.selected;
 		checkbox.addEventListener('change', () => {
@@ -344,33 +353,35 @@ export class DocumentSelectionModal extends Modal {
 
 		// Title and status
 		const titleRow = content.createDiv('document-title-row');
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const title = titleRow.createEl('h3', {
 			text: doc.title,
-			cls: 'document-title'
+			cls: 'document-title',
 		});
 
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const statusBadge = titleRow.createEl('span', {
 			text: this.getStatusText(doc.importStatus.status),
-			cls: `status-badge status-${doc.importStatus.status.toLowerCase()}`
+			cls: `status-badge status-${doc.importStatus.status.toLowerCase()}`,
 		});
 
 		// Metadata row
 		const metaRow = content.createDiv('document-meta');
 		metaRow.createEl('span', {
 			text: `Created: ${doc.createdAgo}`,
-			cls: 'meta-item'
+			cls: 'meta-item',
 		});
 		metaRow.createEl('span', {
 			text: `Updated: ${doc.updatedAgo}`,
-			cls: 'meta-item'
+			cls: 'meta-item',
 		});
 		metaRow.createEl('span', {
 			text: `${doc.wordCount} words`,
-			cls: 'meta-item'
+			cls: 'meta-item',
 		});
 		metaRow.createEl('span', {
 			text: `${doc.readingTime} min read`,
-			cls: 'meta-item'
+			cls: 'meta-item',
 		});
 
 		// Preview
@@ -388,13 +399,13 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Starts the import process for selected documents.
-	 * 
+	 *
 	 * @private
 	 * @async
 	 */
 	private async startImport(): Promise<void> {
 		const selectedDocs = this.documentMetadata.filter(doc => doc.selected);
-		
+
 		if (selectedDocs.length === 0) {
 			this.showError('No documents selected for import.');
 			return;
@@ -410,8 +421,8 @@ export class DocumentSelectionModal extends Modal {
 				maxConcurrency: 3,
 				delayBetweenImports: 100,
 				stopOnError: false,
-				onProgress: (progress) => this.updateProgress(progress),
-				onDocumentProgress: (docProgress) => this.updateDocumentProgress(docProgress)
+				onProgress: progress => this.updateProgress(progress),
+				onDocumentProgress: docProgress => this.updateDocumentProgress(docProgress),
 			};
 
 			const result = await this.importManager.importDocuments(
@@ -421,7 +432,6 @@ export class DocumentSelectionModal extends Modal {
 			);
 
 			this.showImportComplete(result);
-
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Unknown error';
 			this.showError(`Import failed: ${message}`);
@@ -432,7 +442,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Shows the progress view during import.
-	 * 
+	 *
 	 * @private
 	 */
 	private showProgressView(): void {
@@ -447,13 +457,17 @@ export class DocumentSelectionModal extends Modal {
 		// Progress bar
 		const progressContainer = this.progressEl.createDiv('progress-container');
 		const progressBar = progressContainer.createDiv('progress-bar');
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const progressFill = progressBar.createDiv('progress-fill');
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const progressText = progressContainer.createDiv('progress-text');
 
 		// Document progress list
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const docProgressList = this.progressEl.createDiv('document-progress-list');
 
 		// Cancel button
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const cancelBtn = new ButtonComponent(this.progressEl)
 			.setButtonText('Cancel Import')
 			.onClick(() => {
@@ -463,7 +477,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Updates the overall progress display.
-	 * 
+	 *
 	 * @private
 	 * @param {ImportProgress} progress - Progress information
 	 */
@@ -482,7 +496,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Updates individual document progress.
-	 * 
+	 *
 	 * @private
 	 * @param {DocumentProgress} docProgress - Document progress
 	 */
@@ -493,19 +507,19 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Shows import completion summary.
-	 * 
+	 *
 	 * @private
 	 * @param {ImportProgress} result - Final import results
 	 */
 	private showImportComplete(result: ImportProgress): void {
 		// Reset importing state to re-enable buttons
 		this.setImporting(false);
-		
+
 		this.progressEl.empty();
-		
+
 		const summary = this.progressEl.createDiv('import-summary');
 		summary.createEl('h3', { text: 'Import Complete!' });
-		
+
 		const stats = summary.createDiv('import-stats');
 		stats.createEl('p', { text: `✅ ${result.completed} documents imported successfully` });
 		if (result.failed > 0) {
@@ -524,9 +538,10 @@ export class DocumentSelectionModal extends Modal {
 
 		// Add buttons for next actions
 		const buttonsDiv = summary.createDiv('import-complete-buttons');
-		
+
 		// If there are imported files, show "Open Imported Notes" button
 		if (importedFiles.length > 0) {
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			const openNotesBtn = new ButtonComponent(buttonsDiv)
 				.setButtonText(`Open Imported Notes (${importedFiles.length})`)
 				.setCta()
@@ -537,6 +552,7 @@ export class DocumentSelectionModal extends Modal {
 		}
 
 		// Always show close button
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		const closeBtn = new ButtonComponent(buttonsDiv)
 			.setButtonText('Close')
 			.onClick(() => this.close());
@@ -544,7 +560,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Opens multiple imported files in new tabs.
-	 * 
+	 *
 	 * @private
 	 * @param {TFile[]} files - Array of imported files to open
 	 */
@@ -556,11 +572,12 @@ export class DocumentSelectionModal extends Modal {
 				const leaf = this.app.workspace.getLeaf('tab');
 				await leaf.openFile(file);
 			}
-			
+
 			// Focus the first opened file if available
 			if (files.length > 0) {
-				const firstFileLeaf = this.app.workspace.getLeavesOfType('markdown')
-					.find(leaf => (leaf.view as any).file === files[0]);
+				const firstFileLeaf = this.app.workspace
+					.getLeavesOfType('markdown')
+					.find(leaf => (leaf.view as { file?: unknown }).file === files[0]);
 				if (firstFileLeaf) {
 					this.app.workspace.setActiveLeaf(firstFileLeaf);
 				}
@@ -574,7 +591,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Applies text search filter.
-	 * 
+	 *
 	 * @private
 	 * @param {string} searchText - Text to search for
 	 */
@@ -585,18 +602,20 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Applies status filter.
-	 * 
+	 *
 	 * @private
 	 * @param {string} status - Status to filter by
 	 */
 	private applyStatusFilter(status: string): void {
-		this.currentFilter.statusFilter = status ? [status as any] : undefined;
+		this.currentFilter.statusFilter = status
+			? [status as 'NEW' | 'EXISTS' | 'UPDATED' | 'CONFLICT']
+			: undefined;
 		this.renderDocumentList();
 	}
 
 	/**
 	 * Selects all visible documents.
-	 * 
+	 *
 	 * @private
 	 */
 	private selectAll(): void {
@@ -611,7 +630,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Deselects all documents.
-	 * 
+	 *
 	 * @private
 	 */
 	private selectNone(): void {
@@ -624,7 +643,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Updates the state of footer buttons.
-	 * 
+	 *
 	 * @private
 	 */
 	private updateFooterButtons(): void {
@@ -635,7 +654,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Sets loading state.
-	 * 
+	 *
 	 * @private
 	 * @param {boolean} loading - Whether loading
 	 */
@@ -646,7 +665,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Sets importing state.
-	 * 
+	 *
 	 * @private
 	 * @param {boolean} importing - Whether importing
 	 */
@@ -657,7 +676,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Shows an informational message.
-	 * 
+	 *
 	 * @private
 	 * @param {string} message - Message to show
 	 */
@@ -669,7 +688,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Shows an error message.
-	 * 
+	 *
 	 * @private
 	 * @param {string} message - Error message to show
 	 */
@@ -681,30 +700,35 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Gets display text for import status.
-	 * 
+	 *
 	 * @private
 	 * @param {string} status - Import status
 	 * @returns {string} Display text
 	 */
 	private getStatusText(status: string): string {
 		switch (status) {
-			case 'NEW': return 'New';
-			case 'EXISTS': return 'Exists';
-			case 'UPDATED': return 'Updated';
-			case 'CONFLICT': return 'Conflict';
-			default: return status;
+			case 'NEW':
+				return 'New';
+			case 'EXISTS':
+				return 'Exists';
+			case 'UPDATED':
+				return 'Updated';
+			case 'CONFLICT':
+				return 'Conflict';
+			default:
+				return status;
 		}
 	}
 
 	/**
 	 * Applies CSS styles to the modal.
-	 * 
+	 *
 	 * @private
 	 */
 	private applyStyles(): void {
 		// Basic modal styles
 		this.modalEl.addClass('granola-import-modal');
-		
+
 		// Add basic CSS
 		const style = document.createElement('style');
 		style.textContent = `
@@ -875,7 +899,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Cleans up resources when modal is closed.
-	 * 
+	 *
 	 * @private
 	 */
 	private cleanup(): void {

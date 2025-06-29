@@ -16,6 +16,7 @@ node test-conversion.js
 ```
 
 This will:
+
 - Test ProseMirror to Markdown conversion
 - Validate date-prefixed filename generation
 - Check content fallback logic
@@ -31,6 +32,7 @@ node inspect-api-response.js
 ```
 
 This will:
+
 - Fetch a small sample from your Granola account
 - Analyze response structure vs expected interface
 - Check content field availability and format
@@ -46,6 +48,7 @@ node debug-granola-issues.js
 ```
 
 This will:
+
 - Fetch documents from Granola API
 - Process them through the conversion pipeline
 - Generate debug output files
@@ -62,15 +65,16 @@ This will:
 ### Test Data
 
 - **`test-prosemirror-data.json`** - Mock Granola documents for testing various scenarios:
-  - Valid ProseMirror content
-  - Empty documents
-  - Corrupted/invalid structures
-  - Fallback scenarios
-  - Complex formatting examples
+    - Valid ProseMirror content
+    - Empty documents
+    - Corrupted/invalid structures
+    - Fallback scenarios
+    - Complex formatting examples
 
 ### Generated Output Files
 
 After running the scripts, you'll find:
+
 - **`debug-output-*.md`** - Converted documents from real API data
 - **`test-output-*.md`** - Converted documents from test data
 - **`api-response-analysis.json`** - Detailed API response structure analysis
@@ -82,11 +86,13 @@ After running the scripts, you'll find:
 **Status**: ✅ **Likely Working Correctly**
 
 The implementation in `/src/converter.ts` appears correct:
+
 - `generateDatePrefixedFilename()` method properly formats dates as "YYYY-MM-DD - Title"
 - Called by `convertDocument()` on line 160
 - Includes proper sanitization and error handling
 
 **Possible causes if still not working**:
+
 - User running old version of plugin
 - Edge case with invalid/missing dates
 - Timezone conversion issues
@@ -96,49 +102,56 @@ The implementation in `/src/converter.ts` appears correct:
 **Status**: 🔍 **Requires Investigation**
 
 The content conversion has a robust 3-tier fallback system:
+
 1. ProseMirror JSON conversion (primary)
 2. `notes_markdown` field (fallback 1)
 3. `notes_plain` field (fallback 2)
 
 **Most likely root causes**:
+
 1. **API Response Issues**:
-   - Content fields (`notes`, `notes_plain`, `notes_markdown`) are null/empty in API response
-   - API response structure changed from expected interface
-   
+    - Content fields (`notes`, `notes_plain`, `notes_markdown`) are null/empty in API response
+    - API response structure changed from expected interface
 2. **ProseMirror Validation Issues**:
-   - `isValidProseMirrorDoc()` validation too strict
-   - New ProseMirror node types not handled
-   - Empty content nodes not detected properly
+    - `isValidProseMirrorDoc()` validation too strict
+    - New ProseMirror node types not handled
+    - Empty content nodes not detected properly
 
 3. **Conversion Pipeline Issues**:
-   - `convertProseMirrorToMarkdown()` failing silently
-   - Node conversion logic missing cases
-   - Text extraction not working for new formats
+    - `convertProseMirrorToMarkdown()` failing silently
+    - Node conversion logic missing cases
+    - Text extraction not working for new formats
 
 ## Debugging Workflow
 
 1. **Start with API inspection**:
-   ```bash
-   node inspect-api-response.js
-   ```
-   Check if content fields are populated in the API response.
+
+    ```bash
+    node inspect-api-response.js
+    ```
+
+    Check if content fields are populated in the API response.
 
 2. **Test conversion logic**:
-   ```bash
-   node test-conversion.js
-   ```
-   Verify that the conversion logic works with known good data.
+
+    ```bash
+    node test-conversion.js
+    ```
+
+    Verify that the conversion logic works with known good data.
 
 3. **Full pipeline test**:
-   ```bash
-   node debug-granola-issues.js
-   ```
-   Test with real API data to identify where the pipeline breaks.
+
+    ```bash
+    node debug-granola-issues.js
+    ```
+
+    Test with real API data to identify where the pipeline breaks.
 
 4. **Analyze output files**:
-   - Check `debug-output-*.md` files for actual imported content
-   - Compare with expected content from API response
-   - Look for patterns in failed conversions
+    - Check `debug-output-*.md` files for actual imported content
+    - Compare with expected content from API response
+    - Look for patterns in failed conversions
 
 ## Expected Findings
 
@@ -161,6 +174,7 @@ Once you identify the root cause:
 ## Support
 
 If debugging reveals unexpected issues not covered here, check:
+
 - Recent Granola API updates or changes
 - Document types being imported (new vs old documents)
 - Network/authentication issues
