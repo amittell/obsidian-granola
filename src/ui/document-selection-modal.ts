@@ -634,14 +634,20 @@ export class DocumentSelectionModal extends Modal {
 			}
 
 			// Try multiple methods to scroll to top based on different view types
-			if ((view as any).editor?.scrollTo) {
+			const markdownView = view as MarkdownView;
+			if (markdownView.editor?.scrollTo) {
 				// CodeMirror editor (source mode)
-				(view as any).editor.scrollTo(null, 0);
+				markdownView.editor.scrollTo(null, 0);
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			} else if ((view as any).contentEl) {
 				// Reading mode or other views with contentEl
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				const scrollElement = (view as any).contentEl.querySelector('.markdown-reading-view') || 
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					(view as any).contentEl.querySelector('.markdown-source-view') ||
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					(view as any).contentEl.querySelector('.view-content') ||
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					(view as any).contentEl;
 
 				if (scrollElement?.scrollTo) {
@@ -653,7 +659,9 @@ export class DocumentSelectionModal extends Modal {
 			}
 
 			// Fallback: try to find any scrollable element in the leaf
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			if ((leaf as any).containerEl) {
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				const scrollableElements = (leaf as any).containerEl.querySelectorAll(
 					'.cm-scroller, .markdown-reading-view, .view-content, .workspace-leaf-content'
 				);
