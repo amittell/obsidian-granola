@@ -282,6 +282,7 @@ export class DocumentSelectionModal extends Modal {
 	 * @async
 	 */
 	private async refreshDocuments(): Promise<void> {
+		this.showMainView(); // Ensure main view is visible when refreshing
 		await this.duplicateDetector.refresh();
 		await this.loadDocuments();
 	}
@@ -432,10 +433,24 @@ export class DocumentSelectionModal extends Modal {
 			this.showImportComplete(result);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Unknown error';
+			this.showMainView(); // Restore main view on error
 			this.showError(`Import failed: ${message}`);
 		} finally {
 			this.setImporting(false);
 		}
+	}
+
+	/**
+	 * Restores the main document selection view.
+	 * 
+	 * @private
+	 */
+	private showMainView(): void {
+		this.controlsEl.style.display = 'block';
+		this.searchEl.style.display = 'block';
+		this.documentListEl.style.display = 'block';
+		this.footerEl.style.display = 'block';
+		this.progressEl.style.display = 'none';
 	}
 
 	/**
@@ -447,6 +462,7 @@ export class DocumentSelectionModal extends Modal {
 		this.controlsEl.style.display = 'none';
 		this.searchEl.style.display = 'none';
 		this.documentListEl.style.display = 'none';
+		this.footerEl.style.display = 'none';
 		this.progressEl.style.display = 'block';
 
 		this.progressEl.empty();
@@ -506,7 +522,10 @@ export class DocumentSelectionModal extends Modal {
 	private showImportComplete(result: ImportProgress): void {
 		// Reset importing state to re-enable buttons
 		this.setImporting(false);
-
+		
+		// Hide footer buttons since they're no longer relevant
+		this.footerEl.style.display = 'none';
+		
 		this.progressEl.empty();
 
 		const summary = this.progressEl.createDiv('import-summary');
