@@ -20,25 +20,25 @@ export type ImportStrategy = 'skip' | 'update' | 'create_new';
 export interface DocumentProgress {
 	/** Document ID */
 	id: string;
-	
+
 	/** Current import status */
 	status: DocumentImportStatus;
-	
+
 	/** Progress percentage (0-100) */
 	progress: number;
-	
+
 	/** Status message */
 	message: string;
-	
+
 	/** Error information if failed */
 	error?: string;
-	
+
 	/** Created file reference if successful */
 	file?: TFile;
-	
+
 	/** Start time of import */
 	startTime?: number;
-	
+
 	/** Completion time of import */
 	endTime?: number;
 }
@@ -49,34 +49,34 @@ export interface DocumentProgress {
 export interface ImportProgress {
 	/** Total number of documents to import */
 	total: number;
-	
+
 	/** Number of completed documents */
 	completed: number;
-	
+
 	/** Number of failed documents */
 	failed: number;
-	
+
 	/** Number of skipped documents */
 	skipped: number;
-	
+
 	/** Overall progress percentage (0-100) */
 	percentage: number;
-	
+
 	/** Current operation message */
 	message: string;
-	
+
 	/** Whether import is running */
 	isRunning: boolean;
-	
+
 	/** Whether import was cancelled */
 	isCancelled: boolean;
-	
+
 	/** Start time of import batch */
 	startTime: number;
-	
+
 	/** Estimated completion time */
 	estimatedCompletion?: number;
-	
+
 	/** Documents per second processing rate */
 	processingRate: number;
 }
@@ -87,22 +87,22 @@ export interface ImportProgress {
 export interface ImportOptions {
 	/** Strategy for handling existing documents */
 	strategy: ImportStrategy;
-	
+
 	/** Whether to create backup of existing files before updating */
 	createBackups: boolean;
-	
+
 	/** Maximum number of concurrent imports */
 	maxConcurrency: number;
-	
+
 	/** Delay between imports in milliseconds */
 	delayBetweenImports: number;
-	
+
 	/** Whether to stop on first error */
 	stopOnError: boolean;
-	
+
 	/** Custom progress callback */
 	onProgress?: (progress: ImportProgress) => void;
-	
+
 	/** Custom document progress callback */
 	onDocumentProgress?: (docProgress: DocumentProgress) => void;
 }
@@ -115,17 +115,17 @@ const DEFAULT_OPTIONS: ImportOptions = {
 	createBackups: false,
 	maxConcurrency: 3,
 	delayBetweenImports: 100,
-	stopOnError: false
+	stopOnError: false,
 };
 
 /**
  * Service for managing selective document imports with progress tracking.
- * 
+ *
  * This class coordinates the batch import process for selected Granola documents,
  * providing real-time progress updates, error handling, and cancellation support.
  * It manages concurrent processing while respecting rate limits and providing
  * detailed feedback about each document's import status.
- * 
+ *
  * @class SelectiveImportManager
  * @since 1.1.0
  */
@@ -142,7 +142,7 @@ export class SelectiveImportManager {
 
 	/**
 	 * Creates a new selective import manager.
-	 * 
+	 *
 	 * @param {App} app - The Obsidian app instance
 	 * @param {Vault} vault - The Obsidian vault to import into
 	 * @param {ProseMirrorConverter} converter - Document converter instance
@@ -156,7 +156,7 @@ export class SelectiveImportManager {
 
 	/**
 	 * Imports selected documents with progress tracking.
-	 * 
+	 *
 	 * @async
 	 * @param {DocumentDisplayMetadata[]} selectedDocuments - Documents selected for import
 	 * @param {GranolaDocument[]} granolaDocuments - Full document data from API
@@ -175,10 +175,10 @@ export class SelectiveImportManager {
 
 		try {
 			this.startImport(selectedDocuments, options);
-			
+
 			// Create document lookup map
 			const documentMap = new Map(granolaDocuments.map(doc => [doc.id, doc]));
-			
+
 			// Filter to only selected documents with available data
 			const importQueue = selectedDocuments
 				.filter(meta => meta.selected && documentMap.has(meta.id))
@@ -189,7 +189,6 @@ export class SelectiveImportManager {
 
 			this.completeImport();
 			return this.overallProgress;
-
 		} catch (error) {
 			this.handleImportError(error);
 			throw error;
@@ -215,7 +214,7 @@ export class SelectiveImportManager {
 
 	/**
 	 * Gets the current import progress.
-	 * 
+	 *
 	 * @returns {ImportProgress} Current progress information
 	 */
 	getProgress(): ImportProgress {
@@ -224,7 +223,7 @@ export class SelectiveImportManager {
 
 	/**
 	 * Gets progress for a specific document.
-	 * 
+	 *
 	 * @param {string} documentId - Document ID to get progress for
 	 * @returns {DocumentProgress | null} Document progress or null if not found
 	 */
@@ -235,7 +234,7 @@ export class SelectiveImportManager {
 
 	/**
 	 * Gets progress for all documents.
-	 * 
+	 *
 	 * @returns {DocumentProgress[]} Array of all document progress
 	 */
 	getAllDocumentProgress(): DocumentProgress[] {
@@ -255,7 +254,7 @@ export class SelectiveImportManager {
 
 	/**
 	 * Initializes the import process.
-	 * 
+	 *
 	 * @private
 	 * @param {DocumentDisplayMetadata[]} documents - Documents to import
 	 * @param {ImportOptions} options - Import options
@@ -277,25 +276,27 @@ export class SelectiveImportManager {
 			isRunning: true,
 			isCancelled: false,
 			startTime: Date.now(),
-			processingRate: 0
+			processingRate: 0,
 		};
 
 		// Initialize document progress
-		documents.filter(d => d.selected).forEach(doc => {
-			this.documentProgress.set(doc.id, {
-				id: doc.id,
-				status: 'pending',
-				progress: 0,
-				message: 'Waiting to start...'
+		documents
+			.filter(d => d.selected)
+			.forEach(doc => {
+				this.documentProgress.set(doc.id, {
+					id: doc.id,
+					status: 'pending',
+					progress: 0,
+					message: 'Waiting to start...',
+				});
 			});
-		});
 
 		this.emitProgress();
 	}
 
 	/**
 	 * Processes the queue of documents to import.
-	 * 
+	 *
 	 * @private
 	 * @async
 	 * @param {Array} importQueue - Queue of documents to process
@@ -313,7 +314,7 @@ export class SelectiveImportManager {
 				break;
 			}
 
-			const promise = semaphore.acquire().then(async (release) => {
+			const promise = semaphore.acquire().then(async release => {
 				try {
 					await this.importSingleDocument(item.meta, item.doc, options);
 				} finally {
@@ -335,7 +336,7 @@ export class SelectiveImportManager {
 
 	/**
 	 * Imports a single document.
-	 * 
+	 *
 	 * @private
 	 * @async
 	 * @param {DocumentDisplayMetadata} meta - Document metadata
@@ -351,7 +352,7 @@ export class SelectiveImportManager {
 			this.updateDocumentProgress(doc.id, {
 				status: 'skipped',
 				progress: 100,
-				message: 'Import cancelled'
+				message: 'Import cancelled',
 			});
 			return;
 		}
@@ -361,7 +362,7 @@ export class SelectiveImportManager {
 			status: 'importing',
 			progress: 10,
 			message: 'Converting document...',
-			startTime
+			startTime,
 		});
 
 		try {
@@ -370,17 +371,17 @@ export class SelectiveImportManager {
 				this.updateDocumentProgress(doc.id, {
 					status: 'importing',
 					progress: 20,
-					message: 'Resolving conflict...'
+					message: 'Resolving conflict...',
 				});
 
 				const resolution = await this.resolveConflict(meta, doc);
-				
+
 				if (resolution.action === 'skip') {
 					this.updateDocumentProgress(doc.id, {
 						status: 'skipped',
 						progress: 100,
 						message: resolution.reason,
-						endTime: Date.now()
+						endTime: Date.now(),
 					});
 					this.overallProgress.skipped++;
 					this.updateOverallProgress();
@@ -398,7 +399,7 @@ export class SelectiveImportManager {
 					status: 'skipped',
 					progress: 100,
 					message: 'Document already exists',
-					endTime: Date.now()
+					endTime: Date.now(),
 				});
 				this.overallProgress.skipped++;
 				this.updateOverallProgress();
@@ -409,7 +410,7 @@ export class SelectiveImportManager {
 			this.updateDocumentProgress(doc.id, {
 				status: 'importing',
 				progress: 30,
-				message: 'Converting to Markdown...'
+				message: 'Converting to Markdown...',
 			});
 
 			const convertedNote = this.converter.convertDocument(doc);
@@ -418,7 +419,7 @@ export class SelectiveImportManager {
 			this.updateDocumentProgress(doc.id, {
 				status: 'importing',
 				progress: 60,
-				message: 'Writing to vault...'
+				message: 'Writing to vault...',
 			});
 
 			let file: TFile;
@@ -448,20 +449,19 @@ export class SelectiveImportManager {
 				progress: 100,
 				message: 'Import completed successfully',
 				file,
-				endTime: Date.now()
+				endTime: Date.now(),
 			});
 
 			this.overallProgress.completed++;
-
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-			
+
 			this.updateDocumentProgress(doc.id, {
 				status: 'failed',
 				progress: 100,
 				message: 'Import failed',
 				error: errorMessage,
-				endTime: Date.now()
+				endTime: Date.now(),
 			});
 
 			this.overallProgress.failed++;
@@ -476,7 +476,7 @@ export class SelectiveImportManager {
 
 	/**
 	 * Updates progress for a specific document.
-	 * 
+	 *
 	 * @private
 	 * @param {string} documentId - Document ID
 	 * @param {Partial<DocumentProgress>} updates - Progress updates
@@ -486,7 +486,7 @@ export class SelectiveImportManager {
 			id: documentId,
 			status: 'pending' as const,
 			progress: 0,
-			message: ''
+			message: '',
 		};
 
 		const updated = { ...current, ...updates };
@@ -499,14 +499,18 @@ export class SelectiveImportManager {
 
 	/**
 	 * Updates overall progress and emits progress event.
-	 * 
+	 *
 	 * @private
 	 */
 	private updateOverallProgress(): void {
-		const processed = this.overallProgress.completed + this.overallProgress.failed + this.overallProgress.skipped;
-		this.overallProgress.percentage = this.overallProgress.total > 0 
-			? Math.round((processed / this.overallProgress.total) * 100) 
-			: 100;
+		const processed =
+			this.overallProgress.completed +
+			this.overallProgress.failed +
+			this.overallProgress.skipped;
+		this.overallProgress.percentage =
+			this.overallProgress.total > 0
+				? Math.round((processed / this.overallProgress.total) * 100)
+				: 100;
 
 		// Calculate processing rate
 		const elapsed = Date.now() - this.overallProgress.startTime;
@@ -515,7 +519,8 @@ export class SelectiveImportManager {
 		// Estimate completion time
 		if (this.overallProgress.processingRate > 0 && processed < this.overallProgress.total) {
 			const remaining = this.overallProgress.total - processed;
-			this.overallProgress.estimatedCompletion = Date.now() + (remaining / this.overallProgress.processingRate) * 1000;
+			this.overallProgress.estimatedCompletion =
+				Date.now() + (remaining / this.overallProgress.processingRate) * 1000;
 		}
 
 		// Update message
@@ -526,22 +531,22 @@ export class SelectiveImportManager {
 
 	/**
 	 * Completes the import process.
-	 * 
+	 *
 	 * @private
 	 */
 	private completeImport(): void {
 		this.overallProgress.isRunning = false;
 		this.overallProgress.percentage = 100;
-		this.overallProgress.message = this.isCancelled 
+		this.overallProgress.message = this.isCancelled
 			? 'Import cancelled'
 			: `Import completed: ${this.overallProgress.completed} successful, ${this.overallProgress.failed} failed, ${this.overallProgress.skipped} skipped`;
-		
+
 		this.emitProgress();
 	}
 
 	/**
 	 * Handles import errors.
-	 * 
+	 *
 	 * @private
 	 * @param {unknown} error - Error that occurred
 	 */
@@ -554,7 +559,7 @@ export class SelectiveImportManager {
 
 	/**
 	 * Emits progress event to callback.
-	 * 
+	 *
 	 * @private
 	 */
 	private emitProgress(): void {
@@ -565,7 +570,7 @@ export class SelectiveImportManager {
 
 	/**
 	 * Creates initial progress state.
-	 * 
+	 *
 	 * @private
 	 * @returns {ImportProgress} Initial progress state
 	 */
@@ -580,13 +585,13 @@ export class SelectiveImportManager {
 			isRunning: false,
 			isCancelled: false,
 			startTime: 0,
-			processingRate: 0
+			processingRate: 0,
 		};
 	}
 
 	/**
 	 * Creates a backup of an existing file.
-	 * 
+	 *
 	 * @private
 	 * @async
 	 * @param {TFile} file - File to backup
@@ -600,7 +605,7 @@ export class SelectiveImportManager {
 
 	/**
 	 * Generates a unique filename by adding a suffix.
-	 * 
+	 *
 	 * @private
 	 * @param {string} filename - Original filename
 	 * @returns {string} Unique filename
@@ -620,29 +625,27 @@ export class SelectiveImportManager {
 
 	/**
 	 * Resolves conflicts by showing the user resolution options.
-	 * 
+	 *
 	 * @private
 	 * @async
 	 * @param {DocumentDisplayMetadata} meta - Document metadata
 	 * @param {GranolaDocument} doc - Full document data
 	 * @returns {Promise<ConflictResolution>} User's resolution choice
 	 */
-	private async resolveConflict(meta: DocumentDisplayMetadata, doc: GranolaDocument): Promise<ConflictResolution> {
+	private async resolveConflict(
+		meta: DocumentDisplayMetadata,
+		doc: GranolaDocument
+	): Promise<ConflictResolution> {
 		const existingFile = meta.importStatus.existingFile;
-		
-		const modal = new ConflictResolutionModal(
-			this.app,
-			doc,
-			meta,
-			existingFile
-		);
+
+		const modal = new ConflictResolutionModal(this.app, doc, meta, existingFile);
 
 		return await modal.showConflictResolution();
 	}
 
 	/**
 	 * Applies the user's conflict resolution choice.
-	 * 
+	 *
 	 * @private
 	 * @async
 	 * @param {GranolaDocument} doc - Document to import
@@ -650,14 +653,14 @@ export class SelectiveImportManager {
 	 * @param {ImportOptions} options - Import options
 	 */
 	private async applyConflictResolution(
-		doc: GranolaDocument, 
+		doc: GranolaDocument,
 		resolution: ConflictResolution,
 		options: ImportOptions
 	): Promise<void> {
 		this.updateDocumentProgress(doc.id, {
 			status: 'importing',
 			progress: 50,
-			message: `Applying resolution: ${resolution.action}...`
+			message: `Applying resolution: ${resolution.action}...`,
 		});
 
 		const convertedNote = this.converter.convertDocument(doc);
@@ -676,14 +679,16 @@ export class SelectiveImportManager {
 				break;
 
 			default:
-				throw new Error(`Unknown resolution action: ${(resolution as any).action}`);
+				throw new Error(
+					`Unknown resolution action: ${(resolution as { action: string }).action}`
+				);
 		}
 
 		this.updateDocumentProgress(doc.id, {
 			status: 'completed',
 			progress: 100,
 			message: 'Conflict resolved and imported successfully',
-			endTime: Date.now()
+			endTime: Date.now(),
 		});
 
 		this.overallProgress.completed++;
@@ -691,15 +696,18 @@ export class SelectiveImportManager {
 
 	/**
 	 * Handles overwrite resolution.
-	 * 
+	 *
 	 * @private
 	 * @async
 	 * @param {any} convertedNote - Converted document
 	 * @param {boolean} createBackup - Whether to create backup
 	 */
-	private async handleOverwrite(convertedNote: any, createBackup: boolean): Promise<void> {
+	private async handleOverwrite(
+		convertedNote: { filename: string; content: string },
+		createBackup: boolean
+	): Promise<void> {
 		const existingFile = this.vault.getAbstractFileByPath(convertedNote.filename);
-		
+
 		if (existingFile instanceof TFile) {
 			if (createBackup) {
 				await this.createBackup(existingFile);
@@ -713,34 +721,38 @@ export class SelectiveImportManager {
 
 	/**
 	 * Handles merge resolution.
-	 * 
+	 *
 	 * @private
 	 * @async
 	 * @param {any} convertedNote - Converted document
 	 * @param {'append' | 'prepend'} strategy - Merge strategy
 	 */
-	private async handleMerge(convertedNote: any, strategy: 'append' | 'prepend'): Promise<void> {
+	private async handleMerge(
+		convertedNote: { filename: string; content: string },
+		strategy: 'append' | 'prepend'
+	): Promise<void> {
 		const existingFile = this.vault.getAbstractFileByPath(convertedNote.filename);
-		
+
 		if (existingFile instanceof TFile) {
 			const existingContent = await this.vault.read(existingFile);
-			
+
 			// Extract content after frontmatter from both files
 			const existingBody = this.extractContentAfterFrontmatter(existingContent);
 			const newBody = this.extractContentAfterFrontmatter(convertedNote.content);
-			
+
 			// Merge according to strategy
 			let mergedBody: string;
 			if (strategy === 'append') {
 				mergedBody = existingBody + '\n\n---\n\n' + newBody;
-			} else { // prepend
+			} else {
+				// prepend
 				mergedBody = newBody + '\n\n---\n\n' + existingBody;
 			}
-			
+
 			// Keep the existing frontmatter but update the content
 			const frontmatterMatch = existingContent.match(/^(---\n[\s\S]*?\n---\n)/);
 			const frontmatter = frontmatterMatch ? frontmatterMatch[1] : '';
-			
+
 			const mergedContent = frontmatter + mergedBody;
 			await this.vault.modify(existingFile, mergedContent);
 		} else {
@@ -751,19 +763,22 @@ export class SelectiveImportManager {
 
 	/**
 	 * Handles rename resolution.
-	 * 
+	 *
 	 * @private
 	 * @async
 	 * @param {any} convertedNote - Converted document
 	 * @param {string} newFilename - New filename to use
 	 */
-	private async handleRename(convertedNote: any, newFilename: string): Promise<void> {
+	private async handleRename(
+		convertedNote: { content: string },
+		newFilename: string
+	): Promise<void> {
 		await this.vault.create(newFilename, convertedNote.content);
 	}
 
 	/**
 	 * Extracts content after frontmatter delimiter.
-	 * 
+	 *
 	 * @private
 	 * @param {string} content - Full file content
 	 * @returns {string} Content without frontmatter
@@ -775,7 +790,7 @@ export class SelectiveImportManager {
 
 	/**
 	 * Utility method to pause execution.
-	 * 
+	 *
 	 * @private
 	 * @param {number} ms - Milliseconds to sleep
 	 * @returns {Promise<void>}
@@ -797,7 +812,7 @@ class Semaphore {
 	}
 
 	async acquire(): Promise<() => void> {
-		return new Promise((resolve) => {
+		return new Promise(resolve => {
 			if (this.permits > 0) {
 				this.permits--;
 				resolve(() => this.release());

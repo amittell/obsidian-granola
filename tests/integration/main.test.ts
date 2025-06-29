@@ -5,225 +5,230 @@ import { createMockFs, mockDocument, mockCredentials, createMockLogger } from '.
 
 // Mock the source modules completely
 jest.mock('../../src/auth', () => ({
-  GranolaAuth: jest.fn().mockImplementation(() => ({
-    loadCredentials: jest.fn().mockResolvedValue(mockCredentials),
-    getBearerToken: jest.fn().mockReturnValue('test-token'),
-    hasValidCredentials: jest.fn().mockReturnValue(true),
-    isTokenExpired: jest.fn().mockReturnValue(false),
-    clearCredentials: jest.fn(),
-    refreshToken: jest.fn()
-  }))
+	GranolaAuth: jest.fn().mockImplementation(() => ({
+		loadCredentials: jest.fn().mockResolvedValue(mockCredentials),
+		getBearerToken: jest.fn().mockReturnValue('test-token'),
+		hasValidCredentials: jest.fn().mockReturnValue(true),
+		isTokenExpired: jest.fn().mockReturnValue(false),
+		clearCredentials: jest.fn(),
+		refreshToken: jest.fn(),
+	})),
 }));
 
 jest.mock('../../src/api', () => ({
-  GranolaAPI: jest.fn().mockImplementation(() => ({
-    getAllDocuments: jest.fn().mockResolvedValue([mockDocument]),
-    getDocuments: jest.fn().mockResolvedValue({ 
-      documents: [mockDocument], 
-      total_count: 1, 
-      has_more: false 
-    })
-  }))
+	GranolaAPI: jest.fn().mockImplementation(() => ({
+		getAllDocuments: jest.fn().mockResolvedValue([mockDocument]),
+		getDocuments: jest.fn().mockResolvedValue({
+			documents: [mockDocument],
+			total_count: 1,
+			has_more: false,
+		}),
+	})),
 }));
 
 jest.mock('../../src/converter', () => ({
-  ProseMirrorConverter: jest.fn().mockImplementation((logger) => ({
-    convertDocument: jest.fn().mockReturnValue({
-      filename: 'Test Document.md',
-      content: '---\nid: test-doc-id\ntitle: "Test Document"\n---\n\n# Test Document\n\nTest content',
-      frontmatter: {
-        id: 'test-doc-id',
-        title: 'Test Document',
-        created: '2025-01-01T00:00:00.000Z',
-        updated: '2025-01-01T00:00:00.000Z',
-        source: 'Granola'
-      }
-    })
-  }))
+	ProseMirrorConverter: jest.fn().mockImplementation(logger => ({
+		convertDocument: jest.fn().mockReturnValue({
+			filename: 'Test Document.md',
+			content:
+				'---\nid: test-doc-id\ntitle: "Test Document"\n---\n\n# Test Document\n\nTest content',
+			frontmatter: {
+				id: 'test-doc-id',
+				title: 'Test Document',
+				created: '2025-01-01T00:00:00.000Z',
+				updated: '2025-01-01T00:00:00.000Z',
+				source: 'Granola',
+			},
+		}),
+	})),
 }));
 
 describe('GranolaImporterPlugin Integration', () => {
-  let plugin: GranolaImporterPlugin;
+	let plugin: GranolaImporterPlugin;
 
-  beforeEach(() => {
-    // Clear all mocks
-    jest.clearAllMocks();
+	beforeEach(() => {
+		// Clear all mocks
+		jest.clearAllMocks();
 
-    // Setup filesystem mocks
-    createMockFs();
+		// Setup filesystem mocks
+		createMockFs();
 
-    // Create plugin instance
-    plugin = new GranolaImporterPlugin(mockApp as any, {
-      id: 'granola-importer',
-      name: 'Granola Importer',
-      version: '1.0.0',
-      minAppVersion: '0.15.0',
-      description: 'Import Granola notes',
-      author: 'Test',
-      authorUrl: 'https://example.com',
-      isDesktopOnly: false
-    });
+		// Create plugin instance
+		plugin = new GranolaImporterPlugin(mockApp as any, {
+			id: 'granola-importer',
+			name: 'Granola Importer',
+			version: '1.0.0',
+			minAppVersion: '0.15.0',
+			description: 'Import Granola notes',
+			author: 'Test',
+			authorUrl: 'https://example.com',
+			isDesktopOnly: false,
+		});
 
-    // Mock vault operations
-    mockVault.getAbstractFileByPath.mockReturnValue(null);
-    mockVault.create.mockResolvedValue(undefined);
-    mockVault.modify.mockResolvedValue(undefined);
-  });
+		// Mock vault operations
+		mockVault.getAbstractFileByPath.mockReturnValue(null);
+		mockVault.create.mockResolvedValue(undefined);
+		mockVault.modify.mockResolvedValue(undefined);
+	});
 
-  describe('onload', () => {
-    it('should initialize plugin components and register command', async () => {
-      const addCommandSpy = jest.spyOn(plugin, 'addCommand');
+	describe('onload', () => {
+		it('should initialize plugin components and register command', async () => {
+			const addCommandSpy = jest.spyOn(plugin, 'addCommand');
 
-      await plugin.onload();
+			await plugin.onload();
 
-      expect(addCommandSpy).toHaveBeenCalledWith({
-        id: 'import-granola-notes',
-        name: 'Import Granola Notes',
-        callback: expect.any(Function)
-      });
-    });
+			expect(addCommandSpy).toHaveBeenCalledWith({
+				id: 'import-granola-notes',
+				name: 'Import Granola Notes',
+				callback: expect.any(Function),
+			});
+		});
 
-    it('should initialize plugin components', async () => {
-      await plugin.onload();
+		it('should initialize plugin components', async () => {
+			await plugin.onload();
 
-      // Verify plugin components are initialized
-      expect((plugin as any).auth).toBeDefined();
-      expect((plugin as any).api).toBeDefined();
-      expect((plugin as any).converter).toBeDefined();
-    });
-  });
+			// Verify plugin components are initialized
+			expect((plugin as any).auth).toBeDefined();
+			expect((plugin as any).api).toBeDefined();
+			expect((plugin as any).converter).toBeDefined();
+		});
+	});
 
-  describe('onunload', () => {
-    it('should complete cleanup', () => {
-      // onunload method should execute without errors
-      expect(() => plugin.onunload()).not.toThrow();
-    });
-  });
+	describe('onunload', () => {
+		it('should complete cleanup', () => {
+			// onunload method should execute without errors
+			expect(() => plugin.onunload()).not.toThrow();
+		});
+	});
 
-  describe('importGranolaNotes', () => {
-    beforeEach(async () => {
-      await plugin.onload();
-    });
+	describe('importGranolaNotes', () => {
+		beforeEach(async () => {
+			await plugin.onload();
+		});
 
-    it('should complete successful import workflow', async () => {
-      // Override the plugin's instances with properly mocked ones
-      const { GranolaAuth } = require('../../src/auth');
-      const { GranolaAPI } = require('../../src/api');
-      const { ProseMirrorConverter } = require('../../src/converter');
-      
-      const mockAuthInstance = new GranolaAuth();
-      const mockApiInstance = new GranolaAPI();
-      const mockConverterInstance = new ProseMirrorConverter(createMockLogger());
-      
-      (plugin as any).auth = mockAuthInstance;
-      (plugin as any).api = mockApiInstance;
-      (plugin as any).converter = mockConverterInstance;
+		it('should complete successful import workflow', async () => {
+			// Override the plugin's instances with properly mocked ones
+			const { GranolaAuth } = require('../../src/auth');
+			const { GranolaAPI } = require('../../src/api');
+			const { ProseMirrorConverter } = require('../../src/converter');
 
-      await plugin.importGranolaNotes();
+			const mockAuthInstance = new GranolaAuth();
+			const mockApiInstance = new GranolaAPI();
+			const mockConverterInstance = new ProseMirrorConverter(createMockLogger());
 
-      // These checks are less specific since we're mocking the classes themselves
-      expect(mockVault.create).toHaveBeenCalledWith(
-        'Test Document.md',
-        expect.stringContaining('# Test Document')
-      );
-    });
+			(plugin as any).auth = mockAuthInstance;
+			(plugin as any).api = mockApiInstance;
+			(plugin as any).converter = mockConverterInstance;
 
-    it('should handle empty document list', async () => {
-      // Mock empty response for this test
-      const { GranolaAPI } = require('../../src/api');
-      const mockApiInstance = new GranolaAPI();
-      mockApiInstance.getAllDocuments.mockResolvedValueOnce([]);
-      
-      // Override the plugin's API instance
-      (plugin as any).api = mockApiInstance;
+			await plugin.importGranolaNotes();
 
-      await plugin.importGranolaNotes();
+			// These checks are less specific since we're mocking the classes themselves
+			expect(mockVault.create).toHaveBeenCalledWith(
+				'Test Document.md',
+				expect.stringContaining('# Test Document')
+			);
+		});
 
-      expect(mockVault.create).not.toHaveBeenCalled();
-    });
+		it('should handle empty document list', async () => {
+			// Mock empty response for this test
+			const { GranolaAPI } = require('../../src/api');
+			const mockApiInstance = new GranolaAPI();
+			mockApiInstance.getAllDocuments.mockResolvedValueOnce([]);
 
-    it('should handle null document list', async () => {
-      // Mock null response for this test
-      const { GranolaAPI } = require('../../src/api');
-      const mockApiInstance = new GranolaAPI();
-      mockApiInstance.getAllDocuments.mockResolvedValueOnce(null);
-      
-      // Override the plugin's API instance
-      (plugin as any).api = mockApiInstance;
+			// Override the plugin's API instance
+			(plugin as any).api = mockApiInstance;
 
-      await plugin.importGranolaNotes();
+			await plugin.importGranolaNotes();
 
-      expect(mockVault.create).not.toHaveBeenCalled();
-    });
+			expect(mockVault.create).not.toHaveBeenCalled();
+		});
 
-    it('should update existing files instead of creating new ones', async () => {
-      // Override the plugin's instances with properly mocked ones
-      const { GranolaAuth } = require('../../src/auth');
-      const { GranolaAPI } = require('../../src/api');
-      const { ProseMirrorConverter } = require('../../src/converter');
-      
-      const mockAuthInstance = new GranolaAuth();
-      const mockApiInstance = new GranolaAPI();
-      const mockConverterInstance = new ProseMirrorConverter(createMockLogger());
-      
-      (plugin as any).auth = mockAuthInstance;
-      (plugin as any).api = mockApiInstance;
-      (plugin as any).converter = mockConverterInstance;
+		it('should handle null document list', async () => {
+			// Mock null response for this test
+			const { GranolaAPI } = require('../../src/api');
+			const mockApiInstance = new GranolaAPI();
+			mockApiInstance.getAllDocuments.mockResolvedValueOnce(null);
 
-      // Import TFile from the mocked obsidian module to create a proper instance
-      const { TFile } = require('../__mocks__/obsidian');
-      const mockExistingFile = new TFile('Test Document.md');
-      mockVault.getAbstractFileByPath.mockReturnValue(mockExistingFile);
+			// Override the plugin's API instance
+			(plugin as any).api = mockApiInstance;
 
-      await plugin.importGranolaNotes();
+			await plugin.importGranolaNotes();
 
-      expect(mockVault.modify).toHaveBeenCalledWith(
-        mockExistingFile,
-        expect.stringContaining('# Test Document')
-      );
-      expect(mockVault.create).not.toHaveBeenCalled();
-    });
-  });
+			expect(mockVault.create).not.toHaveBeenCalled();
+		});
 
-  describe('error handling', () => {
-    beforeEach(async () => {
-      await plugin.onload();
-    });
+		it('should update existing files instead of creating new ones', async () => {
+			// Override the plugin's instances with properly mocked ones
+			const { GranolaAuth } = require('../../src/auth');
+			const { GranolaAPI } = require('../../src/api');
+			const { ProseMirrorConverter } = require('../../src/converter');
 
-    it('should handle credential errors', async () => {
-      // Mock credential error
-      const { GranolaAuth } = require('../../src/auth');
-      const mockAuthInstance = new GranolaAuth();
-      mockAuthInstance.loadCredentials.mockRejectedValueOnce(new Error('Invalid credentials'));
-      
-      // Override the plugin's auth instance
-      (plugin as any).auth = mockAuthInstance;
+			const mockAuthInstance = new GranolaAuth();
+			const mockApiInstance = new GranolaAPI();
+			const mockConverterInstance = new ProseMirrorConverter(createMockLogger());
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+			(plugin as any).auth = mockAuthInstance;
+			(plugin as any).api = mockApiInstance;
+			(plugin as any).converter = mockConverterInstance;
 
-      await plugin.importGranolaNotes();
+			// Import TFile from the mocked obsidian module to create a proper instance
+			const { TFile } = require('../__mocks__/obsidian');
+			const mockExistingFile = new TFile('Test Document.md');
+			mockVault.getAbstractFileByPath.mockReturnValue(mockExistingFile);
 
-      expect(consoleSpy).toHaveBeenCalledWith('Granola import failed:', expect.any(Error));
+			await plugin.importGranolaNotes();
 
-      consoleSpy.mockRestore();
-    });
+			expect(mockVault.modify).toHaveBeenCalledWith(
+				mockExistingFile,
+				expect.stringContaining('# Test Document')
+			);
+			expect(mockVault.create).not.toHaveBeenCalled();
+		});
+	});
 
-    it('should handle network errors', async () => {
-      // Mock network error
-      const { GranolaAPI } = require('../../src/api');
-      const mockApiInstance = new GranolaAPI();
-      mockApiInstance.getAllDocuments.mockRejectedValueOnce(new Error('Network connection failed'));
-      
-      // Override the plugin's API instance
-      (plugin as any).api = mockApiInstance;
+	describe('error handling', () => {
+		beforeEach(async () => {
+			await plugin.onload();
+		});
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+		it('should handle credential errors', async () => {
+			// Mock credential error
+			const { GranolaAuth } = require('../../src/auth');
+			const mockAuthInstance = new GranolaAuth();
+			mockAuthInstance.loadCredentials.mockRejectedValueOnce(
+				new Error('Invalid credentials')
+			);
 
-      await plugin.importGranolaNotes();
+			// Override the plugin's auth instance
+			(plugin as any).auth = mockAuthInstance;
 
-      expect(consoleSpy).toHaveBeenCalledWith('Granola import failed:', expect.any(Error));
+			const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      consoleSpy.mockRestore();
-    });
-  });
+			await plugin.importGranolaNotes();
+
+			expect(consoleSpy).toHaveBeenCalledWith('Granola import failed:', expect.any(Error));
+
+			consoleSpy.mockRestore();
+		});
+
+		it('should handle network errors', async () => {
+			// Mock network error
+			const { GranolaAPI } = require('../../src/api');
+			const mockApiInstance = new GranolaAPI();
+			mockApiInstance.getAllDocuments.mockRejectedValueOnce(
+				new Error('Network connection failed')
+			);
+
+			// Override the plugin's API instance
+			(plugin as any).api = mockApiInstance;
+
+			const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+			await plugin.importGranolaNotes();
+
+			expect(consoleSpy).toHaveBeenCalledWith('Granola import failed:', expect.any(Error));
+
+			consoleSpy.mockRestore();
+		});
+	});
 });

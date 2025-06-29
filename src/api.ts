@@ -31,7 +31,7 @@ export interface GranolaDocument {
 		/** Panel content in ProseMirror JSON format */
 		content?: ProseMirrorDoc;
 		/** Additional panel metadata */
-		[key: string]: any;
+		[key: string]: unknown;
 	};
 
 	/** ISO timestamp when the document was created */
@@ -44,7 +44,7 @@ export interface GranolaDocument {
 	user_id: string;
 
 	/** Additional metadata fields */
-	[key: string]: any;
+	[key: string]: unknown;
 }
 
 /**
@@ -135,7 +135,7 @@ export interface GetDocumentsResponse {
 
 // API Configuration Constants
 const DEFAULT_PAGE_SIZE = 100;
-const RATE_LIMIT_DELAY_MS = 200;
+// const RATE_LIMIT_DELAY_MS = 200; // Currently unused but may be needed for rate limiting
 const MAX_RETRY_ATTEMPTS = 3;
 const EXPONENTIAL_BACKOFF_BASE_MS = 1000;
 
@@ -191,15 +191,15 @@ export class GranolaAPI {
 	 */
 	constructor(auth: GranolaAuth) {
 		this.auth = auth;
-		
+
 		// Get version from package.json, fall back to static version
 		try {
 			const fs = require('fs');
 			const path = require('path');
-			
+
 			// Try the most likely path first (relative to built main.js)
 			const packagePath = path.resolve(__dirname, '../package.json');
-			
+
 			if (fs.existsSync(packagePath)) {
 				const manifest = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
 				if (manifest?.name && manifest?.version) {
@@ -219,7 +219,7 @@ export class GranolaAPI {
 	/**
 	 * Loads and validates Granola credentials.
 	 * This method should be called before making any API requests.
-	 * 
+	 *
 	 * @async
 	 * @returns {Promise<void>} Resolves when credentials are loaded and validated
 	 * @throws {Error} If credential loading fails
@@ -337,7 +337,7 @@ export class GranolaAPI {
 	 */
 	private async makeRequest(
 		endpoint: string,
-		options: RequestInit & {
+		options: { method?: string; body?: string } & {
 			headers: Record<string, string>;
 		}
 	): Promise<Response> {

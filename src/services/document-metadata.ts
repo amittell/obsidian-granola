@@ -1,4 +1,4 @@
-import { GranolaDocument } from '../api';
+import { GranolaDocument, ProseMirrorDoc, ProseMirrorNode } from '../api';
 import { DuplicateCheckResult } from './duplicate-detector';
 
 /**
@@ -7,37 +7,37 @@ import { DuplicateCheckResult } from './duplicate-detector';
 export interface DocumentDisplayMetadata {
 	/** Document ID */
 	id: string;
-	
+
 	/** Document title (sanitized for display) */
 	title: string;
-	
+
 	/** Formatted creation date */
 	createdDate: string;
-	
+
 	/** Formatted last updated date */
 	updatedDate: string;
-	
+
 	/** Time ago format for creation (e.g., "2 days ago") */
 	createdAgo: string;
-	
+
 	/** Time ago format for update (e.g., "1 hour ago") */
 	updatedAgo: string;
-	
+
 	/** Preview text (first few sentences) */
 	preview: string;
-	
+
 	/** Estimated word count */
 	wordCount: number;
-	
+
 	/** Estimated reading time in minutes */
 	readingTime: number;
-	
+
 	/** Import status from duplicate detection */
 	importStatus: DuplicateCheckResult;
-	
+
 	/** Whether document matches current search/filter criteria */
 	visible: boolean;
-	
+
 	/** Whether document is selected for import */
 	selected: boolean;
 }
@@ -48,19 +48,19 @@ export interface DocumentDisplayMetadata {
 export interface DocumentFilter {
 	/** Text search in title and content */
 	searchText?: string;
-	
+
 	/** Filter by import status */
 	statusFilter?: Array<'NEW' | 'EXISTS' | 'UPDATED' | 'CONFLICT'>;
-	
+
 	/** Date range filter */
 	dateRange?: {
 		start?: Date;
 		end?: Date;
 	};
-	
+
 	/** Minimum word count */
 	minWordCount?: number;
-	
+
 	/** Maximum word count */
 	maxWordCount?: number;
 }
@@ -71,19 +71,19 @@ export interface DocumentFilter {
 export interface DocumentSort {
 	/** Field to sort by */
 	field: 'title' | 'created' | 'updated' | 'wordCount' | 'status';
-	
+
 	/** Sort direction */
 	direction: 'asc' | 'desc';
 }
 
 /**
  * Service for extracting and managing document metadata for UI display.
- * 
+ *
  * This class provides utilities for extracting display-friendly metadata
  * from Granola documents, including formatted dates, content previews,
  * and search/filter functionality. It maintains an internal cache for
  * performance when working with large document collections.
- * 
+ *
  * @class DocumentMetadataService
  * @since 1.1.0
  */
@@ -94,12 +94,15 @@ export class DocumentMetadataService {
 
 	/**
 	 * Extracts display metadata from a Granola document.
-	 * 
+	 *
 	 * @param {GranolaDocument} document - The source document
 	 * @param {DuplicateCheckResult} importStatus - Import status from duplicate detection
 	 * @returns {DocumentDisplayMetadata} Formatted metadata for display
 	 */
-	extractMetadata(document: GranolaDocument, importStatus: DuplicateCheckResult): DocumentDisplayMetadata {
+	extractMetadata(
+		document: GranolaDocument,
+		importStatus: DuplicateCheckResult
+	): DocumentDisplayMetadata {
 		// Check cache first
 		const cacheKey = `${document.id}-${document.updated_at}`;
 		if (this.metadataCache.has(cacheKey)) {
@@ -121,7 +124,7 @@ export class DocumentMetadataService {
 			readingTime: 0, // Will be calculated after word count
 			importStatus,
 			visible: true,
-			selected: importStatus.status === 'NEW' || importStatus.status === 'UPDATED'
+			selected: importStatus.status === 'NEW' || importStatus.status === 'UPDATED',
 		};
 
 		// Calculate reading time
@@ -135,7 +138,7 @@ export class DocumentMetadataService {
 
 	/**
 	 * Extracts metadata for multiple documents efficiently.
-	 * 
+	 *
 	 * @param {GranolaDocument[]} documents - Array of documents to process
 	 * @param {Map<string, DuplicateCheckResult>} statusMap - Map of document ID to import status
 	 * @returns {DocumentDisplayMetadata[]} Array of display metadata
@@ -148,7 +151,7 @@ export class DocumentMetadataService {
 			const status = statusMap.get(doc.id) || {
 				status: 'NEW' as const,
 				reason: 'Status not determined',
-				requiresUserChoice: false
+				requiresUserChoice: false,
 			};
 			return this.extractMetadata(doc, status);
 		});
@@ -156,12 +159,15 @@ export class DocumentMetadataService {
 
 	/**
 	 * Applies search and filter criteria to a list of document metadata.
-	 * 
+	 *
 	 * @param {DocumentDisplayMetadata[]} documents - Documents to filter
 	 * @param {DocumentFilter} filter - Filter criteria
 	 * @returns {DocumentDisplayMetadata[]} Filtered documents with visibility updated
 	 */
-	applyFilter(documents: DocumentDisplayMetadata[], filter: DocumentFilter): DocumentDisplayMetadata[] {
+	applyFilter(
+		documents: DocumentDisplayMetadata[],
+		filter: DocumentFilter
+	): DocumentDisplayMetadata[] {
 		return documents.map(doc => {
 			doc.visible = this.matchesFilter(doc, filter);
 			return doc;
@@ -170,12 +176,15 @@ export class DocumentMetadataService {
 
 	/**
 	 * Sorts document metadata by specified criteria.
-	 * 
+	 *
 	 * @param {DocumentDisplayMetadata[]} documents - Documents to sort
 	 * @param {DocumentSort} sort - Sort criteria
 	 * @returns {DocumentDisplayMetadata[]} Sorted documents
 	 */
-	applySorting(documents: DocumentDisplayMetadata[], sort: DocumentSort): DocumentDisplayMetadata[] {
+	applySorting(
+		documents: DocumentDisplayMetadata[],
+		sort: DocumentSort
+	): DocumentDisplayMetadata[] {
 		return documents.sort((a, b) => {
 			let comparison = 0;
 
@@ -184,10 +193,12 @@ export class DocumentMetadataService {
 					comparison = a.title.localeCompare(b.title);
 					break;
 				case 'created':
-					comparison = new Date(a.createdDate).getTime() - new Date(b.createdDate).getTime();
+					comparison =
+						new Date(a.createdDate).getTime() - new Date(b.createdDate).getTime();
 					break;
 				case 'updated':
-					comparison = new Date(a.updatedDate).getTime() - new Date(b.updatedDate).getTime();
+					comparison =
+						new Date(a.updatedDate).getTime() - new Date(b.updatedDate).getTime();
 					break;
 				case 'wordCount':
 					comparison = a.wordCount - b.wordCount;
@@ -203,7 +214,7 @@ export class DocumentMetadataService {
 
 	/**
 	 * Gets statistics about a collection of documents.
-	 * 
+	 *
 	 * @param {DocumentDisplayMetadata[]} documents - Documents to analyze
 	 * @returns {object} Statistics summary
 	 */
@@ -218,12 +229,15 @@ export class DocumentMetadataService {
 	} {
 		const visible = documents.filter(d => d.visible);
 		const selected = documents.filter(d => d.selected && d.visible);
-		
-		const byStatus = documents.reduce((acc, doc) => {
-			const status = doc.importStatus.status;
-			acc[status] = (acc[status] || 0) + 1;
-			return acc;
-		}, {} as Record<string, number>);
+
+		const byStatus = documents.reduce(
+			(acc, doc) => {
+				const status = doc.importStatus.status;
+				acc[status] = (acc[status] || 0) + 1;
+				return acc;
+			},
+			{} as Record<string, number>
+		);
 
 		const totalWordCount = documents.reduce((sum, doc) => sum + doc.wordCount, 0);
 		const totalReadingTime = documents.reduce((sum, doc) => sum + doc.readingTime, 0);
@@ -234,19 +248,23 @@ export class DocumentMetadataService {
 			selected: selected.length,
 			byStatus,
 			totalWordCount,
-			averageWordCount: documents.length > 0 ? Math.round(totalWordCount / documents.length) : 0,
-			totalReadingTime
+			averageWordCount:
+				documents.length > 0 ? Math.round(totalWordCount / documents.length) : 0,
+			totalReadingTime,
 		};
 	}
 
 	/**
 	 * Updates selection state for multiple documents.
-	 * 
+	 *
 	 * @param {DocumentDisplayMetadata[]} documents - Documents to update
 	 * @param {string[]} selectedIds - IDs of documents to select
 	 * @returns {DocumentDisplayMetadata[]} Updated documents
 	 */
-	updateSelection(documents: DocumentDisplayMetadata[], selectedIds: string[]): DocumentDisplayMetadata[] {
+	updateSelection(
+		documents: DocumentDisplayMetadata[],
+		selectedIds: string[]
+	): DocumentDisplayMetadata[] {
 		const selectedSet = new Set(selectedIds);
 		return documents.map(doc => {
 			doc.selected = selectedSet.has(doc.id);
@@ -264,7 +282,7 @@ export class DocumentMetadataService {
 
 	/**
 	 * Sanitizes and formats a document title for display.
-	 * 
+	 *
 	 * @private
 	 * @param {string} title - Raw document title
 	 * @returns {string} Formatted title
@@ -282,7 +300,7 @@ export class DocumentMetadataService {
 
 	/**
 	 * Formats a date string for display.
-	 * 
+	 *
 	 * @private
 	 * @param {string} dateString - ISO date string
 	 * @returns {string} Formatted date
@@ -295,7 +313,7 @@ export class DocumentMetadataService {
 				month: 'short',
 				day: 'numeric',
 				hour: '2-digit',
-				minute: '2-digit'
+				minute: '2-digit',
 			});
 		} catch {
 			return 'Invalid Date';
@@ -304,7 +322,7 @@ export class DocumentMetadataService {
 
 	/**
 	 * Formats a date as "time ago" (e.g., "2 hours ago").
-	 * 
+	 *
 	 * @private
 	 * @param {string} dateString - ISO date string
 	 * @returns {string} Time ago format
@@ -334,7 +352,7 @@ export class DocumentMetadataService {
 
 	/**
 	 * Generates a preview text from document content.
-	 * 
+	 *
 	 * @private
 	 * @param {GranolaDocument} document - Document to generate preview for
 	 * @returns {string} Preview text
@@ -346,7 +364,7 @@ export class DocumentMetadataService {
 				.trim()
 				.replace(/\s+/g, ' ') // Normalize whitespace
 				.substring(0, this.PREVIEW_LENGTH);
-			
+
 			return preview.length === this.PREVIEW_LENGTH ? preview + '...' : preview;
 		}
 
@@ -357,7 +375,7 @@ export class DocumentMetadataService {
 				.trim()
 				.replace(/\s+/g, ' ')
 				.substring(0, this.PREVIEW_LENGTH);
-			
+
 			return preview.length === this.PREVIEW_LENGTH ? preview + '...' : preview;
 		}
 
@@ -367,18 +385,25 @@ export class DocumentMetadataService {
 
 	/**
 	 * Extracts plain text from ProseMirror document structure.
-	 * 
+	 *
 	 * @private
 	 * @param {any} proseMirrorDoc - ProseMirror document
 	 * @returns {string} Extracted text
 	 */
-	private extractTextFromProseMirror(proseMirrorDoc: any): string {
+	private extractTextFromProseMirror(
+		proseMirrorDoc: ProseMirrorDoc | Record<string, unknown>
+	): string {
 		if (!proseMirrorDoc || !proseMirrorDoc.content) {
 			return 'No content available';
 		}
 
-		const extractText = (node: any): string => {
-			if (node.text) {
+		const extractText = (node: ProseMirrorNode | Record<string, unknown>): string => {
+			if (
+				typeof node === 'object' &&
+				node &&
+				'text' in node &&
+				typeof node.text === 'string'
+			) {
 				return node.text;
 			}
 			if (node.content && Array.isArray(node.content)) {
@@ -387,8 +412,13 @@ export class DocumentMetadataService {
 			return '';
 		};
 
-		const text = proseMirrorDoc.content
-			.map(extractText)
+		const content = (proseMirrorDoc as { content?: unknown[] }).content;
+		if (!Array.isArray(content)) {
+			return 'No content available';
+		}
+
+		const text = content
+			.map(node => extractText(node as ProseMirrorNode | Record<string, unknown>))
 			.join(' ')
 			.trim()
 			.replace(/\s+/g, ' ')
@@ -399,7 +429,7 @@ export class DocumentMetadataService {
 
 	/**
 	 * Estimates word count from document content.
-	 * 
+	 *
 	 * @private
 	 * @param {GranolaDocument} document - Document to analyze
 	 * @returns {number} Estimated word count
@@ -410,31 +440,26 @@ export class DocumentMetadataService {
 			return document.notes_plain
 				.trim()
 				.split(/\s+/)
-				.filter(word => word.length > 0)
-				.length;
+				.filter(word => word.length > 0).length;
 		}
 
 		// Fallback to markdown
 		if (document.notes_markdown && document.notes_markdown.trim()) {
 			return document.notes_markdown
-				.replace(/[#*`\[\]()]/g, '') // Remove basic markdown
+				.replace(/[#*`[\]()]/g, '') // Remove basic markdown
 				.trim()
 				.split(/\s+/)
-				.filter(word => word.length > 0)
-				.length;
+				.filter(word => word.length > 0).length;
 		}
 
 		// Last resort: estimate from ProseMirror
 		const text = this.extractTextFromProseMirror(document.notes);
-		return text
-			.split(/\s+/)
-			.filter(word => word.length > 0)
-			.length;
+		return text.split(/\s+/).filter(word => word.length > 0).length;
 	}
 
 	/**
 	 * Checks if a document matches the given filter criteria.
-	 * 
+	 *
 	 * @private
 	 * @param {DocumentDisplayMetadata} doc - Document to check
 	 * @param {DocumentFilter} filter - Filter criteria
@@ -481,15 +506,17 @@ export class DocumentMetadataService {
 
 	/**
 	 * Compares import status for sorting.
-	 * 
+	 *
 	 * @private
 	 * @param {string} a - First status
 	 * @param {string} b - Second status
 	 * @returns {number} Comparison result
 	 */
 	private compareStatus(a: string, b: string): number {
-		const statusOrder = { 'NEW': 0, 'UPDATED': 1, 'CONFLICT': 2, 'EXISTS': 3 };
-		return (statusOrder[a as keyof typeof statusOrder] || 99) - 
-		       (statusOrder[b as keyof typeof statusOrder] || 99);
+		const statusOrder = { NEW: 0, UPDATED: 1, CONFLICT: 2, EXISTS: 3 };
+		return (
+			(statusOrder[a as keyof typeof statusOrder] || 99) -
+			(statusOrder[b as keyof typeof statusOrder] || 99)
+		);
 	}
 }
