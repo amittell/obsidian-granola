@@ -36,3 +36,6 @@ meta.json
 
 # Documentation build output
 docs/
+
+# Test coverage output
+coverage/

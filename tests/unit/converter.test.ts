@@ -40,15 +40,12 @@ describe('ProseMirrorConverter', () => {
 
 			expect(result.filename).toBe('2024-01-01 - Test Document.md');
 			expect(result.content).toContain('---');
-			expect(result.content).toContain('id: test-doc-id');
-			expect(result.content).toContain('title: "Test Document"');
+			expect(result.content).toContain('created: 2024-01-01T10:00:00Z');
+			expect(result.content).toContain('source: Granola');
 			expect(result.content).toContain('# Test Heading');
 			expect(result.content).toContain('Test content');
 			expect(result.frontmatter).toEqual({
-				id: 'test-doc-id',
-				title: 'Test Document',
 				created: '2024-01-01T10:00:00Z',
-				updated: '2024-01-01T11:00:00Z',
 				source: 'Granola',
 			});
 		});
@@ -58,7 +55,9 @@ describe('ProseMirrorConverter', () => {
 			const result = converter.convertDocument(docWithoutTitle);
 
 			expect(result.filename).toBe('2024-01-01 - Untitled-test-doc-id.md');
-			expect(result.frontmatter.title).toBe('Untitled');
+			// Frontmatter no longer includes title field
+			expect(result.frontmatter.created).toBe('2024-01-01T10:00:00Z');
+			expect(result.frontmatter.source).toBe('Granola');
 		});
 
 		it('should handle empty document content', () => {
@@ -473,15 +472,12 @@ describe('ProseMirrorConverter', () => {
 
 			const result = (converter as any).generateFrontmatter(doc);
 			expect(result).toEqual({
-				id: 'test-id',
-				title: 'Test Title',
 				created: '2024-01-01T10:00:00Z',
-				updated: '2024-01-01T11:00:00Z',
 				source: 'Granola',
 			});
 		});
 
-		it('should handle missing title', () => {
+		it('should create consistent frontmatter regardless of title', () => {
 			const doc: GranolaDocument = {
 				id: 'test-id',
 				title: '',
@@ -491,17 +487,17 @@ describe('ProseMirrorConverter', () => {
 			};
 
 			const result = (converter as any).generateFrontmatter(doc);
-			expect(result.title).toBe('Untitled');
+			expect(result).toEqual({
+				created: '2024-01-01T10:00:00Z',
+				source: 'Granola',
+			});
 		});
 	});
 
 	describe('generateFileContent', () => {
 		it('should combine frontmatter and markdown', () => {
 			const frontmatter = {
-				id: 'test-id',
-				title: 'Test Title',
 				created: '2024-01-01T10:00:00Z',
-				updated: '2024-01-01T11:00:00Z',
 				source: 'Granola',
 			};
 			const markdown = '# Test Content\n\nSome text here.';
@@ -509,25 +505,10 @@ describe('ProseMirrorConverter', () => {
 			const result = (converter as any).generateFileContent(frontmatter, markdown);
 
 			expect(result).toContain('---');
-			expect(result).toContain('id: test-id');
-			expect(result).toContain('title: "Test Title"');
+			expect(result).toContain('created: 2024-01-01T10:00:00Z');
 			expect(result).toContain('source: Granola');
 			expect(result).toContain('# Test Content');
 			expect(result).toContain('Some text here.');
-		});
-
-		it('should escape quotes in title', () => {
-			const frontmatter = {
-				id: 'test-id',
-				title: 'My "Special" Document',
-				created: '2024-01-01T10:00:00Z',
-				updated: '2024-01-01T11:00:00Z',
-				source: 'Granola',
-			};
-			const markdown = 'Content';
-
-			const result = (converter as any).generateFileContent(frontmatter, markdown);
-			expect(result).toContain('title: "My \\"Special\\" Document"');
 		});
 	});
 });

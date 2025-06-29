@@ -339,6 +339,7 @@ export class GranolaAPI {
 		endpoint: string,
 		options: { method?: string; body?: string } & {
 			headers: Record<string, string>;
+			body?: string;
 		}
 	): Promise<Response> {
 		const url = `${this.baseUrl}${endpoint}`;

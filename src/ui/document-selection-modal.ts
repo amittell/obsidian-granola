@@ -353,14 +353,12 @@ export class DocumentSelectionModal extends Modal {
 
 		// Title and status
 		const titleRow = content.createDiv('document-title-row');
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const title = titleRow.createEl('h3', {
+		titleRow.createEl('h3', {
 			text: doc.title,
 			cls: 'document-title',
 		});
 
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const statusBadge = titleRow.createEl('span', {
+		titleRow.createEl('span', {
 			text: this.getStatusText(doc.importStatus.status),
 			cls: `status-badge status-${doc.importStatus.status.toLowerCase()}`,
 		});
@@ -457,22 +455,16 @@ export class DocumentSelectionModal extends Modal {
 		// Progress bar
 		const progressContainer = this.progressEl.createDiv('progress-container');
 		const progressBar = progressContainer.createDiv('progress-bar');
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const progressFill = progressBar.createDiv('progress-fill');
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const progressText = progressContainer.createDiv('progress-text');
+		progressBar.createDiv('progress-fill');
+		progressContainer.createDiv('progress-text');
 
 		// Document progress list
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const docProgressList = this.progressEl.createDiv('document-progress-list');
+		this.progressEl.createDiv('document-progress-list');
 
 		// Cancel button
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const cancelBtn = new ButtonComponent(this.progressEl)
-			.setButtonText('Cancel Import')
-			.onClick(() => {
-				this.importManager.cancel();
-			});
+		new ButtonComponent(this.progressEl).setButtonText('Cancel Import').onClick(() => {
+			this.importManager.cancel();
+		});
 	}
 
 	/**
@@ -541,8 +533,7 @@ export class DocumentSelectionModal extends Modal {
 
 		// If there are imported files, show "Open Imported Notes" button
 		if (importedFiles.length > 0) {
-			// eslint-disable-next-line @typescript-eslint/no-unused-vars
-			const openNotesBtn = new ButtonComponent(buttonsDiv)
+			new ButtonComponent(buttonsDiv)
 				.setButtonText(`Open Imported Notes (${importedFiles.length})`)
 				.setCta()
 				.onClick(() => {
@@ -552,10 +543,7 @@ export class DocumentSelectionModal extends Modal {
 		}
 
 		// Always show close button
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const closeBtn = new ButtonComponent(buttonsDiv)
-			.setButtonText('Close')
-			.onClick(() => this.close());
+		new ButtonComponent(buttonsDiv).setButtonText('Close').onClick(() => this.close());
 	}
 
 	/**
