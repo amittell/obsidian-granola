@@ -442,7 +442,7 @@ export class DocumentSelectionModal extends Modal {
 
 	/**
 	 * Restores the main document selection view.
-	 * 
+	 *
 	 * @private
 	 */
 	private showMainView(): void {
@@ -478,9 +478,11 @@ export class DocumentSelectionModal extends Modal {
 		this.progressEl.createDiv('document-progress-list');
 
 		// Cancel button
-		new ButtonComponent(this.progressEl).setButtonText('Cancel Import').onClick(() => {
-			this.importManager.cancel();
-		});
+		new ButtonComponent(this.progressEl)
+			.setButtonText('Cancel Import')
+			.onClick(() => {
+				this.importManager.cancel();
+			});
 	}
 
 	/**
@@ -522,10 +524,10 @@ export class DocumentSelectionModal extends Modal {
 	private showImportComplete(result: ImportProgress): void {
 		// Reset importing state to re-enable buttons
 		this.setImporting(false);
-		
+
 		// Hide footer buttons since they're no longer relevant
 		this.footerEl.style.display = 'none';
-		
+
 		this.progressEl.empty();
 
 		const summary = this.progressEl.createDiv('import-summary');
@@ -562,7 +564,9 @@ export class DocumentSelectionModal extends Modal {
 		}
 
 		// Always show close button
-		new ButtonComponent(buttonsDiv).setButtonText('Close').onClick(() => this.close());
+		new ButtonComponent(buttonsDiv)
+			.setButtonText('Close')
+			.onClick(() => this.close());
 	}
 
 	/**
@@ -584,7 +588,7 @@ export class DocumentSelectionModal extends Modal {
 			if (files.length > 0) {
 				const firstFileLeaf = this.app.workspace
 					.getLeavesOfType('markdown')
-					.find(leaf => (leaf.view as { file?: unknown }).file === files[0]);
+					.find(leaf => (leaf.view as any).file === files[0]);
 				if (firstFileLeaf) {
 					this.app.workspace.setActiveLeaf(firstFileLeaf);
 				}

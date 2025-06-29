@@ -149,7 +149,7 @@ export class DuplicateDetector {
 				return {
 					status: 'CONFLICT',
 					existingFile,
-					reason: `File already exists: ${existingFile.path}`,
+					reason: `File already exists: ${filename}`,
 					requiresUserChoice: true,
 				};
 			}
