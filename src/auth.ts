@@ -153,7 +153,8 @@ export class GranolaAuth {
 			this.validateCredentials(cognitoTokens);
 
 			// Convert expires_in (seconds from now) to expires_at (unix timestamp)
-			const expiresAt = Math.floor(Date.now() / TIMESTAMP_CONVERSION_FACTOR) + cognitoTokens.expires_in;
+			const expiresAt =
+				Math.floor(Date.now() / TIMESTAMP_CONVERSION_FACTOR) + cognitoTokens.expires_in;
 
 			this.credentials = {
 				access_token: cognitoTokens.access_token,

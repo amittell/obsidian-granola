@@ -1,259 +1,269 @@
 import { jest } from '@jest/globals';
 import { GranolaAuth } from '../../src/auth';
-import { mockCredentials, mockCognitoTokens, mockSupabaseConfig, mockExpiredCognitoTokens, mockInvalidTokenFormat } from '../helpers';
+import {
+	mockCredentials,
+	mockCognitoTokens,
+	mockSupabaseConfig,
+	mockExpiredCognitoTokens,
+	mockInvalidTokenFormat,
+} from '../helpers';
 
 // Mock the filesystem and OS modules
 jest.mock('fs/promises', () => ({
-  readFile: jest.fn(),
-  access: jest.fn(),
-  stat: jest.fn()
+	readFile: jest.fn(),
+	access: jest.fn(),
+	stat: jest.fn(),
 }));
 
 jest.mock('os', () => ({
-  platform: jest.fn(),
-  homedir: jest.fn()
+	platform: jest.fn(),
+	homedir: jest.fn(),
 }));
 
 jest.mock('path', () => ({
-  join: jest.fn()
+	join: jest.fn(),
 }));
 
 describe('GranolaAuth', () => {
-  let auth: GranolaAuth;
+	let auth: GranolaAuth;
 
-  beforeEach(() => {
-    // Clear all mocks
-    jest.clearAllMocks();
-    
-    // Setup mocks with proper values
-    const mockFs = require('fs/promises');
-    const mockOs = require('os');
-    const mockPath = require('path');
-    
-    mockFs.readFile.mockResolvedValue(mockSupabaseConfig);
-    mockOs.platform.mockReturnValue('darwin');
-    mockOs.homedir.mockReturnValue('/Users/test');
-    mockPath.join.mockImplementation((...args: string[]) => args.join('/'));
-    
-    // Create auth instance
-    auth = new GranolaAuth();
-  });
+	beforeEach(() => {
+		// Clear all mocks
+		jest.clearAllMocks();
 
-  describe('loadCredentials', () => {
-    it('should load valid credentials successfully', async () => {
-      const credentials = await auth.loadCredentials();
-      
-      expect(credentials).toEqual({
-        access_token: mockCognitoTokens.access_token,
-        refresh_token: mockCognitoTokens.refresh_token,
-        token_type: 'bearer', // normalized to lowercase
-        expires_at: expect.any(Number)
-      });
-    });
+		// Setup mocks with proper values
+		const mockFs = require('fs/promises');
+		const mockOs = require('os');
+		const mockPath = require('path');
 
-    it('should cache credentials on subsequent calls', async () => {
-      const mockFs = require('fs/promises');
-      
-      await auth.loadCredentials();
-      await auth.loadCredentials();
-      
-      expect(mockFs.readFile).toHaveBeenCalledTimes(1);
-    });
+		mockFs.readFile.mockResolvedValue(mockSupabaseConfig);
+		mockOs.platform.mockReturnValue('darwin');
+		mockOs.homedir.mockReturnValue('/Users/test');
+		mockPath.join.mockImplementation((...args: string[]) => args.join('/'));
 
-    it('should throw error if config file is missing', async () => {
-      const mockFs = require('fs/promises');
-      mockFs.readFile.mockRejectedValue(new Error('File not found'));
-      
-      await expect(auth.loadCredentials()).rejects.toThrow('Failed to load Granola credentials');
-    });
+		// Create auth instance
+		auth = new GranolaAuth();
+	});
 
-    it('should throw error if config file contains invalid JSON', async () => {
-      const mockFs = require('fs/promises');
-      mockFs.readFile.mockResolvedValue('invalid json');
-      
-      await expect(auth.loadCredentials()).rejects.toThrow('Failed to load Granola credentials');
-    });
+	describe('loadCredentials', () => {
+		it('should load valid credentials successfully', async () => {
+			const credentials = await auth.loadCredentials();
 
-    it('should throw error if required fields are missing', async () => {
-      const mockFs = require('fs/promises');
-      const invalidConfig = {
-        cognito_tokens: JSON.stringify({ access_token: 'test' }), // missing other fields
-        user_info: '{}'
-      };
-      mockFs.readFile.mockResolvedValue(JSON.stringify(invalidConfig));
-      
-      await expect(auth.loadCredentials()).rejects.toThrow('Missing required field');
-    });
+			expect(credentials).toEqual({
+				access_token: mockCognitoTokens.access_token,
+				refresh_token: mockCognitoTokens.refresh_token,
+				token_type: 'bearer', // normalized to lowercase
+				expires_at: expect.any(Number),
+			});
+		});
 
-    it('should throw error if token type is not bearer', async () => {
-      const mockFs = require('fs/promises');
-      const invalidConfig = {
-        cognito_tokens: JSON.stringify({
-          ...mockCognitoTokens,
-          token_type: 'basic'
-        }),
-        user_info: '{}'
-      };
-      mockFs.readFile.mockResolvedValue(JSON.stringify(invalidConfig));
-      
-      await expect(auth.loadCredentials()).rejects.toThrow('Invalid token type');
-    });
+		it('should cache credentials on subsequent calls', async () => {
+			const mockFs = require('fs/promises');
 
-    it('should throw error if token format is invalid', async () => {
-      const mockFs = require('fs/promises');
-      const invalidConfig = {
-        cognito_tokens: JSON.stringify(mockInvalidTokenFormat),
-        user_info: '{}'
-      };
-      mockFs.readFile.mockResolvedValue(JSON.stringify(invalidConfig));
-      
-      await expect(auth.loadCredentials()).rejects.toThrow('Invalid token format');
-    });
+			await auth.loadCredentials();
+			await auth.loadCredentials();
 
-    it('should throw error if token is expired', async () => {
-      const mockFs = require('fs/promises');
-      const expiredConfig = {
-        cognito_tokens: JSON.stringify(mockExpiredCognitoTokens),
-        user_info: '{}'
-      };
-      mockFs.readFile.mockResolvedValue(JSON.stringify(expiredConfig));
-      
-      await expect(auth.loadCredentials()).rejects.toThrow('Access token has expired');
-    });
-  });
+			expect(mockFs.readFile).toHaveBeenCalledTimes(1);
+		});
 
-  describe('getSupabaseConfigPath', () => {
-    it('should return correct path for macOS', () => {
-      const mockOs = require('os');
-      const mockPath = require('path');
-      
-      mockOs.platform.mockReturnValue('darwin');
-      mockOs.homedir.mockReturnValue('/Users/test');
-      
-      // Access the private method through any casting
-      const configPath = (auth as any).getSupabaseConfigPath();
-      
-      expect(mockPath.join).toHaveBeenCalledWith(
-        '/Users/test',
-        'Library',
-        'Application Support',
-        'Granola',
-        'supabase.json'
-      );
-    });
+		it('should throw error if config file is missing', async () => {
+			const mockFs = require('fs/promises');
+			mockFs.readFile.mockRejectedValue(new Error('File not found'));
 
-    it('should return correct path for Windows', () => {
-      const mockOs = require('os');
-      const mockPath = require('path');
-      
-      mockOs.platform.mockReturnValue('win32');
-      mockOs.homedir.mockReturnValue('C:\\Users\\test');
-      
-      const configPath = (auth as any).getSupabaseConfigPath();
-      
-      expect(mockPath.join).toHaveBeenCalledWith(
-        'C:\\Users\\test',
-        'AppData',
-        'Roaming',
-        'Granola',
-        'supabase.json'
-      );
-    });
+			await expect(auth.loadCredentials()).rejects.toThrow(
+				'Failed to load Granola credentials'
+			);
+		});
 
-    it('should return correct path for Linux', () => {
-      const mockOs = require('os');
-      const mockPath = require('path');
-      
-      mockOs.platform.mockReturnValue('linux');
-      mockOs.homedir.mockReturnValue('/home/test');
-      
-      const configPath = (auth as any).getSupabaseConfigPath();
-      
-      expect(mockPath.join).toHaveBeenCalledWith(
-        '/home/test',
-        '.config',
-        'Granola',
-        'supabase.json'
-      );
-    });
+		it('should throw error if config file contains invalid JSON', async () => {
+			const mockFs = require('fs/promises');
+			mockFs.readFile.mockResolvedValue('invalid json');
 
-    it('should throw error for unsupported platform', () => {
-      const mockOs = require('os');
-      mockOs.platform.mockReturnValue('freebsd');
-      
-      expect(() => (auth as any).getSupabaseConfigPath()).toThrow('Unsupported platform');
-    });
-  });
+			await expect(auth.loadCredentials()).rejects.toThrow(
+				'Failed to load Granola credentials'
+			);
+		});
 
-  describe('getBearerToken', () => {
-    it('should return access token when credentials are loaded', async () => {
-      await auth.loadCredentials();
-      const token = auth.getBearerToken();
-      
-      expect(token).toBe(mockCredentials.access_token);
-    });
+		it('should throw error if required fields are missing', async () => {
+			const mockFs = require('fs/promises');
+			const invalidConfig = {
+				cognito_tokens: JSON.stringify({ access_token: 'test' }), // missing other fields
+				user_info: '{}',
+			};
+			mockFs.readFile.mockResolvedValue(JSON.stringify(invalidConfig));
 
-    it('should throw error when credentials are not loaded', () => {
-      expect(() => auth.getBearerToken()).toThrow('Credentials not loaded');
-    });
-  });
+			await expect(auth.loadCredentials()).rejects.toThrow('Missing required field');
+		});
 
-  describe('isTokenExpired', () => {
-    it('should return false for valid token', async () => {
-      await auth.loadCredentials();
-      
-      expect(auth.isTokenExpired()).toBe(false);
-    });
+		it('should throw error if token type is not bearer', async () => {
+			const mockFs = require('fs/promises');
+			const invalidConfig = {
+				cognito_tokens: JSON.stringify({
+					...mockCognitoTokens,
+					token_type: 'basic',
+				}),
+				user_info: '{}',
+			};
+			mockFs.readFile.mockResolvedValue(JSON.stringify(invalidConfig));
 
-    it('should return true when credentials are not loaded', () => {
-      expect(auth.isTokenExpired()).toBe(true);
-    });
-  });
+			await expect(auth.loadCredentials()).rejects.toThrow('Invalid token type');
+		});
 
-  describe('hasValidCredentials', () => {
-    it('should return true when credentials are loaded and valid', async () => {
-      await auth.loadCredentials();
-      
-      expect(auth.hasValidCredentials()).toBe(true);
-    });
+		it('should throw error if token format is invalid', async () => {
+			const mockFs = require('fs/promises');
+			const invalidConfig = {
+				cognito_tokens: JSON.stringify(mockInvalidTokenFormat),
+				user_info: '{}',
+			};
+			mockFs.readFile.mockResolvedValue(JSON.stringify(invalidConfig));
 
-    it('should return false when credentials are not loaded', () => {
-      expect(auth.hasValidCredentials()).toBe(false);
-    });
-  });
+			await expect(auth.loadCredentials()).rejects.toThrow('Invalid token format');
+		});
 
-  describe('clearCredentials', () => {
-    it('should clear cached credentials', async () => {
-      await auth.loadCredentials();
-      expect(auth.hasValidCredentials()).toBe(true);
-      
-      auth.clearCredentials();
-      expect(auth.hasValidCredentials()).toBe(false);
-    });
-  });
+		it('should throw error if token is expired', async () => {
+			const mockFs = require('fs/promises');
+			const expiredConfig = {
+				cognito_tokens: JSON.stringify(mockExpiredCognitoTokens),
+				user_info: '{}',
+			};
+			mockFs.readFile.mockResolvedValue(JSON.stringify(expiredConfig));
 
-  describe('refreshToken', () => {
-    it('should throw error as refresh is not implemented', async () => {
-      await auth.loadCredentials();
-      
-      await expect(auth.refreshToken()).rejects.toThrow('Token refresh not yet implemented');
-    });
+			await expect(auth.loadCredentials()).rejects.toThrow('Access token has expired');
+		});
+	});
 
-    it('should throw error when no refresh token available', async () => {
-      await expect(auth.refreshToken()).rejects.toThrow('No refresh token available');
-    });
+	describe('getSupabaseConfigPath', () => {
+		it('should return correct path for macOS', () => {
+			const mockOs = require('os');
+			const mockPath = require('path');
 
-    it('should clear credentials on refresh failure', async () => {
-      await auth.loadCredentials();
-      expect(auth.hasValidCredentials()).toBe(true);
-      
-      try {
-        await auth.refreshToken();
-      } catch {
-        // Expected to fail
-      }
-      
-      expect(auth.hasValidCredentials()).toBe(false);
-    });
-  });
+			mockOs.platform.mockReturnValue('darwin');
+			mockOs.homedir.mockReturnValue('/Users/test');
+
+			// Access the private method through any casting
+			const configPath = (auth as any).getSupabaseConfigPath();
+
+			expect(mockPath.join).toHaveBeenCalledWith(
+				'/Users/test',
+				'Library',
+				'Application Support',
+				'Granola',
+				'supabase.json'
+			);
+		});
+
+		it('should return correct path for Windows', () => {
+			const mockOs = require('os');
+			const mockPath = require('path');
+
+			mockOs.platform.mockReturnValue('win32');
+			mockOs.homedir.mockReturnValue('C:\\Users\\test');
+
+			const configPath = (auth as any).getSupabaseConfigPath();
+
+			expect(mockPath.join).toHaveBeenCalledWith(
+				'C:\\Users\\test',
+				'AppData',
+				'Roaming',
+				'Granola',
+				'supabase.json'
+			);
+		});
+
+		it('should return correct path for Linux', () => {
+			const mockOs = require('os');
+			const mockPath = require('path');
+
+			mockOs.platform.mockReturnValue('linux');
+			mockOs.homedir.mockReturnValue('/home/test');
+
+			const configPath = (auth as any).getSupabaseConfigPath();
+
+			expect(mockPath.join).toHaveBeenCalledWith(
+				'/home/test',
+				'.config',
+				'Granola',
+				'supabase.json'
+			);
+		});
+
+		it('should throw error for unsupported platform', () => {
+			const mockOs = require('os');
+			mockOs.platform.mockReturnValue('freebsd');
+
+			expect(() => (auth as any).getSupabaseConfigPath()).toThrow('Unsupported platform');
+		});
+	});
+
+	describe('getBearerToken', () => {
+		it('should return access token when credentials are loaded', async () => {
+			await auth.loadCredentials();
+			const token = auth.getBearerToken();
+
+			expect(token).toBe(mockCredentials.access_token);
+		});
+
+		it('should throw error when credentials are not loaded', () => {
+			expect(() => auth.getBearerToken()).toThrow('Credentials not loaded');
+		});
+	});
+
+	describe('isTokenExpired', () => {
+		it('should return false for valid token', async () => {
+			await auth.loadCredentials();
+
+			expect(auth.isTokenExpired()).toBe(false);
+		});
+
+		it('should return true when credentials are not loaded', () => {
+			expect(auth.isTokenExpired()).toBe(true);
+		});
+	});
+
+	describe('hasValidCredentials', () => {
+		it('should return true when credentials are loaded and valid', async () => {
+			await auth.loadCredentials();
+
+			expect(auth.hasValidCredentials()).toBe(true);
+		});
+
+		it('should return false when credentials are not loaded', () => {
+			expect(auth.hasValidCredentials()).toBe(false);
+		});
+	});
+
+	describe('clearCredentials', () => {
+		it('should clear cached credentials', async () => {
+			await auth.loadCredentials();
+			expect(auth.hasValidCredentials()).toBe(true);
+
+			auth.clearCredentials();
+			expect(auth.hasValidCredentials()).toBe(false);
+		});
+	});
+
+	describe('refreshToken', () => {
+		it('should throw error as refresh is not implemented', async () => {
+			await auth.loadCredentials();
+
+			await expect(auth.refreshToken()).rejects.toThrow('Token refresh not yet implemented');
+		});
+
+		it('should throw error when no refresh token available', async () => {
+			await expect(auth.refreshToken()).rejects.toThrow('No refresh token available');
+		});
+
+		it('should clear credentials on refresh failure', async () => {
+			await auth.loadCredentials();
+			expect(auth.hasValidCredentials()).toBe(true);
+
+			try {
+				await auth.refreshToken();
+			} catch {
+				// Expected to fail
+			}
+
+			expect(auth.hasValidCredentials()).toBe(false);
+		});
+	});
 });
