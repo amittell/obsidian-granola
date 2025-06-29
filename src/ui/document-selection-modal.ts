@@ -633,9 +633,9 @@ export class DocumentSelectionModal extends Modal {
 			} else if (view.contentEl) {
 				// Reading mode or other views with contentEl
 				const scrollElement = view.contentEl.querySelector('.markdown-reading-view') || 
-									 view.contentEl.querySelector('.markdown-source-view') ||
-									 view.contentEl.querySelector('.view-content') ||
-									 view.contentEl;
+									view.contentEl.querySelector('.markdown-source-view') ||
+									view.contentEl.querySelector('.view-content') ||
+									view.contentEl;
 
 				if (scrollElement && scrollElement.scrollTo) {
 					scrollElement.scrollTo({
