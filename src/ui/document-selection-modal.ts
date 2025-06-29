@@ -478,11 +478,9 @@ export class DocumentSelectionModal extends Modal {
 		this.progressEl.createDiv('document-progress-list');
 
 		// Cancel button
-		new ButtonComponent(this.progressEl)
-			.setButtonText('Cancel Import')
-			.onClick(() => {
-				this.importManager.cancel();
-			});
+		new ButtonComponent(this.progressEl).setButtonText('Cancel Import').onClick(() => {
+			this.importManager.cancel();
+		});
 	}
 
 	/**
@@ -564,9 +562,7 @@ export class DocumentSelectionModal extends Modal {
 		}
 
 		// Always show close button
-		new ButtonComponent(buttonsDiv)
-			.setButtonText('Close')
-			.onClick(() => this.close());
+		new ButtonComponent(buttonsDiv).setButtonText('Close').onClick(() => this.close());
 	}
 
 	/**
