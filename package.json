@@ -15,7 +15,7 @@
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"lint": "eslint . --ext .ts,.tsx --max-warnings 0",
-		"lint:quick": "eslint main.ts src/ --ext .ts --max-warnings 0",
+		"lint:quick": "eslint main.ts src/ --ext .ts --max-warnings 20",
 		"lint:fix": "eslint . --ext .ts,.tsx --fix",
 		"analyze": "node esbuild.config.mjs production --metafile=meta.json && node -e \"const fs=require('fs'); const meta=JSON.parse(fs.readFileSync('meta.json')); const inputSize=Object.values(meta.inputs).reduce((acc,i)=>acc+i.bytes,0); const outputSize=fs.statSync('main.js').size; console.log('Bundle size:', outputSize, 'bytes'); console.log('Dependencies:', Object.keys(meta.inputs).length, 'files'); console.log('Size reduction:', inputSize-outputSize, 'bytes (' + Math.round((1-outputSize/inputSize)*100) + '% smaller)');\"",
 		"perf": "npm run analyze && npm audit --audit-level moderate",
