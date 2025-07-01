@@ -8,13 +8,6 @@ import {
 	WorkspaceLeaf,
 	MarkdownView,
 } from 'obsidian';
-
-// Type definition for scroll options
-interface ScrollToOptions {
-	top?: number;
-	left?: number;
-	behavior?: 'auto' | 'smooth';
-}
 import { GranolaDocument, GranolaAPI } from '../api';
 import { DuplicateDetector } from '../services/duplicate-detector';
 import {
