@@ -5,9 +5,18 @@ import { createMockLogger } from '../helpers';
 
 describe('ProseMirrorConverter', () => {
 	let converter: ProseMirrorConverter;
+	let mockLogger: any;
 
 	beforeEach(() => {
-		converter = new ProseMirrorConverter(createMockLogger());
+		// Create a proper mock logger
+		mockLogger = {
+			debug: jest.fn(),
+			info: jest.fn(),
+			warn: jest.fn(),
+			error: jest.fn(),
+			updateSettings: jest.fn(),
+		};
+		converter = new ProseMirrorConverter(mockLogger);
 	});
 
 	describe('convertDocument', () => {
@@ -509,6 +518,163 @@ describe('ProseMirrorConverter', () => {
 			expect(result).toContain('source: Granola');
 			expect(result).toContain('# Test Content');
 			expect(result).toContain('Some text here.');
+		});
+	});
+
+	describe('debug logging and content source selection', () => {
+		it('should use last_viewed_panel.content when available and valid', () => {
+			const docWithLastViewedPanel: GranolaDocument = {
+				id: 'test-doc-id',
+				title: 'Test Document',
+				created_at: '2024-01-01T10:00:00Z',
+				updated_at: '2024-01-01T11:00:00Z',
+				user_id: 'test-user-id',
+				notes_plain: 'Some plain text',
+				notes_markdown: '# Markdown content',
+				last_viewed_panel: {
+					content: {
+						type: 'doc',
+						content: [
+							{
+								type: 'paragraph',
+								content: [{ type: 'text', text: 'Panel content' }],
+							},
+						],
+					},
+				},
+				notes: {
+					type: 'doc',
+					content: [
+						{
+							type: 'paragraph',
+							content: [{ type: 'text', text: 'Notes content' }],
+						},
+					],
+				},
+			};
+
+			const result = converter.convertDocument(docWithLastViewedPanel);
+
+			// Should use content from last_viewed_panel
+			expect(result.content).toContain('Panel content');
+			expect(result.content).not.toContain('Notes content');
+			expect(mockLogger.debug).toHaveBeenCalledWith(
+				expect.stringContaining('Last viewed panel exists')
+			);
+		});
+
+		it('should fallback to notes field when last_viewed_panel is empty', () => {
+			const docWithEmptyPanel: GranolaDocument = {
+				id: 'test-doc-id',
+				title: 'Test Document',
+				created_at: '2024-01-01T10:00:00Z',
+				updated_at: '2024-01-01T11:00:00Z',
+				user_id: 'test-user-id',
+				notes_plain: 'Some plain text',
+				notes_markdown: '# Markdown content',
+				last_viewed_panel: {
+					content: {
+						type: 'doc',
+						content: [], // Empty content
+					},
+				},
+				notes: {
+					type: 'doc',
+					content: [
+						{
+							type: 'paragraph',
+							content: [{ type: 'text', text: 'Notes content' }],
+						},
+					],
+				},
+			};
+
+			const result = converter.convertDocument(docWithEmptyPanel);
+
+			// Should fallback to notes field
+			expect(result.content).toContain('Notes content');
+			expect(mockLogger.debug).toHaveBeenCalledWith(
+				expect.stringContaining('Attempting conversion from notes field as fallback')
+			);
+		});
+
+		it('should fallback to notes_markdown when ProseMirror conversions fail', () => {
+			const docWithInvalidStructure: GranolaDocument = {
+				id: 'test-doc-id',
+				title: 'Test Document',
+				created_at: '2024-01-01T10:00:00Z',
+				updated_at: '2024-01-01T11:00:00Z',
+				user_id: 'test-user-id',
+				notes_plain: 'Some plain text',
+				notes_markdown: '# Markdown fallback content',
+				last_viewed_panel: {
+					content: {
+						type: 'invalid',
+						content: null,
+					},
+				},
+				notes: {
+					type: 'invalid',
+					content: null,
+				},
+			};
+
+			const result = converter.convertDocument(docWithInvalidStructure);
+
+			// Should fallback to notes_markdown
+			expect(result.content).toContain('Markdown fallback content');
+			// Just verify the conversion worked, debug messages may vary
+			expect(mockLogger.debug).toHaveBeenCalled();
+		});
+
+		it('should use notes_plain as final fallback', () => {
+			const docOnlyPlainText: GranolaDocument = {
+				id: 'test-doc-id',
+				title: 'Test Document',
+				created_at: '2024-01-01T10:00:00Z',
+				updated_at: '2024-01-01T11:00:00Z',
+				user_id: 'test-user-id',
+				notes_plain: 'Final fallback plain text',
+				// No notes_markdown, invalid ProseMirror
+				last_viewed_panel: {
+					content: {
+						type: 'invalid',
+						content: null,
+					},
+				},
+				notes: {
+					type: 'invalid',
+					content: null,
+				},
+			};
+
+			const result = converter.convertDocument(docOnlyPlainText);
+
+			// Should use plain text as final fallback
+			expect(result.content).toContain('Final fallback plain text');
+			// Just verify the conversion worked, debug messages may vary
+			expect(mockLogger.debug).toHaveBeenCalled();
+		});
+
+		it('should handle document with no extractable content', () => {
+			const emptyDoc: GranolaDocument = {
+				id: 'test-doc-id',
+				title: 'Empty Document',
+				created_at: '2024-01-01T10:00:00Z',
+				updated_at: '2024-01-01T11:00:00Z',
+				user_id: 'test-user-id',
+				// All content sources empty or invalid
+			};
+
+			const result = converter.convertDocument(emptyDoc);
+
+			// Should create placeholder content
+			expect(result.content).toContain('# Empty Document');
+			expect(result.content).toContain('This document appears to have no extractable content');
+			// Check for the actual warning message
+			expect(mockLogger.warn).toHaveBeenCalledWith(
+				expect.stringContaining('WARNING: No content extracted')
+			);
 		});
 	});
 });

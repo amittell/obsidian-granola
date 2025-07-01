@@ -3,8 +3,29 @@ import {
 	ImportStrategy,
 	DatePrefixFormat,
 	ContentPriority,
-	GranolaSettings
+	GranolaSettings,
+	Logger,
+	DEFAULT_SETTINGS,
+	GranolaSettingTab
 } from '../../src/settings';
+import { App, PluginSettingTab } from 'obsidian';
+import GranolaImporterPlugin from '../../main';
+
+// Mock the Setting class globally
+jest.mock('obsidian', () => ({
+	...jest.requireActual('obsidian'),
+	Setting: jest.fn().mockImplementation(() => ({
+		setName: jest.fn().mockReturnThis(),
+		setDesc: jest.fn().mockReturnThis(),
+		addToggle: jest.fn().mockReturnThis(),
+		addDropdown: jest.fn().mockReturnThis(),
+		addText: jest.fn().mockReturnThis(),
+		addSlider: jest.fn().mockReturnThis(),
+		addButton: jest.fn().mockReturnThis(),
+	})),
+	App: jest.fn(),
+	PluginSettingTab: jest.fn(),
+}));
 
 describe('Settings Module', () => {
 	describe('LogLevel enum', () => {
@@ -391,6 +412,330 @@ describe('Settings Module', () => {
 			expect(edgeCaseSettings.import.defaultFolder).toContain('/');
 			expect(edgeCaseSettings.import.maxFilenameLength).toBe(255);
 			expect(edgeCaseSettings.content.customFrontmatter).toHaveLength(5);
+		});
+	});
+
+	describe('DEFAULT_SETTINGS', () => {
+		it('should have reasonable default values', () => {
+			expect(DEFAULT_SETTINGS.debug.enabled).toBe(false);
+			expect(DEFAULT_SETTINGS.debug.logLevel).toBe(LogLevel.WARN);
+			expect(DEFAULT_SETTINGS.debug.saveToFile).toBe(false);
+			
+			expect(DEFAULT_SETTINGS.import.strategy).toBe(ImportStrategy.ALWAYS_PROMPT);
+			expect(DEFAULT_SETTINGS.import.defaultFolder).toBe('');
+			expect(DEFAULT_SETTINGS.import.createFolders).toBe(true);
+			expect(DEFAULT_SETTINGS.import.maxFilenameLength).toBe(100);
+			
+			expect(DEFAULT_SETTINGS.content.datePrefixFormat).toBe(DatePrefixFormat.ISO_DATE);
+			expect(DEFAULT_SETTINGS.content.contentPriority).toBe(ContentPriority.PANEL_FIRST);
+			expect(DEFAULT_SETTINGS.content.includeMetadata).toBe(true);
+			expect(DEFAULT_SETTINGS.content.customFrontmatter).toEqual([]);
+			
+			expect(DEFAULT_SETTINGS.ui.autoCloseModal).toBe(false);
+			expect(DEFAULT_SETTINGS.ui.showProgressNotifications).toBe(true);
+			expect(DEFAULT_SETTINGS.ui.selectAllByDefault).toBe(false);
+			
+			expect(DEFAULT_SETTINGS.connection.lastValidated).toBe(0);
+			expect(DEFAULT_SETTINGS.connection.isConnected).toBe(false);
+			expect(DEFAULT_SETTINGS.connection.timeoutMs).toBe(30000);
+		});
+
+		it('should be a valid GranolaSettings object', () => {
+			// Type check - should not throw compilation errors
+			const settings: GranolaSettings = DEFAULT_SETTINGS;
+			expect(settings).toBeDefined();
+		});
+
+		it('should use valid enum values', () => {
+			expect(Object.values(LogLevel)).toContain(DEFAULT_SETTINGS.debug.logLevel);
+			expect(Object.values(ImportStrategy)).toContain(DEFAULT_SETTINGS.import.strategy);
+			expect(Object.values(DatePrefixFormat)).toContain(DEFAULT_SETTINGS.content.datePrefixFormat);
+			expect(Object.values(ContentPriority)).toContain(DEFAULT_SETTINGS.content.contentPriority);
+		});
+	});
+
+	describe('Logger class', () => {
+		let logger: Logger;
+		let testSettings: GranolaSettings;
+		let consoleErrorSpy: jest.SpyInstance;
+		let consoleWarnSpy: jest.SpyInstance;
+		let consoleInfoSpy: jest.SpyInstance;
+		let consoleLogSpy: jest.SpyInstance;
+
+		beforeEach(() => {
+			testSettings = {
+				debug: {
+					enabled: false,
+					logLevel: LogLevel.WARN,
+					saveToFile: false
+				},
+				import: {
+					strategy: ImportStrategy.SKIP_EXISTING,
+					defaultFolder: '',
+					createFolders: true,
+					maxFilenameLength: 100
+				},
+				content: {
+					datePrefixFormat: DatePrefixFormat.ISO_DATE,
+					contentPriority: ContentPriority.PANEL_FIRST,
+					includeMetadata: true,
+					customFrontmatter: []
+				},
+				ui: {
+					autoCloseModal: false,
+					showProgressNotifications: true,
+					selectAllByDefault: false
+				},
+				connection: {
+					lastValidated: 0,
+					isConnected: false,
+					timeoutMs: 30000
+				}
+			};
+
+			logger = new Logger(testSettings);
+
+			// Spy on console methods
+			consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+			consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+			consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation();
+			consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+		});
+
+		afterEach(() => {
+			jest.restoreAllMocks();
+		});
+
+		describe('constructor', () => {
+			it('should initialize with settings', () => {
+				expect(logger).toBeInstanceOf(Logger);
+			});
+		});
+
+		describe('updateSettings', () => {
+			it('should update logger settings', () => {
+				const newSettings = { ...testSettings };
+				newSettings.debug.logLevel = LogLevel.DEBUG;
+
+				logger.updateSettings(newSettings);
+
+				// Verify settings were updated by testing log behavior
+				logger.debug('test message');
+				expect(consoleLogSpy).not.toHaveBeenCalled(); // debug is disabled
+
+				newSettings.debug.enabled = true;
+				logger.updateSettings(newSettings);
+				logger.debug('test message');
+				expect(consoleLogSpy).toHaveBeenCalledWith('[Granola Importer Debug] test message');
+			});
+		});
+
+		describe('error', () => {
+			it('should log error messages when log level allows', () => {
+				testSettings.debug.logLevel = LogLevel.ERROR;
+				logger.updateSettings(testSettings);
+
+				logger.error('Test error message', 'extra', 'args');
+
+				expect(consoleErrorSpy).toHaveBeenCalledWith(
+					'[Granola Importer] Test error message',
+					'extra',
+					'args'
+				);
+			});
+
+			it('should not log error messages when log level is too low', () => {
+				testSettings.debug.logLevel = -1 as LogLevel; // Below ERROR level
+				logger.updateSettings(testSettings);
+
+				logger.error('Test error message');
+
+				expect(consoleErrorSpy).not.toHaveBeenCalled();
+			});
+		});
+
+		describe('warn', () => {
+			it('should log warning messages when log level allows', () => {
+				testSettings.debug.logLevel = LogLevel.WARN;
+				logger.updateSettings(testSettings);
+
+				logger.warn('Test warning message', { detail: 'object' });
+
+				expect(consoleWarnSpy).toHaveBeenCalledWith(
+					'[Granola Importer] Test warning message',
+					{ detail: 'object' }
+				);
+			});
+
+			it('should not log warning messages when log level is too low', () => {
+				testSettings.debug.logLevel = LogLevel.ERROR;
+				logger.updateSettings(testSettings);
+
+				logger.warn('Test warning message');
+
+				expect(consoleWarnSpy).not.toHaveBeenCalled();
+			});
+		});
+
+		describe('info', () => {
+			it('should log info messages when log level allows', () => {
+				testSettings.debug.logLevel = LogLevel.INFO;
+				logger.updateSettings(testSettings);
+
+				logger.info('Test info message', 123, true);
+
+				expect(consoleInfoSpy).toHaveBeenCalledWith(
+					'[Granola Importer] Test info message',
+					123,
+					true
+				);
+			});
+
+			it('should not log info messages when log level is too low', () => {
+				testSettings.debug.logLevel = LogLevel.WARN;
+				logger.updateSettings(testSettings);
+
+				logger.info('Test info message');
+
+				expect(consoleInfoSpy).not.toHaveBeenCalled();
+			});
+		});
+
+		describe('debug', () => {
+			it('should log debug messages when debug is enabled and log level allows', () => {
+				testSettings.debug.enabled = true;
+				testSettings.debug.logLevel = LogLevel.DEBUG;
+				logger.updateSettings(testSettings);
+
+				logger.debug('Test debug message', ['array', 'data']);
+
+				expect(consoleLogSpy).toHaveBeenCalledWith(
+					'[Granola Importer Debug] Test debug message',
+					['array', 'data']
+				);
+			});
+
+			it('should not log debug messages when debug is disabled', () => {
+				testSettings.debug.enabled = false;
+				testSettings.debug.logLevel = LogLevel.DEBUG;
+				logger.updateSettings(testSettings);
+
+				logger.debug('Test debug message');
+
+				expect(consoleLogSpy).not.toHaveBeenCalled();
+			});
+
+			it('should not log debug messages when log level is too low', () => {
+				testSettings.debug.enabled = true;
+				testSettings.debug.logLevel = LogLevel.INFO;
+				logger.updateSettings(testSettings);
+
+				logger.debug('Test debug message');
+
+				expect(consoleLogSpy).not.toHaveBeenCalled();
+			});
+
+			it('should require both debug enabled and proper log level', () => {
+				// Test all combinations
+				const testCases = [
+					{ enabled: false, logLevel: LogLevel.DEBUG, shouldLog: false },
+					{ enabled: true, logLevel: LogLevel.INFO, shouldLog: false },
+					{ enabled: false, logLevel: LogLevel.INFO, shouldLog: false },
+					{ enabled: true, logLevel: LogLevel.DEBUG, shouldLog: true },
+				];
+
+				testCases.forEach(({ enabled, logLevel, shouldLog }, index) => {
+					consoleLogSpy.mockClear();
+					testSettings.debug.enabled = enabled;
+					testSettings.debug.logLevel = logLevel;
+					logger.updateSettings(testSettings);
+
+					logger.debug(`Test message ${index}`);
+
+					if (shouldLog) {
+						expect(consoleLogSpy).toHaveBeenCalledWith(
+							`[Granola Importer Debug] Test message ${index}`
+						);
+					} else {
+						expect(consoleLogSpy).not.toHaveBeenCalled();
+					}
+				});
+			});
+		});
+
+		describe('log level hierarchy', () => {
+			it('should respect log level hierarchy for all methods', () => {
+				// Set to INFO level
+				testSettings.debug.enabled = true; // For debug method
+				testSettings.debug.logLevel = LogLevel.INFO;
+				logger.updateSettings(testSettings);
+
+				logger.error('error'); // Should log
+				logger.warn('warn');   // Should log
+				logger.info('info');   // Should log
+				logger.debug('debug'); // Should NOT log
+
+				expect(consoleErrorSpy).toHaveBeenCalledWith('[Granola Importer] error');
+				expect(consoleWarnSpy).toHaveBeenCalledWith('[Granola Importer] warn');
+				expect(consoleInfoSpy).toHaveBeenCalledWith('[Granola Importer] info');
+				expect(consoleLogSpy).not.toHaveBeenCalled();
+			});
+
+			it('should handle minimum log level correctly', () => {
+				testSettings.debug.logLevel = LogLevel.ERROR;
+				logger.updateSettings(testSettings);
+
+				logger.error('error'); // Should log
+				logger.warn('warn');   // Should NOT log
+				logger.info('info');   // Should NOT log
+
+				expect(consoleErrorSpy).toHaveBeenCalledWith('[Granola Importer] error');
+				expect(consoleWarnSpy).not.toHaveBeenCalled();
+				expect(consoleInfoSpy).not.toHaveBeenCalled();
+			});
+		});
+	});
+
+	describe('GranolaSettingTab class', () => {
+		let mockApp: App;
+		let mockPlugin: GranolaImporterPlugin;
+		let settingTab: GranolaSettingTab;
+
+		beforeEach(() => {
+			mockApp = {} as App;
+			mockPlugin = {
+				settings: DEFAULT_SETTINGS,
+				saveSettings: jest.fn().mockResolvedValue(undefined),
+			} as unknown as GranolaImporterPlugin;
+
+			settingTab = new GranolaSettingTab(mockApp, mockPlugin);
+		});
+
+		describe('constructor', () => {
+			it('should initialize with app and plugin', () => {
+				expect(settingTab).toBeInstanceOf(GranolaSettingTab);
+				expect(settingTab).toBeInstanceOf(PluginSettingTab);
+				expect(settingTab.plugin).toBe(mockPlugin);
+			});
+		});
+
+		describe('display', () => {
+			it('should create containerEl for settings', () => {
+				// Mock containerEl and its methods
+				const mockContainerEl = {
+					empty: jest.fn(),
+					createEl: jest.fn().mockReturnThis(),
+					createDiv: jest.fn().mockReturnThis(),
+					addClass: jest.fn().mockReturnThis(),
+					appendChild: jest.fn(),
+					addEventListener: jest.fn(),
+				};
+				settingTab.containerEl = mockContainerEl as any;
+
+				// Call display - should not throw
+				expect(() => settingTab.display()).not.toThrow();
+				expect(mockContainerEl.empty).toHaveBeenCalled();
+			});
 		});
 	});
 });
