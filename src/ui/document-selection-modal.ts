@@ -1,4 +1,20 @@
-import { Modal, App, ButtonComponent, TextComponent, Notice, TFile, WorkspaceLeaf, MarkdownView } from 'obsidian';
+import {
+	Modal,
+	App,
+	ButtonComponent,
+	TextComponent,
+	Notice,
+	TFile,
+	WorkspaceLeaf,
+	MarkdownView,
+} from 'obsidian';
+
+// Type definition for scroll options
+interface ScrollToOptions {
+	top?: number;
+	left?: number;
+	behavior?: 'auto' | 'smooth';
+}
 import { GranolaDocument, GranolaAPI } from '../api';
 import { DuplicateDetector } from '../services/duplicate-detector';
 import {
@@ -90,7 +106,7 @@ export class DocumentSelectionModal extends Modal {
 	/**
 	 * Called when the modal is opened.
 	 * Initializes the UI and loads documents.
-	 * 
+	 *
 	 * @returns {Promise<void>} Resolves when modal initialization is complete
 	 */
 	async onOpen(): Promise<void> {
@@ -588,7 +604,7 @@ export class DocumentSelectionModal extends Modal {
 				// Create a new leaf (tab) for each file
 				const leaf = this.app.workspace.getLeaf('tab');
 				await leaf.openFile(file);
-				
+
 				// Auto-scroll to top of the document for better UX
 				await this.autoScrollToTop(leaf);
 			}
@@ -597,7 +613,7 @@ export class DocumentSelectionModal extends Modal {
 			if (files.length > 0) {
 				const firstFileLeaf = this.app.workspace
 					.getLeavesOfType('markdown')
-					.find(leaf => (leaf.view as MarkdownView).file === files[0]);
+					.find(leaf => (leaf.view as MarkdownView)?.file === files[0]);
 				if (firstFileLeaf) {
 					this.app.workspace.setActiveLeaf(firstFileLeaf);
 					// Ensure the focused file is also scrolled to top
@@ -638,39 +654,40 @@ export class DocumentSelectionModal extends Modal {
 			if (markdownView.editor?.scrollTo) {
 				// CodeMirror editor (source mode)
 				markdownView.editor.scrollTo(null, 0);
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			} else if ((view as any).contentEl) {
+			} else if ((view as { contentEl?: HTMLElement }).contentEl) {
 				// Reading mode or other views with contentEl
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const scrollElement = (view as any).contentEl.querySelector('.markdown-reading-view') || 
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					(view as any).contentEl.querySelector('.markdown-source-view') ||
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					(view as any).contentEl.querySelector('.view-content') ||
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					(view as any).contentEl;
+				const viewWithContentEl = view as unknown as { contentEl: HTMLElement };
+				const scrollElement =
+					viewWithContentEl.contentEl.querySelector('.markdown-reading-view') ||
+					viewWithContentEl.contentEl.querySelector('.markdown-source-view') ||
+					viewWithContentEl.contentEl.querySelector('.view-content') ||
+					viewWithContentEl.contentEl;
 
-				if (scrollElement?.scrollTo) {
-					scrollElement.scrollTo({
+				if (
+					(scrollElement as { scrollTo?: (options: ScrollToOptions) => void })?.scrollTo
+				) {
+					(scrollElement as { scrollTo: (options: ScrollToOptions) => void }).scrollTo({
 						top: 0,
-						behavior: 'smooth'
+						behavior: 'smooth',
 					});
 				}
 			}
 
 			// Fallback: try to find any scrollable element in the leaf
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			if ((leaf as any).containerEl) {
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const scrollableElements = (leaf as any).containerEl.querySelectorAll(
+			const leafWithContainer = leaf as { containerEl?: HTMLElement };
+			if (leafWithContainer.containerEl) {
+				const scrollableElements = leafWithContainer.containerEl.querySelectorAll(
 					'.cm-scroller, .markdown-reading-view, .view-content, .workspace-leaf-content'
 				);
 
 				for (const element of scrollableElements) {
-					if (element.scrollTo) {
-						element.scrollTo({
+					const scrollableElement = element as {
+						scrollTo?: (options: ScrollToOptions) => void;
+					};
+					if (scrollableElement.scrollTo) {
+						scrollableElement.scrollTo({
 							top: 0,
-							behavior: 'smooth'
+							behavior: 'smooth',
 						});
 						break; // Only scroll the first scrollable element found
 					}
