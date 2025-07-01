@@ -575,4 +575,151 @@ describe('ProseMirrorConverter', () => {
 			expect(result).toContain('title: "My \\"Special\\" Document"');
 		});
 	});
+
+	describe('debug logging and content source selection', () => {
+		it('should use last_viewed_panel.content when available and valid', () => {
+			const docWithLastViewedPanel: GranolaDocument = {
+				id: 'test-doc-id',
+				title: 'Test Document',
+				created_at: '2024-01-01T10:00:00Z',
+				updated_at: '2024-01-01T11:00:00Z',
+				user_id: 'test-user-id',
+				notes_plain: 'Some plain text',
+				notes_markdown: '# Markdown content',
+				last_viewed_panel: {
+					content: {
+						type: 'doc',
+						content: [
+							{
+								type: 'paragraph',
+								content: [{ type: 'text', text: 'Panel content' }],
+							},
+						],
+					},
+				},
+				notes: {
+					type: 'doc',
+					content: [
+						{
+							type: 'paragraph',
+							content: [{ type: 'text', text: 'Notes content' }],
+						},
+					],
+				},
+			};
+
+			const result = converter.convertDocument(docWithLastViewedPanel);
+
+			// Should use content from last_viewed_panel
+			expect(result.content).toContain('Panel content');
+			expect(result.content).not.toContain('Notes content');
+		});
+
+		it('should fallback to notes field when last_viewed_panel is empty', () => {
+			const docWithEmptyPanel: GranolaDocument = {
+				id: 'test-doc-id',
+				title: 'Test Document',
+				created_at: '2024-01-01T10:00:00Z',
+				updated_at: '2024-01-01T11:00:00Z',
+				user_id: 'test-user-id',
+				notes_plain: 'Some plain text',
+				notes_markdown: '# Markdown content',
+				last_viewed_panel: {
+					content: {
+						type: 'doc',
+						content: [], // Empty content
+					},
+				},
+				notes: {
+					type: 'doc',
+					content: [
+						{
+							type: 'paragraph',
+							content: [{ type: 'text', text: 'Notes content' }],
+						},
+					],
+				},
+			};
+
+			const result = converter.convertDocument(docWithEmptyPanel);
+
+			// Should fallback to notes field
+			expect(result.content).toContain('Notes content');
+		});
+
+		it('should fallback to notes_markdown when ProseMirror conversions fail', () => {
+			const docWithInvalidStructure: GranolaDocument = {
+				id: 'test-doc-id',
+				title: 'Test Document',
+				created_at: '2024-01-01T10:00:00Z',
+				updated_at: '2024-01-01T11:00:00Z',
+				user_id: 'test-user-id',
+				notes_plain: 'Some plain text',
+				notes_markdown: '# Markdown fallback content',
+				last_viewed_panel: {
+					content: {
+						type: 'doc',
+						content: undefined,
+					},
+				},
+				notes: {
+					type: 'doc',
+					content: undefined,
+				},
+			};
+
+			const result = converter.convertDocument(docWithInvalidStructure);
+
+			// Should fallback to notes_markdown
+			expect(result.content).toContain('Markdown fallback content');
+		});
+
+		it('should use notes_plain as final fallback', () => {
+			const docOnlyPlainText: GranolaDocument = {
+				id: 'test-doc-id',
+				title: 'Test Document',
+				created_at: '2024-01-01T10:00:00Z',
+				updated_at: '2024-01-01T11:00:00Z',
+				user_id: 'test-user-id',
+				notes_plain: 'Final fallback plain text',
+				notes_markdown: '', // No markdown content
+				last_viewed_panel: {
+					content: {
+						type: 'doc',
+						content: undefined,
+					},
+				},
+				notes: {
+					type: 'doc',
+					content: undefined,
+				},
+			};
+
+			const result = converter.convertDocument(docOnlyPlainText);
+
+			// Should use plain text as final fallback
+			expect(result.content).toContain('Final fallback plain text');
+		});
+
+		it('should handle document with no extractable content', () => {
+			const emptyDoc: GranolaDocument = {
+				id: 'test-doc-id',
+				title: 'Empty Document',
+				created_at: '2024-01-01T10:00:00Z',
+				updated_at: '2024-01-01T11:00:00Z',
+				user_id: 'test-user-id',
+				notes: { type: 'doc', content: [] },
+				notes_plain: '',
+				notes_markdown: '',
+			};
+
+			const result = converter.convertDocument(emptyDoc);
+
+			// Should create placeholder content
+			expect(result.content).toContain('# Empty Document');
+			expect(result.content).toContain(
+				'This document appears to have no extractable content'
+			);
+		});
+	});
 });
