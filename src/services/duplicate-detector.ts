@@ -138,7 +138,7 @@ export class DuplicateDetector {
 				return {
 					status: 'CONFLICT',
 					existingFile: conflictingDoc.file,
-					reason: `Filename conflict: Another Granola document uses this filename`,
+					reason: `Filename conflict: Another Granola document uses this filename at ${conflictingDoc.file.path}`,
 					requiresUserChoice: true,
 				};
 			}
@@ -149,7 +149,7 @@ export class DuplicateDetector {
 				return {
 					status: 'CONFLICT',
 					existingFile,
-					reason: `File already exists: ${filename}`,
+					reason: `File already exists: ${existingFile.path}`,
 					requiresUserChoice: true,
 				};
 			}

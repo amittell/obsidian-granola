@@ -36,8 +36,17 @@ export interface ConvertedNote {
  * @since 1.0.0
  */
 export interface NoteFrontmatter {
+	/** Unique document identifier for tracking and deduplication */
+	id: string;
+
+	/** Document title with proper YAML escaping */
+	title: string;
+
 	/** ISO timestamp when the document was created */
 	created: string;
+
+	/** ISO timestamp when the document was last updated */
+	updated: string;
 
 	/** Source attribution, always "Granola" for imported documents */
 	source: string;
@@ -973,12 +982,23 @@ export class ProseMirrorConverter {
 	 *   content: {...}
 	 * };
 	 * const frontmatter = this.generateFrontmatter(granolaDoc);
-	 * // Result: { created: '2024-01-01T10:00:00Z', source: 'Granola' }
+	 * // Result: { id: 'doc-123', title: 'Meeting Notes', created: '2024-01-01T10:00:00Z', updated: '2024-01-01T11:00:00Z', source: 'Granola' }
 	 * ```
 	 */
 	private generateFrontmatter(doc: GranolaDocument): NoteFrontmatter {
+		// Handle empty or missing title with fallback
+		const title = doc.title && doc.title.trim() 
+			? doc.title.trim() 
+			: 'Untitled Document';
+
+		// Escape quotes in title for YAML safety
+		const escapedTitle = title.replace(/"/g, '\\"');
+
 		return {
+			id: doc.id,
+			title: escapedTitle,
 			created: doc.created_at,
+			updated: doc.updated_at,
 			source: 'Granola',
 		};
 	}
@@ -998,18 +1018,24 @@ export class ProseMirrorConverter {
 	 * @example
 	 * ```typescript
 	 * const frontmatter = {
+	 *   id: 'doc-123',
+	 *   title: 'Meeting Notes',
 	 *   created: '2024-01-01T10:00:00Z',
+	 *   updated: '2024-01-01T11:00:00Z',
 	 *   source: 'Granola'
 	 * };
 	 * const markdown = '# Document Title\n\nContent here.';
 	 * const content = this.generateFileContent(frontmatter, markdown);
-	 * // Result: "---\ncreated: 2024-01-01T10:00:00Z\nsource: Granola\n---\n\n# Document Title\n\nContent here."
+	 * // Result: "---\nid: doc-123\ntitle: \"Meeting Notes\"\ncreated: 2024-01-01T10:00:00Z\nupdated: 2024-01-01T11:00:00Z\nsource: Granola\n---\n\n# Document Title\n\nContent here."
 	 * ```
 	 */
 	private generateFileContent(frontmatter: NoteFrontmatter, markdown: string): string {
 		const yamlFrontmatter = [
 			'---',
+			`id: ${frontmatter.id}`,
+			`title: "${frontmatter.title}"`,
 			`created: ${frontmatter.created}`,
+			`updated: ${frontmatter.updated}`,
 			`source: ${frontmatter.source}`,
 			'---',
 			'',

@@ -54,7 +54,10 @@ describe('ProseMirrorConverter', () => {
 			expect(result.content).toContain('# Test Heading');
 			expect(result.content).toContain('Test content');
 			expect(result.frontmatter).toEqual({
+				id: 'test-doc-id',
+				title: 'Test Document',
 				created: '2024-01-01T10:00:00Z',
+				updated: '2024-01-01T11:00:00Z',
 				source: 'Granola',
 			});
 		});
@@ -481,7 +484,10 @@ describe('ProseMirrorConverter', () => {
 
 			const result = (converter as any).generateFrontmatter(doc);
 			expect(result).toEqual({
+				id: 'test-id',
+				title: 'Test Title',
 				created: '2024-01-01T10:00:00Z',
+				updated: '2024-01-01T11:00:00Z',
 				source: 'Granola',
 			});
 		});
@@ -497,16 +503,48 @@ describe('ProseMirrorConverter', () => {
 
 			const result = (converter as any).generateFrontmatter(doc);
 			expect(result).toEqual({
+				id: 'test-id',
+				title: 'Untitled Document',
 				created: '2024-01-01T10:00:00Z',
+				updated: '2024-01-01T11:00:00Z',
 				source: 'Granola',
 			});
+		});
+
+		it('should escape quotes in title for YAML safety', () => {
+			const doc: GranolaDocument = {
+				id: 'test-id',
+				title: 'Meeting "Special Project" Notes',
+				created_at: '2024-01-01T10:00:00Z',
+				updated_at: '2024-01-01T11:00:00Z',
+				content: { type: 'doc', content: [] },
+			};
+
+			const result = (converter as any).generateFrontmatter(doc);
+			expect(result.title).toBe('Meeting \\"Special Project\\" Notes');
+		});
+
+		it('should handle whitespace-only title', () => {
+			const doc: GranolaDocument = {
+				id: 'test-id',
+				title: '   ',
+				created_at: '2024-01-01T10:00:00Z',
+				updated_at: '2024-01-01T11:00:00Z',
+				content: { type: 'doc', content: [] },
+			};
+
+			const result = (converter as any).generateFrontmatter(doc);
+			expect(result.title).toBe('Untitled Document');
 		});
 	});
 
 	describe('generateFileContent', () => {
 		it('should combine frontmatter and markdown', () => {
 			const frontmatter = {
+				id: 'test-id',
+				title: 'Test Title',
 				created: '2024-01-01T10:00:00Z',
+				updated: '2024-01-01T11:00:00Z',
 				source: 'Granola',
 			};
 			const markdown = '# Test Content\n\nSome text here.';
@@ -514,7 +552,10 @@ describe('ProseMirrorConverter', () => {
 			const result = (converter as any).generateFileContent(frontmatter, markdown);
 
 			expect(result).toContain('---');
+			expect(result).toContain('id: test-id');
+			expect(result).toContain('title: "Test Title"');
 			expect(result).toContain('created: 2024-01-01T10:00:00Z');
+			expect(result).toContain('updated: 2024-01-01T11:00:00Z');
 			expect(result).toContain('source: Granola');
 			expect(result).toContain('# Test Content');
 			expect(result).toContain('Some text here.');
