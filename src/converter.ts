@@ -1,5 +1,5 @@
 import { ProseMirrorDoc, ProseMirrorNode, GranolaDocument } from './api';
-import { Logger } from './settings';
+import { Logger, GranolaSettings } from './settings';
 
 // Converter Constants
 const MAX_FILENAME_LENGTH = 100;
@@ -29,8 +29,8 @@ export interface ConvertedNote {
  * YAML frontmatter metadata extracted from Granola documents.
  *
  * This metadata is embedded at the top of each converted Markdown file
- * to preserve essential document metadata. The frontmatter follows
- * standard YAML format and is compatible with Obsidian's metadata system.
+ * to preserve document metadata. The frontmatter follows standard YAML format
+ * and is compatible with Obsidian's metadata system.
  *
  * @interface NoteFrontmatter
  * @since 1.0.0
@@ -41,6 +41,15 @@ export interface NoteFrontmatter {
 
 	/** Source attribution, always "Granola" for imported documents */
 	source: string;
+
+	/** Optional: Original Granola document identifier (when enhanced frontmatter enabled) */
+	id?: string;
+
+	/** Optional: Document title, escaped for YAML compatibility (when enhanced frontmatter enabled) */
+	title?: string;
+
+	/** Optional: ISO timestamp when the document was last updated (when enhanced frontmatter enabled) */
+	updated?: string;
 }
 
 /**
@@ -73,9 +82,20 @@ export interface NoteFrontmatter {
  */
 export class ProseMirrorConverter {
 	private logger: Logger;
+	private settings: GranolaSettings;
 
-	constructor(logger: Logger) {
+	constructor(logger: Logger, settings: GranolaSettings) {
 		this.logger = logger;
+		this.settings = settings;
+	}
+
+	/**
+	 * Updates the converter settings.
+	 * 
+	 * @param {GranolaSettings} settings - New settings to apply
+	 */
+	updateSettings(settings: GranolaSettings): void {
+		this.settings = settings;
 	}
 	/**
 	 * Converts a complete Granola document to Obsidian-compatible Markdown.
@@ -282,15 +302,15 @@ export class ProseMirrorConverter {
 	}
 
 	/**
-	 * Validates whether a ProseMirror document has valid structure and extractable content.
+	 * Validates whether a ProseMirror document has valid structure.
 	 *
 	 * This function validates the basic structure of a ProseMirror document
-	 * and also checks if the document contains actual extractable content
-	 * (not just empty paragraphs).
+	 * but does not reject documents based on text extraction failures.
+	 * Content extraction should happen during conversion, not validation.
 	 *
 	 * @private
 	 * @param {ProseMirrorDoc} doc - ProseMirror document to validate
-	 * @returns {boolean} True if document has valid structure AND extractable content
+	 * @returns {boolean} True if document has valid structure
 	 */
 	private isValidProseMirrorDoc(doc: ProseMirrorDoc): boolean {
 		if (!doc) {
@@ -320,53 +340,9 @@ export class ProseMirrorConverter {
 			JSON.stringify(doc, null, 2)
 		);
 
-		// Check if document contains only empty paragraphs
-		const hasActualContent = this.hasExtractableContent(doc.content);
-		if (!hasActualContent) {
-			this.logger.debug(`ProseMirror doc contains only empty paragraphs - no extractable content`);
-			return false;
-		}
-
-		this.logger.debug(`ProseMirror doc structure validation passed with extractable content`);
+		// Only validate structure - let conversion handle text extraction
+		this.logger.debug(`ProseMirror doc structure validation passed`);
 		return true;
-	}
-
-	/**
-	 * Checks if ProseMirror content nodes contain extractable text content.
-	 *
-	 * This method performs a quick scan to determine if nodes contain actual
-	 * text content or only empty structural elements (like empty paragraphs).
-	 * It's used to avoid processing documents that appear valid structurally
-	 * but contain no meaningful content.
-	 *
-	 * @private
-	 * @param {ProseMirrorNode[]} nodes - Array of ProseMirror nodes to check
-	 * @returns {boolean} True if any node contains extractable text content
-	 */
-	private hasExtractableContent(nodes: ProseMirrorNode[]): boolean {
-		for (const node of nodes) {
-			// Direct text content
-			if (node.text && node.text.trim()) {
-				this.logger.debug(`Found extractable text: "${node.text.trim()}"`);
-				return true;
-			}
-
-			// Non-empty content arrays - recursively check
-			if (node.content && Array.isArray(node.content) && node.content.length > 0) {
-				if (this.hasExtractableContent(node.content)) {
-					return true;
-				}
-			}
-
-			// Non-paragraph structural elements with content indicate meaningful structure
-			if (node.type && node.type !== 'paragraph' && node.content && node.content.length > 0) {
-				this.logger.debug(`Found structural content node: ${node.type} with ${node.content.length} children`);
-				return true;
-			}
-		}
-
-		this.logger.debug(`No extractable content found in ${nodes.length} nodes`);
-		return false;
 	}
 
 	/**
@@ -954,6 +930,9 @@ export class ProseMirrorConverter {
 	 * Transforms the Granola document metadata into a standardized frontmatter
 	 * structure that will be embedded at the top of the Markdown file.
 	 * Provides consistent metadata format across all imported documents.
+	 * 
+	 * When enhanced frontmatter is enabled in settings, includes additional
+	 * fields like document ID, title, and updated timestamp.
 	 *
 	 * @private
 	 * @param {GranolaDocument} doc - Source Granola document
@@ -961,22 +940,28 @@ export class ProseMirrorConverter {
 	 *
 	 * @example
 	 * ```typescript
-	 * const granolaDoc = {
-	 *   id: 'doc-123',
-	 *   title: 'Meeting Notes',
-	 *   created_at: '2024-01-01T10:00:00Z',
-	 *   updated_at: '2024-01-01T11:00:00Z',
-	 *   content: {...}
-	 * };
+	 * // Basic frontmatter (default)
 	 * const frontmatter = this.generateFrontmatter(granolaDoc);
 	 * // Result: { created: '2024-01-01T10:00:00Z', source: 'Granola' }
+	 * 
+	 * // Enhanced frontmatter (when setting enabled)
+	 * // Result: { id: 'doc-123', title: 'Meeting Notes', created: '...', updated: '...', source: 'Granola' }
 	 * ```
 	 */
 	private generateFrontmatter(doc: GranolaDocument): NoteFrontmatter {
-		return {
+		const frontmatter: NoteFrontmatter = {
 			created: doc.created_at,
 			source: 'Granola',
 		};
+
+		// Add enhanced fields if setting is enabled
+		if (this.settings.content.includeEnhancedFrontmatter) {
+			frontmatter.id = doc.id;
+			frontmatter.title = doc.title || 'Untitled';
+			frontmatter.updated = doc.updated_at;
+		}
+
+		return frontmatter;
 	}
 
 	/**
@@ -985,6 +970,8 @@ export class ProseMirrorConverter {
 	 * Creates the complete file content by serializing the frontmatter metadata
 	 * to YAML format, wrapping it in frontmatter delimiters (---), and appending
 	 * the converted Markdown content. Handles proper escaping of YAML values.
+	 * 
+	 * Includes enhanced frontmatter fields (id, title, updated) when present.
 	 *
 	 * @private
 	 * @param {NoteFrontmatter} frontmatter - Document metadata
@@ -993,25 +980,40 @@ export class ProseMirrorConverter {
 	 *
 	 * @example
 	 * ```typescript
-	 * const frontmatter = {
-	 *   created: '2024-01-01T10:00:00Z',
-	 *   source: 'Granola'
-	 * };
-	 * const markdown = '# Document Title\n\nContent here.';
+	 * // Basic frontmatter
+	 * const frontmatter = { created: '2024-01-01T10:00:00Z', source: 'Granola' };
 	 * const content = this.generateFileContent(frontmatter, markdown);
-	 * // Result: "---\ncreated: 2024-01-01T10:00:00Z\nsource: Granola\n---\n\n# Document Title\n\nContent here."
+	 * // Result: "---\ncreated: 2024-01-01T10:00:00Z\nsource: Granola\n---\n\n# Title\n..."
+	 * 
+	 * // Enhanced frontmatter
+	 * const enhanced = { id: 'doc-123', title: 'My "Notes"', created: '...', updated: '...', source: 'Granola' };
+	 * // Result: "---\nid: doc-123\ntitle: \"My \\\"Notes\\\"\"\ncreated: ...\n---\n\n# Title\n..."
 	 * ```
 	 */
 	private generateFileContent(frontmatter: NoteFrontmatter, markdown: string): string {
-		const yamlFrontmatter = [
-			'---',
-			`created: ${frontmatter.created}`,
-			`source: ${frontmatter.source}`,
-			'---',
-			'',
-		].join('\n');
+		const yamlLines = ['---'];
 
-		return yamlFrontmatter + markdown;
+		// Add enhanced fields first if present
+		if (frontmatter.id) {
+			yamlLines.push(`id: ${frontmatter.id}`);
+		}
+		if (frontmatter.title) {
+			// Escape quotes in title for YAML
+			const escapedTitle = frontmatter.title.replace(/"/g, '\\"');
+			yamlLines.push(`title: "${escapedTitle}"`);
+		}
+
+		// Always include basic fields
+		yamlLines.push(`created: ${frontmatter.created}`);
+		
+		if (frontmatter.updated) {
+			yamlLines.push(`updated: ${frontmatter.updated}`);
+		}
+		
+		yamlLines.push(`source: ${frontmatter.source}`);
+		yamlLines.push('---', '');
+
+		return yamlLines.join('\n') + markdown;
 	}
 
 	/**

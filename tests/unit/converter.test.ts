@@ -2,12 +2,15 @@ import { jest } from '@jest/globals';
 import { ProseMirrorConverter } from '../../src/converter';
 import { GranolaDocument } from '../../src/api';
 import { createMockLogger } from '../helpers';
+import { DEFAULT_SETTINGS, GranolaSettings } from '../../src/settings';
 
 describe('ProseMirrorConverter', () => {
 	let converter: ProseMirrorConverter;
+	let mockSettings: GranolaSettings;
 
 	beforeEach(() => {
-		converter = new ProseMirrorConverter(createMockLogger());
+		mockSettings = { ...DEFAULT_SETTINGS };
+		converter = new ProseMirrorConverter(createMockLogger(), mockSettings);
 	});
 
 	describe('convertDocument', () => {
@@ -461,7 +464,10 @@ describe('ProseMirrorConverter', () => {
 	});
 
 	describe('generateFrontmatter', () => {
-		it('should create proper frontmatter structure', () => {
+		it('should create basic frontmatter when enhanced frontmatter is disabled', () => {
+			mockSettings.content.includeEnhancedFrontmatter = false;
+			converter.updateSettings(mockSettings);
+
 			const doc: GranolaDocument = {
 				id: 'test-id',
 				title: 'Test Title',
@@ -477,7 +483,32 @@ describe('ProseMirrorConverter', () => {
 			});
 		});
 
-		it('should create consistent frontmatter regardless of title', () => {
+		it('should create enhanced frontmatter when setting is enabled', () => {
+			mockSettings.content.includeEnhancedFrontmatter = true;
+			converter.updateSettings(mockSettings);
+
+			const doc: GranolaDocument = {
+				id: 'test-id',
+				title: 'Test Title',
+				created_at: '2024-01-01T10:00:00Z',
+				updated_at: '2024-01-01T11:00:00Z',
+				content: { type: 'doc', content: [] },
+			};
+
+			const result = (converter as any).generateFrontmatter(doc);
+			expect(result).toEqual({
+				id: 'test-id',
+				title: 'Test Title',
+				created: '2024-01-01T10:00:00Z',
+				updated: '2024-01-01T11:00:00Z',
+				source: 'Granola',
+			});
+		});
+
+		it('should handle missing title in enhanced frontmatter', () => {
+			mockSettings.content.includeEnhancedFrontmatter = true;
+			converter.updateSettings(mockSettings);
+
 			const doc: GranolaDocument = {
 				id: 'test-id',
 				title: '',
@@ -487,15 +518,12 @@ describe('ProseMirrorConverter', () => {
 			};
 
 			const result = (converter as any).generateFrontmatter(doc);
-			expect(result).toEqual({
-				created: '2024-01-01T10:00:00Z',
-				source: 'Granola',
-			});
+			expect(result.title).toBe('Untitled');
 		});
 	});
 
 	describe('generateFileContent', () => {
-		it('should combine frontmatter and markdown', () => {
+		it('should combine basic frontmatter and markdown', () => {
 			const frontmatter = {
 				created: '2024-01-01T10:00:00Z',
 				source: 'Granola',
@@ -509,6 +537,42 @@ describe('ProseMirrorConverter', () => {
 			expect(result).toContain('source: Granola');
 			expect(result).toContain('# Test Content');
 			expect(result).toContain('Some text here.');
+		});
+
+		it('should combine enhanced frontmatter and markdown', () => {
+			const frontmatter = {
+				id: 'test-id',
+				title: 'Test Title',
+				created: '2024-01-01T10:00:00Z',
+				updated: '2024-01-01T11:00:00Z',
+				source: 'Granola',
+			};
+			const markdown = '# Test Content\n\nSome text here.';
+
+			const result = (converter as any).generateFileContent(frontmatter, markdown);
+
+			expect(result).toContain('---');
+			expect(result).toContain('id: test-id');
+			expect(result).toContain('title: "Test Title"');
+			expect(result).toContain('created: 2024-01-01T10:00:00Z');
+			expect(result).toContain('updated: 2024-01-01T11:00:00Z');
+			expect(result).toContain('source: Granola');
+			expect(result).toContain('# Test Content');
+			expect(result).toContain('Some text here.');
+		});
+
+		it('should escape quotes in title', () => {
+			const frontmatter = {
+				id: 'test-id',
+				title: 'My "Special" Document',
+				created: '2024-01-01T10:00:00Z',
+				updated: '2024-01-01T11:00:00Z',
+				source: 'Granola',
+			};
+			const markdown = 'Content';
+
+			const result = (converter as any).generateFileContent(frontmatter, markdown);
+			expect(result).toContain('title: "My \\"Special\\" Document"');
 		});
 	});
 });

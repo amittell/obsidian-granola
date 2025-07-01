@@ -87,6 +87,8 @@ export interface GranolaSettings {
 		contentPriority: ContentPriority;
 		/** Include document metadata in frontmatter */
 		includeMetadata: boolean;
+		/** Include enhanced frontmatter fields (id, title, updated) */
+		includeEnhancedFrontmatter: boolean;
 		/** Custom frontmatter fields */
 		customFrontmatter: string[];
 	};
@@ -131,6 +133,7 @@ export const DEFAULT_SETTINGS: GranolaSettings = {
 		datePrefixFormat: DatePrefixFormat.ISO_DATE,
 		contentPriority: ContentPriority.PANEL_FIRST,
 		includeMetadata: true,
+		includeEnhancedFrontmatter: false,
 		customFrontmatter: [],
 	},
 	ui: {
@@ -406,6 +409,19 @@ export class GranolaSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.content.contentPriority)
 					.onChange(async value => {
 						this.plugin.settings.content.contentPriority = value as ContentPriority;
+						await this.plugin.saveSettings();
+					});
+			});
+
+		// Enhanced frontmatter toggle
+		new Setting(containerEl)
+			.setName('Enhanced frontmatter')
+			.setDesc('Include additional metadata fields (id, title, updated timestamp) in frontmatter. Default is minimal frontmatter with only created date and source.')
+			.addToggle(toggle => {
+				toggle
+					.setValue(this.plugin.settings.content.includeEnhancedFrontmatter)
+					.onChange(async value => {
+						this.plugin.settings.content.includeEnhancedFrontmatter = value;
 						await this.plugin.saveSettings();
 					});
 			});

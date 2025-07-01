@@ -114,7 +114,7 @@ export default class GranolaImporterPlugin extends Plugin {
 		// Initialize core components
 		this.auth = new GranolaAuth();
 		this.api = new GranolaAPI(this.auth);
-		this.converter = new ProseMirrorConverter(this.logger);
+		this.converter = new ProseMirrorConverter(this.logger, this.settings);
 
 		// Initialize selective import services
 		this.duplicateDetector = new DuplicateDetector(this.app.vault);
@@ -402,5 +402,10 @@ export default class GranolaImporterPlugin extends Plugin {
 	 */
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
+		
+		// Update converter settings if it exists
+		if (this.converter) {
+			this.converter.updateSettings(this.settings);
+		}
 	}
 }
