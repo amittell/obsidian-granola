@@ -180,14 +180,14 @@ export class ProseMirrorConverter {
 		}
 
 		// Fallback to notes_markdown if ProseMirror conversion failed or is empty
-		if (!markdown.trim() && doc.notes_markdown && doc.notes_markdown.trim()) {
+		if (!markdown.trim() && doc.notes_markdown?.trim()) {
 			markdown = doc.notes_markdown.trim();
 			contentSource = 'markdown';
 			this.logger.debug(`Using notes_markdown fallback, length: ${markdown.length}`);
 		}
 
 		// Final fallback to notes_plain if everything else failed
-		if (!markdown.trim() && doc.notes_plain && doc.notes_plain.trim()) {
+		if (!markdown.trim() && doc.notes_plain?.trim()) {
 			markdown = doc.notes_plain.trim();
 			contentSource = 'plain';
 			this.logger.debug(`Using notes_plain fallback, length: ${markdown.length}`);
@@ -323,7 +323,9 @@ export class ProseMirrorConverter {
 		// Check if document contains only empty paragraphs
 		const hasActualContent = this.hasExtractableContent(doc.content);
 		if (!hasActualContent) {
-			this.logger.debug(`ProseMirror doc contains only empty paragraphs - no extractable content`);
+			this.logger.debug(
+				`ProseMirror doc contains only empty paragraphs - no extractable content`
+			);
 			return false;
 		}
 
@@ -346,13 +348,13 @@ export class ProseMirrorConverter {
 	private hasExtractableContent(nodes: ProseMirrorNode[]): boolean {
 		for (const node of nodes) {
 			// Direct text content
-			if (node.text && node.text.trim()) {
+			if (node.text?.trim()) {
 				this.logger.debug(`Found extractable text: "${node.text.trim()}"`);
 				return true;
 			}
 
 			// Non-empty content arrays - recursively check
-			if (node.content && Array.isArray(node.content) && node.content.length > 0) {
+			if (node.content && node.content.length > 0) {
 				if (this.hasExtractableContent(node.content)) {
 					return true;
 				}
@@ -360,7 +362,9 @@ export class ProseMirrorConverter {
 
 			// Non-paragraph structural elements with content indicate meaningful structure
 			if (node.type && node.type !== 'paragraph' && node.content && node.content.length > 0) {
-				this.logger.debug(`Found structural content node: ${node.type} with ${node.content.length} children`);
+				this.logger.debug(
+					`Found structural content node: ${node.type} with ${node.content.length} children`
+				);
 				return true;
 			}
 		}
@@ -393,7 +397,7 @@ export class ProseMirrorConverter {
 				}
 
 				// Method 2: Node with children - recurse
-				if (node.content && Array.isArray(node.content) && node.content.length > 0) {
+				if (node.content && node.content.length > 0) {
 					this.logger.debug(`Node has ${node.content.length} children, recursing...`);
 					const childText = this.extractTextFromNodes(node.content);
 					this.logger.debug(`Child text extracted: "${childText}"`);
@@ -401,7 +405,7 @@ export class ProseMirrorConverter {
 				}
 
 				// Method 3: Special case for empty content arrays that might have text in attrs
-				if (node.type === 'paragraph' && (!node.content || node.content.length === 0)) {
+				if (node.type === 'paragraph' && !node.content?.length) {
 					this.logger.debug(`Empty paragraph node, checking attrs:`, node.attrs);
 				}
 			} catch (error) {

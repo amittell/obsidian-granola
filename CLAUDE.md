@@ -15,6 +15,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm install` - Install all dependencies
 - Requires Node.js 16+ and Obsidian API as development dependency
 
+### Testing
+
+- `npm test` - Run all tests
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Run tests with coverage report
+- `npm run test:ci` - Run tests in CI mode (no watch, with coverage)
+- Coverage threshold: 70% for branches, functions, lines, and statements
+
+### Code Quality
+
+- `npm run lint` - Run ESLint with zero warnings allowed
+- `npm run lint:quick` - Quick lint with up to 20 warnings
+- `npm run lint:fix` - Auto-fix linting issues
+- `npm run format` - Auto-format code with Prettier
+- `npm run format:check` - Check formatting without changes
+- `npm run type-check` - TypeScript type checking without build
+
+### Performance Analysis
+
+- `npm run analyze` - Bundle size analysis with detailed metrics
+- `npm run perf` - Performance audit (bundle analysis + security audit)
+- `npm run docs:build` - Generate TypeDoc documentation
+- `npm run docs:serve` - Serve documentation locally on port 8080
+
 ## Architecture Overview
 
 This is a lean Obsidian plugin (6.6KB bundle) that imports Granola notes with perfect formatting preservation. The codebase follows an atomic-level modular design with strict separation of concerns.
@@ -49,6 +73,50 @@ This is a lean Obsidian plugin (6.6KB bundle) that imports Granola notes with pe
 - Generates YAML frontmatter with document metadata
 - Filename sanitization for cross-platform compatibility
 
+### Extended Services Layer
+
+**Import Manager (`src/services/import-manager.ts`)**
+
+- Orchestrates selective document imports with real-time progress tracking
+- Manages document-level import status (pending/importing/completed/failed/skipped)
+- Handles import strategies (skip/update/create_new) for existing documents
+- Provides comprehensive progress reporting with timing metrics
+- Integrates with conflict resolution and duplicate detection systems
+
+**Duplicate Detector (`src/services/duplicate-detector.ts`)**
+
+- Detects existing documents by Granola ID from YAML frontmatter
+- Classifies import status (NEW/EXISTS/UPDATED/CONFLICT)
+- Analyzes local modifications to prevent data loss
+- Compares timestamps to determine if Granola version is newer
+- Supports intelligent conflict resolution workflows
+
+**Document Metadata Service (`src/services/document-metadata.ts`)**
+
+- Extracts and formats document display metadata for UI components
+- Handles document filtering and sorting operations
+- Processes document statistics (word count, creation dates, update status)
+- Generates user-friendly document previews with status indicators
+- Integrates with import manager for status-aware document listing
+
+### User Interface Layer
+
+**Document Selection Modal (`src/ui/document-selection-modal.ts`)**
+
+- Comprehensive interface for previewing and selecting Granola documents
+- Real-time status updates and progress tracking during imports
+- Integrates filtering, sorting, and batch selection capabilities
+- Provides document preview with metadata display
+- Handles user interaction for selective import workflows
+
+**Conflict Resolution Modal (`src/ui/conflict-resolution-modal.ts`)**
+
+- Interactive dialog for handling document conflicts during import
+- Presents options: skip, update existing, or create new file
+- Shows document comparison information to aid user decision-making
+- Integrates with duplicate detection to provide context-aware options
+- Maintains user preferences for consistent conflict handling
+
 ### Key Design Patterns
 
 **Error Handling**: All modules use type-safe error handling with `error instanceof Error` checks to avoid TypeScript's `unknown` type issues.
@@ -74,6 +142,21 @@ This is a lean Obsidian plugin (6.6KB bundle) that imports Granola notes with pe
 3. Import process shows real-time progress via Obsidian's Notice API
 4. Files are created with conflict resolution (update existing or create new)
 5. All operations use Obsidian's native file API (`this.app.vault`)
+
+### Local Development Setup
+
+1. **Initial Setup**: Run `./setup-hooks.sh` to configure git hooks for local validation
+2. **Git Hooks**: Pre-commit hooks run formatting, linting, and type checking
+3. **Local Validation**: Catches issues before GitHub Actions, saving CI minutes
+4. **Hook Bypass**: Use `git commit --no-verify` to temporarily disable hooks
+
+### Testing Infrastructure
+
+- **Framework**: Jest with jsdom environment for DOM testing
+- **Coverage**: 70% threshold for branches, functions, lines, and statements
+- **Mock System**: Comprehensive Obsidian API mocking in `tests/__mocks__/`
+- **Test Structure**: Separate unit and integration test directories
+- **CI Integration**: `npm run test:ci` for automated testing without watch mode
 
 ## Module Dependencies
 

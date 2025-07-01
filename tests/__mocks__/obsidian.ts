@@ -21,6 +21,63 @@ export class Plugin {
 	}
 }
 
+export class Modal {
+	app: any;
+	modalEl: any;
+	contentEl: any;
+
+	constructor(app: any) {
+		this.app = app;
+		this.modalEl = {
+			addClass: jest.fn(),
+			removeClass: jest.fn(),
+		};
+		this.contentEl = {
+			empty: jest.fn(),
+			createDiv: jest.fn(() => ({
+				createEl: jest.fn(),
+				createDiv: jest.fn(),
+				addClass: jest.fn(),
+				setAttribute: jest.fn(),
+				querySelector: jest.fn(),
+				querySelectorAll: jest.fn(() => []),
+				scrollIntoView: jest.fn(),
+				classList: {
+					add: jest.fn(),
+					remove: jest.fn(),
+				},
+			})),
+			createEl: jest.fn(() => ({
+				createEl: jest.fn(),
+				createDiv: jest.fn(),
+				textContent: '',
+				innerHTML: '',
+				addEventListener: jest.fn(),
+			})),
+			addClass: jest.fn(),
+		};
+	}
+
+	open() {}
+	close() {}
+	onOpen() {}
+	onClose() {}
+}
+
+export class TFile {
+	path: string;
+	basename: string;
+	extension: string;
+	name: string;
+
+	constructor(path: string) {
+		this.path = path;
+		this.name = path.split('/').pop() || '';
+		this.basename = this.name.replace(/\.[^/.]+$/, '');
+		this.extension = this.name.includes('.') ? this.name.split('.').pop() || '' : '';
+	}
+}
+
 export class PluginSettingTab {
 	app: any;
 	plugin: any;
@@ -44,10 +101,6 @@ export class Notice {
 	constructor(message: string, timeout?: number) {}
 	setMessage(message: string) {}
 	hide() {}
-}
-
-export class TFile {
-	constructor(public path: string) {}
 }
 
 export class TFolder {

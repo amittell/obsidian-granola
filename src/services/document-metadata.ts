@@ -216,7 +216,7 @@ export class DocumentMetadataService {
 	 * Gets statistics about a collection of documents.
 	 *
 	 * @param {DocumentDisplayMetadata[]} documents - Documents to analyze
-	 * @returns {object} Statistics summary
+	 * @returns {{ total: number; visible: number; selected: number; byStatus: Record<string, number>; totalWordCount: number; averageWordCount: number; totalReadingTime: number }} Statistics summary with counts and metrics
 	 */
 	getCollectionStats(documents: DocumentDisplayMetadata[]): {
 		total: number;
@@ -359,7 +359,7 @@ export class DocumentMetadataService {
 	 */
 	private generatePreview(document: GranolaDocument): string {
 		// Try to get plain text preview first
-		if (document.notes_plain && document.notes_plain.trim()) {
+		if (document.notes_plain?.trim()) {
 			const preview = document.notes_plain
 				.trim()
 				.replace(/\s+/g, ' ') // Normalize whitespace
@@ -369,7 +369,7 @@ export class DocumentMetadataService {
 		}
 
 		// Fallback to markdown if available
-		if (document.notes_markdown && document.notes_markdown.trim()) {
+		if (document.notes_markdown?.trim()) {
 			const preview = document.notes_markdown
 				.replace(/[#*`]/g, '') // Remove basic markdown formatting
 				.trim()
@@ -436,7 +436,7 @@ export class DocumentMetadataService {
 	 */
 	private estimateWordCount(document: GranolaDocument): number {
 		// Use plain text if available (most accurate)
-		if (document.notes_plain && document.notes_plain.trim()) {
+		if (document.notes_plain?.trim()) {
 			return document.notes_plain
 				.trim()
 				.split(/\s+/)
