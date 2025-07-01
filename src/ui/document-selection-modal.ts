@@ -584,7 +584,7 @@ export class DocumentSelectionModal extends Modal {
 			if (files.length > 0) {
 				const firstFileLeaf = this.app.workspace
 					.getLeavesOfType('markdown')
-					.find(leaf => (leaf.view as any).file === files[0]);
+					.find(leaf => (leaf.view as { file?: unknown }).file === files[0]);
 				if (firstFileLeaf) {
 					this.app.workspace.setActiveLeaf(firstFileLeaf);
 				}
