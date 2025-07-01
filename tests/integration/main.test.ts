@@ -80,13 +80,13 @@ describe('GranolaImporterPlugin Integration', () => {
 			expect(addCommandSpy).toHaveBeenCalledWith({
 				id: 'import-granola-notes',
 				name: 'Import Granola Notes (Selective)',
-				callback: expect.any(Function)
+				callback: expect.any(Function),
 			});
-			
+
 			expect(addCommandSpy).toHaveBeenCalledWith({
 				id: 'debug-granola-api',
 				name: 'Debug Granola API Response',
-				callback: expect.any(Function)
+				callback: expect.any(Function),
 			});
 		});
 
@@ -140,7 +140,6 @@ describe('GranolaImporterPlugin Integration', () => {
 
 			// Should not throw, but handle the error gracefully
 			expect(() => plugin.openImportModal()).not.toThrow();
-
 		});
 	});
 });

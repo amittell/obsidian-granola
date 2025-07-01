@@ -429,7 +429,7 @@ export class DocumentSelectionModal extends Modal {
 			this.showProgressView();
 
 			const importOptions: ImportOptions = {
-				strategy: 'skip', // TODO: Make this configurable
+				strategy: 'skip', // Default strategy: skip existing files to prevent accidental overwrites
 				createBackups: false,
 				maxConcurrency: 3,
 				delayBetweenImports: 100,
@@ -524,7 +524,8 @@ export class DocumentSelectionModal extends Modal {
 	 */
 	private updateDocumentProgress(docProgress: DocumentProgress): void {
 		// TODO: Implement individual document progress display
-		console.log('Document progress:', docProgress);
+		// For now, document progress is handled by the overall progress callback
+		// Future enhancement: show per-document status in the UI
 	}
 
 	/**
@@ -647,9 +648,12 @@ export class DocumentSelectionModal extends Modal {
 			if (markdownView.editor?.scrollTo) {
 				// CodeMirror editor (source mode)
 				markdownView.editor.scrollTo(null, 0);
-			} else if ((view as { contentEl?: HTMLElement }).contentEl) {
-				// Reading mode or other views with contentEl
-				const viewWithContentEl = view as unknown as { contentEl: HTMLElement };
+				return; // Successfully scrolled, no need to continue
+			}
+
+			// Check for views with contentEl (reading mode, etc.)
+			const viewWithContentEl = view as unknown as { contentEl?: HTMLElement };
+			if (viewWithContentEl.contentEl) {
 				const scrollElement =
 					viewWithContentEl.contentEl.querySelector('.markdown-reading-view') ||
 					viewWithContentEl.contentEl.querySelector('.markdown-source-view') ||
@@ -663,6 +667,7 @@ export class DocumentSelectionModal extends Modal {
 						top: 0,
 						behavior: 'smooth',
 					});
+					return; // Successfully scrolled, no need for fallback
 				}
 			}
 
@@ -676,13 +681,19 @@ export class DocumentSelectionModal extends Modal {
 				for (const element of scrollableElements) {
 					const scrollableElement = element as {
 						scrollTo?: (options: ScrollToOptions) => void;
+						scrollTop?: number;
 					};
+
+					// Try modern scrollTo method first, fallback to scrollTop
 					if (scrollableElement.scrollTo) {
 						scrollableElement.scrollTo({
 							top: 0,
 							behavior: 'smooth',
 						});
-						break; // Only scroll the first scrollable element found
+						return; // Successfully scrolled
+					} else if (typeof scrollableElement.scrollTop === 'number') {
+						scrollableElement.scrollTop = 0;
+						return; // Successfully scrolled
 					}
 				}
 			}

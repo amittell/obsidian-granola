@@ -1,4 +1,7 @@
-import { ConflictResolutionModal, ConflictResolution } from '../../src/ui/conflict-resolution-modal';
+import {
+	ConflictResolutionModal,
+	ConflictResolution,
+} from '../../src/ui/conflict-resolution-modal';
 import { GranolaDocument } from '../../src/api';
 import { DocumentDisplayMetadata } from '../../src/services/document-metadata';
 import { App, TFile } from 'obsidian';
@@ -6,8 +9,8 @@ import { App, TFile } from 'obsidian';
 // Mock Obsidian App
 const mockApp = {
 	vault: {
-		read: jest.fn()
-	}
+		read: jest.fn(),
+	},
 } as unknown as App;
 
 // Mock TFile
@@ -15,7 +18,7 @@ const mockFile = {
 	name: 'test-document.md',
 	path: 'test-document.md',
 	basename: 'test-document',
-	extension: 'md'
+	extension: 'md',
 } as TFile;
 
 describe('ConflictResolutionModal', () => {
@@ -33,7 +36,7 @@ describe('ConflictResolutionModal', () => {
 			notes_plain: 'Test content',
 			notes_markdown: '# Test Document\n\nTest content',
 			notes: { type: 'doc', content: [] },
-			last_viewed_panel: { content: { type: 'doc', content: [] } }
+			last_viewed_panel: { content: { type: 'doc', content: [] } },
 		};
 
 		mockMetadata = {
@@ -48,7 +51,7 @@ describe('ConflictResolutionModal', () => {
 			readingTime: 1,
 			importStatus: { status: 'CONFLICT', reason: 'File exists', requiresUserChoice: true },
 			visible: true,
-			selected: true
+			selected: true,
 		};
 
 		modal = new ConflictResolutionModal(mockApp, mockDocument, mockMetadata, mockFile);
@@ -63,7 +66,11 @@ describe('ConflictResolutionModal', () => {
 		});
 
 		it('should create modal without existing file', () => {
-			const modalWithoutFile = new ConflictResolutionModal(mockApp, mockDocument, mockMetadata);
+			const modalWithoutFile = new ConflictResolutionModal(
+				mockApp,
+				mockDocument,
+				mockMetadata
+			);
 			expect(modalWithoutFile).toBeInstanceOf(ConflictResolutionModal);
 		});
 	});
@@ -72,9 +79,9 @@ describe('ConflictResolutionModal', () => {
 		it('should support skip action', () => {
 			const resolution: ConflictResolution = {
 				action: 'skip',
-				reason: 'User chose to skip'
+				reason: 'User chose to skip',
 			};
-			
+
 			expect(resolution.action).toBe('skip');
 			expect(resolution.reason).toBe('User chose to skip');
 		});
@@ -82,9 +89,9 @@ describe('ConflictResolutionModal', () => {
 		it('should support overwrite action', () => {
 			const resolution: ConflictResolution = {
 				action: 'overwrite',
-				createBackup: true
+				createBackup: true,
 			};
-			
+
 			expect(resolution.action).toBe('overwrite');
 			expect(resolution.createBackup).toBe(true);
 		});
@@ -92,9 +99,9 @@ describe('ConflictResolutionModal', () => {
 		it('should support merge action', () => {
 			const resolution: ConflictResolution = {
 				action: 'merge',
-				strategy: 'append'
+				strategy: 'append',
 			};
-			
+
 			expect(resolution.action).toBe('merge');
 			expect(resolution.strategy).toBe('append');
 		});
@@ -102,18 +109,18 @@ describe('ConflictResolutionModal', () => {
 		it('should support rename action', () => {
 			const resolution: ConflictResolution = {
 				action: 'rename',
-				newFilename: 'renamed-document.md'
+				newFilename: 'renamed-document.md',
 			};
-			
+
 			expect(resolution.action).toBe('rename');
 			expect(resolution.newFilename).toBe('renamed-document.md');
 		});
 
 		it('should support view-diff action', () => {
 			const resolution: ConflictResolution = {
-				action: 'view-diff'
+				action: 'view-diff',
 			};
-			
+
 			expect(resolution.action).toBe('view-diff');
 		});
 	});
@@ -125,12 +132,14 @@ describe('ConflictResolutionModal', () => {
 				{ action: 'overwrite', createBackup: false },
 				{ action: 'merge', strategy: 'prepend' },
 				{ action: 'rename', newFilename: 'new.md' },
-				{ action: 'view-diff' }
+				{ action: 'view-diff' },
 			];
 
 			resolutions.forEach(resolution => {
 				expect(resolution.action).toBeDefined();
-				expect(['skip', 'overwrite', 'merge', 'rename', 'view-diff']).toContain(resolution.action);
+				expect(['skip', 'overwrite', 'merge', 'rename', 'view-diff']).toContain(
+					resolution.action
+				);
 			});
 		});
 
@@ -178,7 +187,7 @@ describe('ConflictResolutionModal', () => {
 		it('should return a promise', () => {
 			const promise = modal.showConflictResolution();
 			expect(promise).toBeInstanceOf(Promise);
-			
+
 			// Close modal to prevent hanging test
 			modal.close();
 		});
@@ -186,11 +195,11 @@ describe('ConflictResolutionModal', () => {
 		it('should open the modal when called', () => {
 			// Mock the open method
 			const openSpy = jest.spyOn(modal, 'open').mockImplementation();
-			
+
 			modal.showConflictResolution();
-			
+
 			expect(openSpy).toHaveBeenCalled();
-			
+
 			openSpy.mockRestore();
 		});
 	});
@@ -198,15 +207,23 @@ describe('ConflictResolutionModal', () => {
 	describe('error handling', () => {
 		it('should handle invalid document data gracefully', () => {
 			const invalidDocument = {} as GranolaDocument;
-			const invalidModal = new ConflictResolutionModal(mockApp, invalidDocument, mockMetadata);
-			
+			const invalidModal = new ConflictResolutionModal(
+				mockApp,
+				invalidDocument,
+				mockMetadata
+			);
+
 			expect(invalidModal).toBeInstanceOf(ConflictResolutionModal);
 		});
 
 		it('should handle missing metadata gracefully', () => {
 			const invalidMetadata = {} as DocumentDisplayMetadata;
-			const invalidModal = new ConflictResolutionModal(mockApp, mockDocument, invalidMetadata);
-			
+			const invalidModal = new ConflictResolutionModal(
+				mockApp,
+				mockDocument,
+				invalidMetadata
+			);
+
 			expect(invalidModal).toBeInstanceOf(ConflictResolutionModal);
 		});
 	});

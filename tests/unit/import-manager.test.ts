@@ -1,10 +1,10 @@
-import { 
-	SelectiveImportManager, 
-	ImportOptions, 
-	DocumentProgress, 
+import {
+	SelectiveImportManager,
+	ImportOptions,
+	DocumentProgress,
 	ImportProgress,
 	DocumentImportStatus,
-	ImportStrategy 
+	ImportStrategy,
 } from '../../src/services/import-manager';
 import { DocumentDisplayMetadata } from '../../src/services/document-metadata';
 import { GranolaDocument } from '../../src/api';
@@ -29,15 +29,16 @@ const mockConverter = {
 } as unknown as ProseMirrorConverter;
 
 // Mock TFile
-const createMockFile = (name: string, path: string = name): TFile => ({
-	name,
-	path,
-	basename: name.replace('.md', ''),
-	extension: 'md',
-	parent: null,
-	vault: mockVault,
-	stat: { ctime: 0, mtime: 0, size: 0 }
-} as TFile);
+const createMockFile = (name: string, path: string = name): TFile =>
+	({
+		name,
+		path,
+		basename: name.replace('.md', ''),
+		extension: 'md',
+		parent: null,
+		vault: mockVault,
+		stat: { ctime: 0, mtime: 0, size: 0 },
+	}) as TFile;
 
 describe('SelectiveImportManager', () => {
 	let importManager: SelectiveImportManager;
@@ -47,7 +48,7 @@ describe('SelectiveImportManager', () => {
 
 	beforeEach(() => {
 		importManager = new SelectiveImportManager(mockApp, mockVault, mockConverter);
-		
+
 		mockDocumentMetadata = [
 			{
 				id: 'doc1',
@@ -61,7 +62,7 @@ describe('SelectiveImportManager', () => {
 				readingTime: 1,
 				importStatus: { status: 'NEW', reason: 'New document', requiresUserChoice: false },
 				visible: true,
-				selected: true
+				selected: true,
 			},
 			{
 				id: 'doc2',
@@ -73,9 +74,13 @@ describe('SelectiveImportManager', () => {
 				preview: 'Second document preview',
 				wordCount: 200,
 				readingTime: 2,
-				importStatus: { status: 'UPDATED', reason: 'Updated document', requiresUserChoice: false },
+				importStatus: {
+					status: 'UPDATED',
+					reason: 'Updated document',
+					requiresUserChoice: false,
+				},
 				visible: true,
-				selected: true
+				selected: true,
 			},
 			{
 				id: 'doc3',
@@ -89,8 +94,8 @@ describe('SelectiveImportManager', () => {
 				readingTime: 1,
 				importStatus: { status: 'NEW', reason: 'New document', requiresUserChoice: false },
 				visible: true,
-				selected: false // Not selected
-			}
+				selected: false, // Not selected
+			},
 		];
 
 		mockGranolaDocuments = [
@@ -103,7 +108,7 @@ describe('SelectiveImportManager', () => {
 				notes_plain: 'First document content',
 				notes_markdown: '# Document 1\n\nFirst document content',
 				notes: { type: 'doc', content: [] },
-				last_viewed_panel: { content: { type: 'doc', content: [] } }
+				last_viewed_panel: { content: { type: 'doc', content: [] } },
 			},
 			{
 				id: 'doc2',
@@ -114,7 +119,7 @@ describe('SelectiveImportManager', () => {
 				notes_plain: 'Second document content',
 				notes_markdown: '# Document 2\n\nSecond document content',
 				notes: { type: 'doc', content: [] },
-				last_viewed_panel: { content: { type: 'doc', content: [] } }
+				last_viewed_panel: { content: { type: 'doc', content: [] } },
 			},
 			{
 				id: 'doc3',
@@ -125,8 +130,8 @@ describe('SelectiveImportManager', () => {
 				notes_plain: 'Third document content',
 				notes_markdown: '# Document 3\n\nThird document content',
 				notes: { type: 'doc', content: [] },
-				last_viewed_panel: { content: { type: 'doc', content: [] } }
-			}
+				last_viewed_panel: { content: { type: 'doc', content: [] } },
+			},
 		];
 
 		defaultOptions = {
@@ -134,14 +139,16 @@ describe('SelectiveImportManager', () => {
 			createBackups: false,
 			maxConcurrency: 3,
 			delayBetweenImports: 100,
-			stopOnError: false
+			stopOnError: false,
 		};
 
 		// Reset mocks
 		jest.clearAllMocks();
-		
+
 		// Setup default mock implementations
-		(mockConverter.convertToMarkdown as jest.Mock).mockResolvedValue('# Test\n\nMarkdown content');
+		(mockConverter.convertToMarkdown as jest.Mock).mockResolvedValue(
+			'# Test\n\nMarkdown content'
+		);
 		(mockConverter.generateFilename as jest.Mock).mockReturnValue('test-document.md');
 		(mockVault.create as jest.Mock).mockResolvedValue(createMockFile('test-document.md'));
 		(mockVault.modify as jest.Mock).mockResolvedValue(undefined);
@@ -154,7 +161,7 @@ describe('SelectiveImportManager', () => {
 
 		it('should have initial progress state', () => {
 			const progress = importManager.getProgress();
-			
+
 			expect(progress.total).toBe(0);
 			expect(progress.completed).toBe(0);
 			expect(progress.failed).toBe(0);
@@ -203,10 +210,14 @@ describe('SelectiveImportManager', () => {
 					preview: 'Missing document preview',
 					wordCount: 100,
 					readingTime: 1,
-					importStatus: { status: 'NEW', reason: 'New document', requiresUserChoice: false },
+					importStatus: {
+						status: 'NEW',
+						reason: 'New document',
+						requiresUserChoice: false,
+					},
 					visible: true,
-					selected: true
-				} as DocumentDisplayMetadata
+					selected: true,
+				} as DocumentDisplayMetadata,
 			];
 
 			const result = await importManager.importDocuments(
@@ -229,7 +240,11 @@ describe('SelectiveImportManager', () => {
 
 			// Try to start second import while first is running
 			await expect(
-				importManager.importDocuments(mockDocumentMetadata, mockGranolaDocuments, defaultOptions)
+				importManager.importDocuments(
+					mockDocumentMetadata,
+					mockGranolaDocuments,
+					defaultOptions
+				)
 			).rejects.toThrow('Import already in progress');
 
 			// Wait for first import to complete
@@ -253,8 +268,9 @@ describe('SelectiveImportManager', () => {
 		});
 
 		it('should stop on first error when stopOnError is true', async () => {
-			(mockConverter.convertToMarkdown as jest.Mock)
-				.mockRejectedValueOnce(new Error('Conversion failed'));
+			(mockConverter.convertToMarkdown as jest.Mock).mockRejectedValueOnce(
+				new Error('Conversion failed')
+			);
 
 			const result = await importManager.importDocuments(
 				mockDocumentMetadata,
@@ -273,7 +289,7 @@ describe('SelectiveImportManager', () => {
 			const options = {
 				...defaultOptions,
 				onProgress: progressCallback,
-				onDocumentProgress: documentProgressCallback
+				onDocumentProgress: documentProgressCallback,
 			};
 
 			await importManager.importDocuments(
@@ -288,7 +304,7 @@ describe('SelectiveImportManager', () => {
 	});
 
 	describe('cancel', () => {
-		it('should cancel running import', (done) => {
+		it('should cancel running import', done => {
 			// Mock slow conversion to allow cancellation
 			(mockConverter.convertToMarkdown as jest.Mock).mockImplementation(
 				() => new Promise(resolve => setTimeout(() => resolve('content'), 1000))
@@ -303,7 +319,7 @@ describe('SelectiveImportManager', () => {
 			// Cancel after short delay
 			setTimeout(() => {
 				importManager.cancel();
-				
+
 				const progress = importManager.getProgress();
 				expect(progress.isCancelled).toBe(true);
 				expect(progress.message).toContain('Cancelling');
@@ -317,7 +333,7 @@ describe('SelectiveImportManager', () => {
 
 		it('should do nothing if no import is running', () => {
 			importManager.cancel();
-			
+
 			const progress = importManager.getProgress();
 			expect(progress.isCancelled).toBe(false);
 		});
@@ -358,12 +374,12 @@ describe('SelectiveImportManager', () => {
 
 		it('should calculate progress percentage correctly', async () => {
 			let progressUpdates: ImportProgress[] = [];
-			
+
 			const options = {
 				...defaultOptions,
 				onProgress: (progress: ImportProgress) => {
 					progressUpdates.push({ ...progress });
-				}
+				},
 			};
 
 			await importManager.importDocuments(
@@ -374,7 +390,7 @@ describe('SelectiveImportManager', () => {
 
 			// Should have progress updates during import
 			expect(progressUpdates.length).toBeGreaterThan(1);
-			
+
 			// Final progress should be 100%
 			const finalProgress = progressUpdates[progressUpdates.length - 1];
 			expect(finalProgress.percentage).toBe(100);
@@ -406,14 +422,14 @@ describe('SelectiveImportManager', () => {
 
 			// Reset and verify clean state
 			importManager.reset();
-			
+
 			const progress = importManager.getProgress();
 			expect(progress.total).toBe(0);
 			expect(progress.completed).toBe(0);
 			expect(progress.failed).toBe(0);
 			expect(progress.isRunning).toBe(false);
 			expect(progress.isCancelled).toBe(false);
-			
+
 			expect(importManager.getAllDocumentProgress()).toHaveLength(0);
 		});
 	});
@@ -453,7 +469,7 @@ describe('SelectiveImportManager', () => {
 	describe('concurrency control', () => {
 		it('should respect maxConcurrency setting', async () => {
 			const options = { ...defaultOptions, maxConcurrency: 1 };
-			
+
 			const result = await importManager.importDocuments(
 				mockDocumentMetadata,
 				mockGranolaDocuments,
@@ -466,7 +482,7 @@ describe('SelectiveImportManager', () => {
 
 		it('should handle delay between imports', async () => {
 			const options = { ...defaultOptions, delayBetweenImports: 100 };
-			
+
 			const result = await importManager.importDocuments(
 				mockDocumentMetadata,
 				mockGranolaDocuments,
@@ -511,11 +527,10 @@ describe('SelectiveImportManager', () => {
 				.mockRejectedValueOnce(new Error('Conversion failed'))
 				.mockResolvedValue('# Test\n\nContent');
 
-			await importManager.importDocuments(
-				mockDocumentMetadata,
-				mockGranolaDocuments,
-				{ ...defaultOptions, stopOnError: false }
-			);
+			await importManager.importDocuments(mockDocumentMetadata, mockGranolaDocuments, {
+				...defaultOptions,
+				stopOnError: false,
+			});
 
 			const doc1Progress = importManager.getDocumentProgress('doc1');
 			expect(doc1Progress?.status).toBe('failed');

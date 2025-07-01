@@ -670,7 +670,9 @@ describe('ProseMirrorConverter', () => {
 
 			// Should create placeholder content
 			expect(result.content).toContain('# Empty Document');
-			expect(result.content).toContain('This document appears to have no extractable content');
+			expect(result.content).toContain(
+				'This document appears to have no extractable content'
+			);
 			// Check for the actual warning message
 			expect(mockLogger.warn).toHaveBeenCalledWith(
 				expect.stringContaining('WARNING: No content extracted')

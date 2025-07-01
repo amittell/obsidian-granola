@@ -6,7 +6,7 @@ import {
 	GranolaSettings,
 	Logger,
 	DEFAULT_SETTINGS,
-	GranolaSettingTab
+	GranolaSettingTab,
 } from '../../src/settings';
 import { App, PluginSettingTab } from 'obsidian';
 import GranolaImporterPlugin from '../../main';
@@ -97,7 +97,7 @@ describe('Settings Module', () => {
 				DatePrefixFormat.ISO_DATE,
 				DatePrefixFormat.US_DATE,
 				DatePrefixFormat.EU_DATE,
-				DatePrefixFormat.DOT_DATE
+				DatePrefixFormat.DOT_DATE,
 			];
 
 			dateFormats.forEach(format => {
@@ -143,30 +143,30 @@ describe('Settings Module', () => {
 				debug: {
 					enabled: false,
 					logLevel: LogLevel.INFO,
-					saveToFile: false
+					saveToFile: false,
 				},
 				import: {
 					strategy: ImportStrategy.SKIP_EXISTING,
 					defaultFolder: '',
 					createFolders: true,
-					maxFilenameLength: 100
+					maxFilenameLength: 100,
 				},
 				content: {
 					datePrefixFormat: DatePrefixFormat.ISO_DATE,
 					contentPriority: ContentPriority.PANEL_FIRST,
 					includeMetadata: true,
-					customFrontmatter: []
+					customFrontmatter: [],
 				},
 				ui: {
 					autoCloseModal: false,
 					showProgressNotifications: true,
-					selectAllByDefault: false
+					selectAllByDefault: false,
 				},
 				connection: {
 					lastValidated: 0,
 					isConnected: false,
-					timeoutMs: 30000
-				}
+					timeoutMs: 30000,
+				},
 			};
 		});
 
@@ -235,10 +235,12 @@ describe('Settings Module', () => {
 
 		it('should support all enum combinations', () => {
 			// Test all LogLevel values
-			Object.values(LogLevel).filter(v => typeof v === 'number').forEach(level => {
-				validSettings.debug.logLevel = level as LogLevel;
-				expect(validSettings.debug.logLevel).toBe(level);
-			});
+			Object.values(LogLevel)
+				.filter(v => typeof v === 'number')
+				.forEach(level => {
+					validSettings.debug.logLevel = level as LogLevel;
+					expect(validSettings.debug.logLevel).toBe(level);
+				});
 
 			// Test all ImportStrategy values
 			Object.values(ImportStrategy).forEach(strategy => {
@@ -262,14 +264,14 @@ describe('Settings Module', () => {
 		it('should support custom frontmatter arrays', () => {
 			const customFields = ['author', 'source', 'tags', 'category', 'project'];
 			validSettings.content.customFrontmatter = customFields;
-			
+
 			expect(validSettings.content.customFrontmatter).toEqual(customFields);
 			expect(validSettings.content.customFrontmatter).toHaveLength(5);
 		});
 
 		it('should support reasonable filename length limits', () => {
 			const testLengths = [50, 100, 150, 200, 255];
-			
+
 			testLengths.forEach(length => {
 				validSettings.import.maxFilenameLength = length;
 				expect(validSettings.import.maxFilenameLength).toBe(length);
@@ -283,7 +285,7 @@ describe('Settings Module', () => {
 				'Granola',
 				'Notes/Granola',
 				'Daily Notes/Granola',
-				'Archive/2023/Granola'
+				'Archive/2023/Granola',
 			];
 
 			testPaths.forEach(path => {
@@ -345,30 +347,30 @@ describe('Settings Module', () => {
 				debug: {
 					enabled: false,
 					logLevel: LogLevel.WARN,
-					saveToFile: false
+					saveToFile: false,
 				},
 				import: {
 					strategy: ImportStrategy.SKIP_EXISTING,
 					defaultFolder: '',
 					createFolders: true,
-					maxFilenameLength: 100
+					maxFilenameLength: 100,
 				},
 				content: {
 					datePrefixFormat: DatePrefixFormat.ISO_DATE,
 					contentPriority: ContentPriority.PANEL_FIRST,
 					includeMetadata: true,
-					customFrontmatter: []
+					customFrontmatter: [],
 				},
 				ui: {
 					autoCloseModal: false,
 					showProgressNotifications: true,
-					selectAllByDefault: false
+					selectAllByDefault: false,
 				},
 				connection: {
 					lastValidated: 0,
 					isConnected: false,
-					timeoutMs: 30000
-				}
+					timeoutMs: 30000,
+				},
 			};
 
 			// Verify all defaults are reasonable
@@ -386,25 +388,25 @@ describe('Settings Module', () => {
 				debug: {
 					enabled: true,
 					logLevel: LogLevel.DEBUG,
-					saveToFile: true
+					saveToFile: true,
 				},
 				import: {
 					strategy: ImportStrategy.ALWAYS_PROMPT,
 					defaultFolder: 'Very/Deep/Nested/Folder/Structure',
 					createFolders: false,
-					maxFilenameLength: 255
+					maxFilenameLength: 255,
 				},
 				content: {
 					datePrefixFormat: DatePrefixFormat.NONE,
 					contentPriority: ContentPriority.NOTES_ONLY,
 					includeMetadata: false,
-					customFrontmatter: ['field1', 'field2', 'field3', 'field4', 'field5']
+					customFrontmatter: ['field1', 'field2', 'field3', 'field4', 'field5'],
 				},
 				ui: {
 					autoCloseModal: true,
 					showProgressNotifications: false,
-					selectAllByDefault: true
-				}
+					selectAllByDefault: true,
+				},
 			};
 
 			// Verify edge cases work
@@ -420,21 +422,21 @@ describe('Settings Module', () => {
 			expect(DEFAULT_SETTINGS.debug.enabled).toBe(false);
 			expect(DEFAULT_SETTINGS.debug.logLevel).toBe(LogLevel.WARN);
 			expect(DEFAULT_SETTINGS.debug.saveToFile).toBe(false);
-			
+
 			expect(DEFAULT_SETTINGS.import.strategy).toBe(ImportStrategy.ALWAYS_PROMPT);
 			expect(DEFAULT_SETTINGS.import.defaultFolder).toBe('');
 			expect(DEFAULT_SETTINGS.import.createFolders).toBe(true);
 			expect(DEFAULT_SETTINGS.import.maxFilenameLength).toBe(100);
-			
+
 			expect(DEFAULT_SETTINGS.content.datePrefixFormat).toBe(DatePrefixFormat.ISO_DATE);
 			expect(DEFAULT_SETTINGS.content.contentPriority).toBe(ContentPriority.PANEL_FIRST);
 			expect(DEFAULT_SETTINGS.content.includeMetadata).toBe(true);
 			expect(DEFAULT_SETTINGS.content.customFrontmatter).toEqual([]);
-			
+
 			expect(DEFAULT_SETTINGS.ui.autoCloseModal).toBe(false);
 			expect(DEFAULT_SETTINGS.ui.showProgressNotifications).toBe(true);
 			expect(DEFAULT_SETTINGS.ui.selectAllByDefault).toBe(false);
-			
+
 			expect(DEFAULT_SETTINGS.connection.lastValidated).toBe(0);
 			expect(DEFAULT_SETTINGS.connection.isConnected).toBe(false);
 			expect(DEFAULT_SETTINGS.connection.timeoutMs).toBe(30000);
@@ -449,8 +451,12 @@ describe('Settings Module', () => {
 		it('should use valid enum values', () => {
 			expect(Object.values(LogLevel)).toContain(DEFAULT_SETTINGS.debug.logLevel);
 			expect(Object.values(ImportStrategy)).toContain(DEFAULT_SETTINGS.import.strategy);
-			expect(Object.values(DatePrefixFormat)).toContain(DEFAULT_SETTINGS.content.datePrefixFormat);
-			expect(Object.values(ContentPriority)).toContain(DEFAULT_SETTINGS.content.contentPriority);
+			expect(Object.values(DatePrefixFormat)).toContain(
+				DEFAULT_SETTINGS.content.datePrefixFormat
+			);
+			expect(Object.values(ContentPriority)).toContain(
+				DEFAULT_SETTINGS.content.contentPriority
+			);
 		});
 	});
 
@@ -467,30 +473,30 @@ describe('Settings Module', () => {
 				debug: {
 					enabled: false,
 					logLevel: LogLevel.WARN,
-					saveToFile: false
+					saveToFile: false,
 				},
 				import: {
 					strategy: ImportStrategy.SKIP_EXISTING,
 					defaultFolder: '',
 					createFolders: true,
-					maxFilenameLength: 100
+					maxFilenameLength: 100,
 				},
 				content: {
 					datePrefixFormat: DatePrefixFormat.ISO_DATE,
 					contentPriority: ContentPriority.PANEL_FIRST,
 					includeMetadata: true,
-					customFrontmatter: []
+					customFrontmatter: [],
 				},
 				ui: {
 					autoCloseModal: false,
 					showProgressNotifications: true,
-					selectAllByDefault: false
+					selectAllByDefault: false,
 				},
 				connection: {
 					lastValidated: 0,
 					isConnected: false,
-					timeoutMs: 30000
-				}
+					timeoutMs: 30000,
+				},
 			};
 
 			logger = new Logger(testSettings);
@@ -671,8 +677,8 @@ describe('Settings Module', () => {
 				logger.updateSettings(testSettings);
 
 				logger.error('error'); // Should log
-				logger.warn('warn');   // Should log
-				logger.info('info');   // Should log
+				logger.warn('warn'); // Should log
+				logger.info('info'); // Should log
 				logger.debug('debug'); // Should NOT log
 
 				expect(consoleErrorSpy).toHaveBeenCalledWith('[Granola Importer] error');
@@ -686,8 +692,8 @@ describe('Settings Module', () => {
 				logger.updateSettings(testSettings);
 
 				logger.error('error'); // Should log
-				logger.warn('warn');   // Should NOT log
-				logger.info('info');   // Should NOT log
+				logger.warn('warn'); // Should NOT log
+				logger.info('info'); // Should NOT log
 
 				expect(consoleErrorSpy).toHaveBeenCalledWith('[Granola Importer] error');
 				expect(consoleWarnSpy).not.toHaveBeenCalled();

@@ -323,7 +323,9 @@ export class ProseMirrorConverter {
 		// Check if document contains only empty paragraphs
 		const hasActualContent = this.hasExtractableContent(doc.content);
 		if (!hasActualContent) {
-			this.logger.debug(`ProseMirror doc contains only empty paragraphs - no extractable content`);
+			this.logger.debug(
+				`ProseMirror doc contains only empty paragraphs - no extractable content`
+			);
 			return false;
 		}
 
@@ -360,7 +362,9 @@ export class ProseMirrorConverter {
 
 			// Non-paragraph structural elements with content indicate meaningful structure
 			if (node.type && node.type !== 'paragraph' && node.content && node.content.length > 0) {
-				this.logger.debug(`Found structural content node: ${node.type} with ${node.content.length} children`);
+				this.logger.debug(
+					`Found structural content node: ${node.type} with ${node.content.length} children`
+				);
 				return true;
 			}
 		}

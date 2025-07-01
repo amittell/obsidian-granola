@@ -1,7 +1,10 @@
 import { DocumentSelectionModal } from '../../src/ui/document-selection-modal';
 import { GranolaAPI, GranolaDocument } from '../../src/api';
 import { DuplicateDetector } from '../../src/services/duplicate-detector';
-import { DocumentMetadataService, DocumentDisplayMetadata } from '../../src/services/document-metadata';
+import {
+	DocumentMetadataService,
+	DocumentDisplayMetadata,
+} from '../../src/services/document-metadata';
 import { SelectiveImportManager } from '../../src/services/import-manager';
 import { ProseMirrorConverter } from '../../src/converter';
 import { App, Modal, Vault } from 'obsidian';
@@ -150,8 +153,8 @@ describe('DocumentSelectionModal', () => {
 				notes_plain: 'First document content',
 				notes_markdown: '# Document 1\n\nFirst document content',
 				notes: { type: 'doc', content: [] },
-				last_viewed_panel: { content: { type: 'doc', content: [] } }
-			}
+				last_viewed_panel: { content: { type: 'doc', content: [] } },
+			},
 		];
 
 		mockDocumentMetadata = [
@@ -167,15 +170,17 @@ describe('DocumentSelectionModal', () => {
 				readingTime: 1,
 				importStatus: { status: 'NEW', reason: 'New document', requiresUserChoice: false },
 				visible: true,
-				selected: true
-			}
+				selected: true,
+			},
 		];
 
 		// Setup mock implementations
 		(mockAPI.loadCredentials as jest.Mock).mockResolvedValue(undefined);
 		(mockAPI.getAllDocuments as jest.Mock).mockResolvedValue(mockGranolaDocuments);
 		(mockDuplicateDetector.checkDocuments as jest.Mock).mockResolvedValue(new Map());
-		(mockMetadataService.extractBulkMetadata as jest.Mock).mockReturnValue(mockDocumentMetadata);
+		(mockMetadataService.extractBulkMetadata as jest.Mock).mockReturnValue(
+			mockDocumentMetadata
+		);
 		(mockMetadataService.applyFilter as jest.Mock).mockReturnValue(mockDocumentMetadata);
 		(mockMetadataService.applySorting as jest.Mock).mockReturnValue(mockDocumentMetadata);
 		(mockMetadataService.getCollectionStats as jest.Mock).mockReturnValue({
@@ -185,7 +190,7 @@ describe('DocumentSelectionModal', () => {
 			byStatus: { NEW: 1 },
 			totalWordCount: 100,
 			averageWordCount: 100,
-			totalReadingTime: 1
+			totalReadingTime: 1,
 		});
 		(mockImportManager.getProgress as jest.Mock).mockReturnValue({
 			total: 0,
@@ -197,7 +202,7 @@ describe('DocumentSelectionModal', () => {
 			isCancelled: false,
 			message: 'Ready',
 			startTime: 0,
-			processingRate: 0
+			processingRate: 0,
 		});
 
 		// Create modal instance
@@ -227,14 +232,17 @@ describe('DocumentSelectionModal', () => {
 		it('should store all dependency references', () => {
 			// Dependencies are stored as private fields, so we can't directly test them
 			// but the constructor should not throw
-			expect(() => new DocumentSelectionModal(
-				mockApp,
-				mockAPI,
-				mockDuplicateDetector,
-				mockMetadataService,
-				mockImportManager,
-				mockConverter
-			)).not.toThrow();
+			expect(
+				() =>
+					new DocumentSelectionModal(
+						mockApp,
+						mockAPI,
+						mockDuplicateDetector,
+						mockMetadataService,
+						mockImportManager,
+						mockConverter
+					)
+			).not.toThrow();
 		});
 	});
 
@@ -313,16 +321,18 @@ describe('DocumentSelectionModal', () => {
 		it('should apply default sorting', async () => {
 			await modal.onOpen();
 
-			expect(mockMetadataService.applySorting).toHaveBeenCalledWith(
-				mockDocumentMetadata,
-				{ field: 'updated', direction: 'desc' }
-			);
+			expect(mockMetadataService.applySorting).toHaveBeenCalledWith(mockDocumentMetadata, {
+				field: 'updated',
+				direction: 'desc',
+			});
 		});
 	});
 
 	describe('error handling', () => {
 		it('should handle duplicate detector initialization failure', async () => {
-			(mockDuplicateDetector.initialize as jest.Mock).mockRejectedValue(new Error('Init failed'));
+			(mockDuplicateDetector.initialize as jest.Mock).mockRejectedValue(
+				new Error('Init failed')
+			);
 
 			await expect(modal.onOpen()).resolves.not.toThrow();
 			// When duplicate detector fails, the process may stop early
@@ -348,7 +358,7 @@ describe('DocumentSelectionModal', () => {
 	describe('component state management', () => {
 		it('should track loading state', async () => {
 			const openPromise = modal.onOpen();
-			
+
 			// Should be loading during async operation
 			// Since this is async, we can't easily test the intermediate state
 			// but we can test that it completes
@@ -365,9 +375,11 @@ describe('DocumentSelectionModal', () => {
 			(mockAPI.getAllDocuments as jest.Mock).mockResolvedValue(mockGranolaDocuments);
 			(mockDuplicateDetector.initialize as jest.Mock).mockResolvedValue(undefined);
 			(mockDuplicateDetector.checkDocuments as jest.Mock).mockResolvedValue(new Map());
-			(mockMetadataService.extractBulkMetadata as jest.Mock).mockReturnValue(mockDocumentMetadata);
+			(mockMetadataService.extractBulkMetadata as jest.Mock).mockReturnValue(
+				mockDocumentMetadata
+			);
 			(mockMetadataService.applySorting as jest.Mock).mockReturnValue(mockDocumentMetadata);
-			
+
 			await modal.onOpen();
 
 			// Should store loaded documents
@@ -384,7 +396,7 @@ describe('DocumentSelectionModal', () => {
 		it('should initialize with default sort state', () => {
 			expect((modal as any).currentSort).toEqual({
 				field: 'updated',
-				direction: 'desc'
+				direction: 'desc',
 			});
 		});
 	});
@@ -397,9 +409,11 @@ describe('DocumentSelectionModal', () => {
 			(mockAPI.getAllDocuments as jest.Mock).mockResolvedValue(mockGranolaDocuments);
 			(mockDuplicateDetector.initialize as jest.Mock).mockResolvedValue(undefined);
 			(mockDuplicateDetector.checkDocuments as jest.Mock).mockResolvedValue(new Map());
-			(mockMetadataService.extractBulkMetadata as jest.Mock).mockReturnValue(mockDocumentMetadata);
+			(mockMetadataService.extractBulkMetadata as jest.Mock).mockReturnValue(
+				mockDocumentMetadata
+			);
 			(mockMetadataService.applySorting as jest.Mock).mockReturnValue(mockDocumentMetadata);
-			
+
 			await modal.onOpen();
 
 			// Verify all services are called
@@ -418,9 +432,11 @@ describe('DocumentSelectionModal', () => {
 			(mockAPI.getAllDocuments as jest.Mock).mockResolvedValue(mockGranolaDocuments);
 			(mockDuplicateDetector.initialize as jest.Mock).mockResolvedValue(undefined);
 			(mockDuplicateDetector.checkDocuments as jest.Mock).mockResolvedValue(new Map());
-			(mockMetadataService.extractBulkMetadata as jest.Mock).mockReturnValue(mockDocumentMetadata);
+			(mockMetadataService.extractBulkMetadata as jest.Mock).mockReturnValue(
+				mockDocumentMetadata
+			);
 			(mockMetadataService.applySorting as jest.Mock).mockReturnValue(mockDocumentMetadata);
-			
+
 			await modal.onOpen();
 
 			expect(mockDuplicateDetector.checkDocuments).toHaveBeenCalledWith(mockGranolaDocuments);

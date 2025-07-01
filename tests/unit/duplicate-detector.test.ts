@@ -1,4 +1,8 @@
-import { DuplicateDetector, ImportStatus, DuplicateCheckResult } from '../../src/services/duplicate-detector';
+import {
+	DuplicateDetector,
+	ImportStatus,
+	DuplicateCheckResult,
+} from '../../src/services/duplicate-detector';
 import { GranolaDocument } from '../../src/api';
 import { TFile, Vault } from 'obsidian';
 
@@ -9,15 +13,16 @@ const mockVault = {
 } as unknown as Vault;
 
 // Mock TFile
-const createMockFile = (name: string, path: string = name): TFile => ({
-	name,
-	path,
-	basename: name.replace('.md', ''),
-	extension: 'md',
-	parent: null,
-	vault: mockVault,
-	stat: { ctime: 0, mtime: 0, size: 0 }
-} as TFile);
+const createMockFile = (name: string, path: string = name): TFile =>
+	({
+		name,
+		path,
+		basename: name.replace('.md', ''),
+		extension: 'md',
+		parent: null,
+		vault: mockVault,
+		stat: { ctime: 0, mtime: 0, size: 0 },
+	}) as TFile;
 
 describe('DuplicateDetector', () => {
 	let detector: DuplicateDetector;
@@ -25,12 +30,12 @@ describe('DuplicateDetector', () => {
 
 	beforeEach(() => {
 		detector = new DuplicateDetector(mockVault);
-		
+
 		// Suppress console output during tests
 		jest.spyOn(console, 'log').mockImplementation();
 		jest.spyOn(console, 'warn').mockImplementation();
 		jest.spyOn(console, 'error').mockImplementation();
-		
+
 		mockDocument = {
 			id: 'test-doc-1',
 			title: 'Test Document',
@@ -44,9 +49,9 @@ describe('DuplicateDetector', () => {
 				content: [
 					{
 						type: 'paragraph',
-						content: [{ type: 'text', text: 'This is a test document.' }]
-					}
-				]
+						content: [{ type: 'text', text: 'This is a test document.' }],
+					},
+				],
 			},
 			last_viewed_panel: {
 				content: {
@@ -54,11 +59,11 @@ describe('DuplicateDetector', () => {
 					content: [
 						{
 							type: 'paragraph',
-							content: [{ type: 'text', text: 'This is a test document.' }]
-						}
-					]
-				}
-			}
+							content: [{ type: 'text', text: 'This is a test document.' }],
+						},
+					],
+				},
+			},
 		};
 
 		// Reset mocks
@@ -70,7 +75,7 @@ describe('DuplicateDetector', () => {
 			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([]);
 
 			await detector.initialize();
-			
+
 			expect(mockVault.getMarkdownFiles).toHaveBeenCalled();
 		});
 
@@ -217,7 +222,9 @@ Original content.
 		it('should detect filename conflicts with existing files', async () => {
 			const conflictingFile = createMockFile('2023-01-01 - Test Document.md');
 			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([conflictingFile]);
-			(mockVault.read as jest.Mock).mockResolvedValue('Regular markdown file without Granola frontmatter');
+			(mockVault.read as jest.Mock).mockResolvedValue(
+				'Regular markdown file without Granola frontmatter'
+			);
 
 			await detector.refresh();
 			const result = await detector.checkDocument(mockDocument);
@@ -246,7 +253,7 @@ Original content.
 
 			const documents = [
 				mockDocument,
-				{ ...mockDocument, id: 'doc2', title: 'Second Document' }
+				{ ...mockDocument, id: 'doc2', title: 'Second Document' },
 			];
 
 			const results = await detector.checkDocuments(documents);
@@ -271,10 +278,7 @@ Original content.
 		});
 
 		it('should calculate statistics correctly', async () => {
-			const mockFiles = [
-				createMockFile('doc1.md'),
-				createMockFile('doc2.md')
-			];
+			const mockFiles = [createMockFile('doc1.md'), createMockFile('doc2.md')];
 
 			const contents = [
 				`---
@@ -290,7 +294,7 @@ title: "Doc 2"
 updated: 2023-01-02T10:00:00Z
 source: Granola
 ---
-Content with [[user modifications]]`
+Content with [[user modifications]]`,
 			];
 
 			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue(mockFiles);
@@ -378,7 +382,7 @@ Content here`;
 				'Content with #hashtag',
 				'Content with %%comment%%',
 				'Content with ```dataview\nquery\n```',
-				'Content with block reference ^abc123'
+				'Content with block reference ^abc123',
 			];
 
 			for (const content of patterns) {
@@ -480,7 +484,7 @@ Normal paragraph text without any special Obsidian patterns.`;
 			const doc = {
 				...mockDocument,
 				created_at: '2023-05-15T14:30:00Z',
-				title: 'Special Characters: Test/File'
+				title: 'Special Characters: Test/File',
 			};
 
 			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([]);
@@ -496,7 +500,7 @@ Normal paragraph text without any special Obsidian patterns.`;
 			const doc = {
 				...mockDocument,
 				created_at: 'invalid-date',
-				title: 'Test Document'
+				title: 'Test Document',
 			};
 
 			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([]);
@@ -510,7 +514,7 @@ Normal paragraph text without any special Obsidian patterns.`;
 		it('should sanitize special characters in filenames', async () => {
 			const doc = {
 				...mockDocument,
-				title: 'Test<>:"/\\|?*Document'
+				title: 'Test<>:"/\\|?*Document',
 			};
 
 			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([]);
@@ -524,7 +528,7 @@ Normal paragraph text without any special Obsidian patterns.`;
 		it('should handle very long titles', async () => {
 			const doc = {
 				...mockDocument,
-				title: 'A'.repeat(200) // Very long title
+				title: 'A'.repeat(200), // Very long title
 			};
 
 			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([]);
@@ -538,7 +542,7 @@ Normal paragraph text without any special Obsidian patterns.`;
 		it('should handle empty or missing titles', async () => {
 			const doc = {
 				...mockDocument,
-				title: ''
+				title: '',
 			};
 
 			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([]);
@@ -556,7 +560,9 @@ Normal paragraph text without any special Obsidian patterns.`;
 				throw new Error('Vault access error');
 			});
 
-			await expect(detector.initialize()).rejects.toThrow('Failed to initialize duplicate detector');
+			await expect(detector.initialize()).rejects.toThrow(
+				'Failed to initialize duplicate detector'
+			);
 		});
 
 		it('should auto-initialize when checking documents before explicit initialization', async () => {

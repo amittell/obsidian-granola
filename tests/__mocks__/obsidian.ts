@@ -25,12 +25,12 @@ export class Modal {
 	app: any;
 	modalEl: any;
 	contentEl: any;
-	
+
 	constructor(app: any) {
 		this.app = app;
 		this.modalEl = {
 			addClass: jest.fn(),
-			removeClass: jest.fn()
+			removeClass: jest.fn(),
 		};
 		this.contentEl = {
 			empty: jest.fn(),
@@ -44,20 +44,20 @@ export class Modal {
 				scrollIntoView: jest.fn(),
 				classList: {
 					add: jest.fn(),
-					remove: jest.fn()
-				}
+					remove: jest.fn(),
+				},
 			})),
 			createEl: jest.fn(() => ({
 				createEl: jest.fn(),
 				createDiv: jest.fn(),
 				textContent: '',
 				innerHTML: '',
-				addEventListener: jest.fn()
+				addEventListener: jest.fn(),
 			})),
-			addClass: jest.fn()
+			addClass: jest.fn(),
 		};
 	}
-	
+
 	open() {}
 	close() {}
 	onOpen() {}
@@ -69,7 +69,7 @@ export class TFile {
 	basename: string;
 	extension: string;
 	name: string;
-	
+
 	constructor(path: string) {
 		this.path = path;
 		this.name = path.split('/').pop() || '';
@@ -102,7 +102,6 @@ export class Notice {
 	setMessage(message: string) {}
 	hide() {}
 }
-
 
 export class TFolder {
 	constructor(public path: string) {}
