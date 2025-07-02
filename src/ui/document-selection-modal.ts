@@ -20,6 +20,7 @@ import {
 	SelectiveImportManager,
 	ImportProgress,
 	DocumentProgress,
+	DocumentImportStatus,
 	ImportOptions,
 } from '../services/import-manager';
 import { ProseMirrorConverter } from '../converter';
@@ -350,6 +351,7 @@ export class DocumentSelectionModal extends Modal {
 	private renderDocumentItem(container: HTMLElement, doc: DocumentDisplayMetadata): void {
 		const item = container.createDiv('document-item');
 		item.addClass(`status-${doc.importStatus.status.toLowerCase()}`);
+		item.setAttribute('data-document-id', doc.id);
 
 		// Checkbox
 		const checkbox = item.createEl('input', {
@@ -407,6 +409,20 @@ export class DocumentSelectionModal extends Modal {
 			const reason = content.createDiv('document-reason');
 			reason.textContent = doc.importStatus.reason;
 		}
+
+		// Import progress indicator (initially hidden)
+		const progressIndicator = content.createDiv('document-progress-indicator');
+		progressIndicator.style.display = 'none';
+		
+		const progressIcon = progressIndicator.createSpan('progress-icon');
+		progressIcon.textContent = '⏳';
+		
+		const progressText = progressIndicator.createSpan('progress-text');
+		progressText.textContent = 'Pending...';
+		
+		const progressBar = progressIndicator.createDiv('progress-bar');
+		const progressFill = progressBar.createDiv('progress-fill');
+		progressFill.style.width = '0%';
 	}
 
 	/**
@@ -523,9 +539,104 @@ export class DocumentSelectionModal extends Modal {
 	 * @param {DocumentProgress} docProgress - Document progress
 	 */
 	private updateDocumentProgress(docProgress: DocumentProgress): void {
-		// TODO: Implement individual document progress display
-		// For now, document progress is handled by the overall progress callback
-		// Future enhancement: show per-document status in the UI
+		const documentItem = this.modalContentEl.querySelector(
+			`[data-document-id="${docProgress.id}"]`
+		) as HTMLElement;
+		
+		if (!documentItem) {
+			return; // Document not visible or not found
+		}
+
+		const progressIndicator = documentItem.querySelector('.document-progress-indicator') as HTMLElement;
+		const progressIcon = documentItem.querySelector('.progress-icon') as HTMLElement;
+		const progressText = documentItem.querySelector('.progress-text') as HTMLElement;
+		const progressFill = documentItem.querySelector('.progress-fill') as HTMLElement;
+
+		if (!progressIndicator || !progressIcon || !progressText || !progressFill) {
+			return; // Progress elements not found
+		}
+
+		// Show progress indicator during import
+		if (docProgress.status === 'importing' || docProgress.status === 'completed' || docProgress.status === 'failed') {
+			progressIndicator.style.display = 'flex';
+		}
+
+		// Update icon and text based on status
+		const statusConfig = this.getProgressStatusConfig(docProgress.status);
+		progressIcon.textContent = statusConfig.icon;
+		progressText.textContent = docProgress.message || statusConfig.defaultMessage;
+
+		// Update progress bar
+		progressFill.style.width = `${docProgress.progress}%`;
+
+		// Update item styling
+		documentItem.className = documentItem.className.replace(/\bimport-\w+\b/g, '');
+		documentItem.addClass(`import-${docProgress.status}`);
+
+		// Auto-scroll to currently importing document
+		if (docProgress.status === 'importing') {
+			this.scrollToDocument(docProgress.id);
+		}
+
+		// Show error details if failed
+		if (docProgress.status === 'failed' && docProgress.error) {
+			progressText.textContent = `❌ Failed: ${docProgress.error}`;
+		}
+	}
+
+	/**
+	 * Gets the configuration for progress status display.
+	 *
+	 * @private
+	 * @param {DocumentImportStatus} status - Import status
+	 * @returns {object} Status configuration with icon and default message
+	 */
+	private getProgressStatusConfig(status: DocumentImportStatus): { icon: string; defaultMessage: string } {
+		switch (status) {
+			case 'pending':
+				return { icon: '⏳', defaultMessage: 'Pending...' };
+			case 'importing':
+				return { icon: '📥', defaultMessage: 'Importing...' };
+			case 'completed':
+				return { icon: '✅', defaultMessage: 'Completed' };
+			case 'failed':
+				return { icon: '❌', defaultMessage: 'Failed' };
+			case 'skipped':
+				return { icon: '⏭️', defaultMessage: 'Skipped' };
+			default:
+				return { icon: '⏳', defaultMessage: 'Unknown status' };
+		}
+	}
+
+	/**
+	 * Scrolls to the document item currently being imported.
+	 *
+	 * @private
+	 * @param {string} documentId - ID of the document to scroll to
+	 */
+	private scrollToDocument(documentId: string): void {
+		const documentItem = this.modalContentEl.querySelector(
+			`[data-document-id="${documentId}"]`
+		) as HTMLElement;
+		
+		if (!documentItem) {
+			return; // Document not found
+		}
+
+		// Smooth scroll to the document item
+		documentItem.scrollIntoView({
+			behavior: 'smooth',
+			block: 'center',
+			inline: 'nearest'
+		});
+
+		// Add attention-grabbing highlight animation
+		documentItem.addClass('importing-active');
+		
+		// Remove the highlight after animation
+		setTimeout(() => {
+			documentItem.removeClass('importing-active');
+		}, 2000);
 	}
 
 	/**
@@ -968,6 +1079,63 @@ export class DocumentSelectionModal extends Modal {
 				font-size: 0.8rem;
 				color: var(--text-muted);
 				font-style: italic;
+			}
+			.granola-import-modal .document-progress-indicator {
+				display: none;
+				align-items: center;
+				gap: 0.5rem;
+				margin-top: 0.75rem;
+				padding: 0.5rem;
+				background: var(--background-secondary);
+				border-radius: 4px;
+				font-size: 0.85rem;
+			}
+			.granola-import-modal .progress-icon {
+				font-size: 1rem;
+				line-height: 1;
+			}
+			.granola-import-modal .progress-text {
+				flex: 1;
+				margin: 0;
+				text-align: left;
+			}
+			.granola-import-modal .document-progress-indicator .progress-bar {
+				width: 80px;
+				height: 6px;
+				background: var(--background-modifier-border);
+				border-radius: 3px;
+				overflow: hidden;
+			}
+			.granola-import-modal .document-progress-indicator .progress-fill {
+				height: 100%;
+				background: var(--interactive-accent);
+				transition: width 0.3s ease;
+				border-radius: 3px;
+			}
+			.granola-import-modal .document-item.import-importing {
+				animation: importingPulse 2s ease-in-out infinite;
+				border-left: 4px solid var(--interactive-accent);
+			}
+			.granola-import-modal .document-item.import-completed {
+				border-left: 4px solid var(--color-green);
+			}
+			.granola-import-modal .document-item.import-failed {
+				border-left: 4px solid var(--color-red);
+			}
+			.granola-import-modal .document-item.import-skipped {
+				border-left: 4px solid var(--text-muted);
+			}
+			.granola-import-modal .document-item.importing-active {
+				animation: importingHighlight 2s ease-in-out;
+				box-shadow: 0 0 0 2px var(--interactive-accent);
+			}
+			@keyframes importingPulse {
+				0%, 100% { opacity: 1; }
+				50% { opacity: 0.7; }
+			}
+			@keyframes importingHighlight {
+				0%, 100% { transform: scale(1); }
+				50% { transform: scale(1.02); }
 			}
 			.granola-import-modal .modal-footer {
 				border-top: 1px solid var(--background-modifier-border);
