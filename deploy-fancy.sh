@@ -16,10 +16,8 @@ if [[ "$1" == "--dry-run" || "$1" == "-d" ]]; then
     VAULT_PATH="/example/path/to/ObsidianVault"
 else
     # Set your Obsidian vault path here
-    VAULT_PATH="$HOME/Documents/ObsidianVault"
+    VAULT_PATH="/Users/alex/Documents/Alex's Messy Mind"
 fi
-
-VAULT_PATH="/Users/alex/Documents/Alex's Messy Mind"
 
 # Plugin name and paths
 PLUGIN_NAME="granola-importer"

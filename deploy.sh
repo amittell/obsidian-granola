@@ -11,7 +11,7 @@ if [[ "$1" == "--dry-run" || "$1" == "-d" ]]; then
     VAULT_PATH="/example/path/to/ObsidianVault"
 else
     # Configuration - Update this path to your Obsidian vault
-    VAULT_PATH="$HOME/Documents/ObsidianVault"
+    VAULT_PATH="/Users/alex/Documents/Alex's Messy Mind"
 fi
 
 # Plugin configuration
