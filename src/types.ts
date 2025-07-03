@@ -193,7 +193,8 @@ export class Logger {
 	 * Logs a debug message.
 	 */
 	debug(message: string, ...args: unknown[]): void {
-		if (this.settings.debug.enabled && this.settings.debug.logLevel >= LogLevel.DEBUG) {
+		// Show debug messages if debug mode is enabled OR if log level is DEBUG
+		if (this.settings.debug.enabled || this.settings.debug.logLevel >= LogLevel.DEBUG) {
 			console.log(`[Granola Importer Debug] ${message}`, ...args);
 		}
 	}

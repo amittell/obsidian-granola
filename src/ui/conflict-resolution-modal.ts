@@ -262,6 +262,9 @@ export class ConflictResolutionModal extends Modal {
 	}
 
 	private showOverwriteOptions(): void {
+		// Clear any existing dialogs first
+		this.clearExistingDialogs();
+
 		const confirmDiv = this.contentEl.createDiv('confirmation-dialog');
 		confirmDiv.createEl('h4', { text: '⚠️ Confirm Replacement' });
 		confirmDiv.createEl('p', {
@@ -293,9 +296,15 @@ export class ConflictResolutionModal extends Modal {
 					createBackup: backupCheckbox.checked,
 				});
 			});
+
+		// Scroll the dialog into view for better UX
+		confirmDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
 	}
 
 	private showMergeOptions(): void {
+		// Clear any existing dialogs first
+		this.clearExistingDialogs();
+
 		const mergeDiv = this.contentEl.createDiv('merge-dialog');
 		mergeDiv.createEl('h4', { text: '🔗 Choose Merge Strategy' });
 
@@ -321,9 +330,15 @@ export class ConflictResolutionModal extends Modal {
 		new ButtonComponent(cancelButton).setButtonText('Cancel').onClick(() => {
 			mergeDiv.remove();
 		});
+
+		// Scroll the dialog into view for better UX
+		mergeDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
 	}
 
 	private showRenameOptions(): void {
+		// Clear any existing dialogs first
+		this.clearExistingDialogs();
+
 		const renameDiv = this.contentEl.createDiv('rename-dialog');
 		renameDiv.createEl('h4', { text: '📝 Enter New Filename' });
 
@@ -355,16 +370,46 @@ export class ConflictResolutionModal extends Modal {
 				}
 			});
 
+		// Scroll the dialog into view for better UX
+		renameDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
 		// Focus the input and select text for easy editing
 		input.focus();
 		input.select();
 	}
 
 	private getGranolaPreview(): string {
-		if (this.document.notes_plain) {
-			return this.document.notes_plain.substring(0, 300) + '...';
+		// Try to extract content from ProseMirror using same logic as converter
+		let content = '';
+
+		// Try last_viewed_panel.content first (most reliable)
+		if (this.document.last_viewed_panel?.content) {
+			content = this.extractTextFromProseMirror(this.document.last_viewed_panel.content);
 		}
-		return this.metadata.preview || 'No preview available';
+
+		// Fallback to notes field
+		if (!content && this.document.notes) {
+			content = this.extractTextFromProseMirror(this.document.notes);
+		}
+
+		// Fallback to notes_plain
+		if (!content && this.document.notes_plain) {
+			content = this.document.notes_plain;
+		}
+
+		// Fallback to notes_markdown
+		if (!content && this.document.notes_markdown) {
+			content = this.document.notes_markdown;
+		}
+
+		// Final fallback to metadata preview
+		if (!content) {
+			content = this.metadata.preview || 'No content available';
+		}
+
+		// Truncate and add ellipsis if needed
+		const preview = content.trim().substring(0, 300);
+		return preview.length === 300 ? preview + '...' : preview;
 	}
 
 	private getExistingPreview(): string {
@@ -383,6 +428,51 @@ export class ConflictResolutionModal extends Modal {
 			.trim();
 		const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 		return `${sanitized} (Granola ${timestamp})`;
+	}
+
+	/**
+	 * Extracts plain text from ProseMirror document structure.
+	 * Similar to the logic in document-metadata.ts but simplified for preview.
+	 */
+	private extractTextFromProseMirror(proseMirrorDoc: Record<string, unknown>): string {
+		if (!proseMirrorDoc || !proseMirrorDoc.content) {
+			return '';
+		}
+
+		const extractText = (node: Record<string, unknown>): string => {
+			if (node && typeof node === 'object') {
+				// Direct text node
+				if (node.text && typeof node.text === 'string') {
+					return node.text;
+				}
+				// Node with children - recurse
+				if (node.content && Array.isArray(node.content)) {
+					return node.content.map(extractText).join(' ');
+				}
+			}
+			return '';
+		};
+
+		const content = proseMirrorDoc.content;
+		if (!Array.isArray(content)) {
+			return '';
+		}
+
+		const text = content
+			.map(node => extractText(node as Record<string, unknown>))
+			.join(' ')
+			.trim()
+			.replace(/\s+/g, ' ');
+
+		return text || '';
+	}
+
+	private clearExistingDialogs(): void {
+		// Remove any existing dialog elements to prevent UI conflicts
+		const existingDialogs = this.contentEl.querySelectorAll(
+			'.confirmation-dialog, .merge-dialog, .rename-dialog'
+		);
+		existingDialogs.forEach(dialog => dialog.remove());
 	}
 
 	private resolveWith(resolution: ConflictResolution): void {
