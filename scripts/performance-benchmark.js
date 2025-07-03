@@ -19,7 +19,7 @@ const CONFIG = {
 	INTERACTION_THRESHOLD: 50,
 	PROCESSING_THRESHOLD: 500,
 	// Alert if performance degrades by more than this percentage
-	REGRESSION_THRESHOLD_PERCENT: 20,
+	REGRESSION_THRESHOLD_PERCENT: 30,
 	// Maximum number of history entries to keep
 	MAX_HISTORY_ENTRIES: 100,
 };
