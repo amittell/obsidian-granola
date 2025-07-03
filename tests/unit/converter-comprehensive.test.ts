@@ -351,7 +351,7 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 
 				const result = (converter as any).generateDatePrefixedFilename(doc);
 
-				expect(result).toContain('2024-03-15 - ');
+				expect(result).toBe('2024-03-15 - date-test-doc.md');
 			});
 
 			it('should generate US date prefix', () => {
@@ -368,7 +368,7 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 
 				const result = (converter as any).generateDatePrefixedFilename(doc);
 
-				expect(result).toContain('03-15-2024 - ');
+				expect(result).toBe('03-15-2024 - date-test-doc.md');
 			});
 
 			it('should generate EU date prefix', () => {
@@ -385,7 +385,7 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 
 				const result = (converter as any).generateDatePrefixedFilename(doc);
 
-				expect(result).toContain('15-03-2024 - ');
+				expect(result).toBe('15-03-2024 - date-test-doc.md');
 			});
 
 			it('should generate dot date prefix', () => {
@@ -402,7 +402,7 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 
 				const result = (converter as any).generateDatePrefixedFilename(doc);
 
-				expect(result).toContain('2024.03.15 - ');
+				expect(result).toBe('2024.03.15 - date-test-doc.md');
 			});
 
 			it('should handle no date prefix', () => {
@@ -518,6 +518,222 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 				const result = converter.convertDocument(doc);
 
 				expect(result.content).toContain('Fallback markdown content');
+			});
+		});
+
+		describe('ProseMirror Document Validation', () => {
+			it('should validate valid ProseMirror document', () => {
+				const validDoc = {
+					type: 'doc',
+					content: [
+						{
+							type: 'paragraph',
+							content: [{ type: 'text', text: 'Valid content' }],
+						},
+					],
+				};
+
+				const result = (converter as any).isValidProseMirrorDoc(validDoc);
+
+				expect(result).toBe(true);
+			});
+
+			it('should reject invalid ProseMirror document - null', () => {
+				const result = (converter as any).isValidProseMirrorDoc(null);
+
+				expect(result).toBe(false);
+			});
+
+			it('should reject invalid ProseMirror document - missing type', () => {
+				const invalidDoc = {
+					content: [{ type: 'paragraph' }],
+				};
+
+				const result = (converter as any).isValidProseMirrorDoc(invalidDoc);
+
+				expect(result).toBe(false);
+			});
+
+			it('should reject invalid ProseMirror document - wrong type', () => {
+				const invalidDoc = {
+					type: 'paragraph',
+					content: [{ type: 'text', text: 'Wrong type' }],
+				};
+
+				const result = (converter as any).isValidProseMirrorDoc(invalidDoc);
+
+				expect(result).toBe(false);
+			});
+
+			it('should reject invalid ProseMirror document - missing content', () => {
+				const invalidDoc = {
+					type: 'doc',
+				};
+
+				const result = (converter as any).isValidProseMirrorDoc(invalidDoc);
+
+				expect(result).toBe(false);
+			});
+
+			it('should reject invalid ProseMirror document - empty content', () => {
+				const invalidDoc = {
+					type: 'doc',
+					content: [],
+				};
+
+				const result = (converter as any).isValidProseMirrorDoc(invalidDoc);
+
+				expect(result).toBe(false);
+			});
+		});
+
+		describe('Frontmatter Generation', () => {
+			it('should generate basic frontmatter', () => {
+				const doc = createMockDoc('test-doc', 'Test Document');
+				doc.created_at = '2024-01-15T10:30:00Z';
+
+				const result = (converter as any).generateFrontmatter(doc);
+
+				expect(result.created).toBe('2024-01-15T10:30:00Z');
+				expect(result.source).toBe('Granola');
+				expect(result.id).toBeUndefined();
+				expect(result.title).toBeUndefined();
+				expect(result.updated).toBeUndefined();
+			});
+
+			it('should generate enhanced frontmatter when enabled', () => {
+				converter.updateSettings({
+					...mockSettings,
+					content: {
+						...mockSettings.content,
+						includeEnhancedFrontmatter: true,
+					},
+				});
+
+				const doc = createMockDoc('test-doc', 'Test Document');
+				doc.created_at = '2024-01-15T10:30:00Z';
+				doc.updated_at = '2024-01-16T15:45:00Z';
+
+				const result = (converter as any).generateFrontmatter(doc);
+
+				expect(result.created).toBe('2024-01-15T10:30:00Z');
+				expect(result.source).toBe('Granola');
+				expect(result.id).toBe('test-doc');
+				expect(result.title).toBe('Test Document');
+				expect(result.updated).toBe('2024-01-16T15:45:00Z');
+			});
+		});
+
+		describe('YAML Frontmatter Generation', () => {
+			it('should convert frontmatter object to YAML string', () => {
+				const frontmatter = {
+					created: '2024-01-15T10:30:00Z',
+					source: 'Granola',
+				};
+
+				const result = (converter as any).generateYamlFrontmatter(frontmatter);
+
+				expect(result).toBe('---\ncreated: 2024-01-15T10:30:00Z\nsource: Granola\n---\n');
+			});
+
+			it('should handle enhanced frontmatter with all fields', () => {
+				const frontmatter = {
+					created: '2024-01-15T10:30:00Z',
+					source: 'Granola',
+					id: 'test-doc-123',
+					title: 'My Test Document',
+					updated: '2024-01-16T15:45:00Z',
+				};
+
+				const result = (converter as any).generateYamlFrontmatter(frontmatter);
+
+				expect(result).toContain('created: 2024-01-15T10:30:00Z');
+				expect(result).toContain('source: Granola');
+				expect(result).toContain('id: test-doc-123');
+				expect(result).toContain('title: My Test Document');
+				expect(result).toContain('updated: 2024-01-16T15:45:00Z');
+				expect(result.startsWith('---\n')).toBe(true);
+				expect(result.endsWith('---\n')).toBe(true);
+			});
+
+			it('should escape special YAML characters in string values', () => {
+				const frontmatter = {
+					created: '2024-01-15T10:30:00Z',
+					source: 'Granola',
+					title: 'Document: With Colon',
+				};
+
+				const result = (converter as any).generateYamlFrontmatter(frontmatter);
+
+				expect(result).toContain('title: "Document: With Colon"');
+			});
+
+			it('should handle values with quotes', () => {
+				const frontmatter = {
+					created: '2024-01-15T10:30:00Z',
+					source: 'Granola',
+					title: 'Document "with quotes"',
+				};
+
+				const result = (converter as any).generateYamlFrontmatter(frontmatter);
+
+				expect(result).toContain('title: "Document \\"with quotes\\""');
+			});
+
+			it('should skip undefined and null values', () => {
+				const frontmatter = {
+					created: '2024-01-15T10:30:00Z',
+					source: 'Granola',
+					id: undefined,
+					title: null,
+					updated: '2024-01-16T15:45:00Z',
+				};
+
+				const result = (converter as any).generateYamlFrontmatter(frontmatter);
+
+				expect(result).toContain('created: 2024-01-15T10:30:00Z');
+				expect(result).toContain('source: Granola');
+				expect(result).toContain('updated: 2024-01-16T15:45:00Z');
+				expect(result).not.toContain('id:');
+				expect(result).not.toContain('title:');
+			});
+		});
+
+		describe('Filename Sanitization', () => {
+			it('should remove invalid filename characters', () => {
+				const result = (converter as any).sanitizeFilename('file<>:"/\\|?*name');
+
+				expect(result).toBe('filename');
+			});
+
+			it('should normalize whitespace', () => {
+				const result = (converter as any).sanitizeFilename('file   with    spaces');
+
+				expect(result).toBe('file with spaces');
+			});
+
+			it('should trim whitespace', () => {
+				const result = (converter as any).sanitizeFilename('  filename  ');
+
+				expect(result).toBe('filename');
+			});
+
+			it('should handle complex filename sanitization', () => {
+				const result = (converter as any).sanitizeFilename('  <file>: "name"  with   /\\|?* chars  ');
+
+				expect(result).toBe('file name with chars');
+			});
+
+			it('should handle empty filename', () => {
+				const result = (converter as any).sanitizeFilename('');
+
+				expect(result).toBe('');
+			});
+
+			it('should handle filename with only invalid characters', () => {
+				const result = (converter as any).sanitizeFilename('<>:"/\\|?*');
+
+				expect(result).toBe('');
 			});
 		});
 	});
