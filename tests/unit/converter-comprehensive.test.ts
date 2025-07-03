@@ -335,6 +335,191 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 				expect(result.content).toContain('created: "2024-01-01T00:00:00Z"');
 			});
 		});
+
+		describe('Date Prefix Filename Generation', () => {
+			it('should generate ISO date prefix', () => {
+				converter.updateSettings({
+					...mockSettings,
+					content: {
+						...mockSettings.content,
+						datePrefixFormat: DatePrefixFormat.ISO_DATE,
+					},
+				});
+
+				const doc = createMockDoc('doc-date', 'Date Test Doc');
+				doc.created_at = '2024-03-15T10:30:00Z';
+
+				const result = (converter as any).generateDatePrefixedFilename(doc);
+
+				expect(result).toContain('2024-03-15 - ');
+			});
+
+			it('should generate US date prefix', () => {
+				converter.updateSettings({
+					...mockSettings,
+					content: {
+						...mockSettings.content,
+						datePrefixFormat: DatePrefixFormat.US_DATE,
+					},
+				});
+
+				const doc = createMockDoc('doc-date', 'Date Test Doc');
+				doc.created_at = '2024-03-15T10:30:00Z';
+
+				const result = (converter as any).generateDatePrefixedFilename(doc);
+
+				expect(result).toContain('03-15-2024 - ');
+			});
+
+			it('should generate EU date prefix', () => {
+				converter.updateSettings({
+					...mockSettings,
+					content: {
+						...mockSettings.content,
+						datePrefixFormat: DatePrefixFormat.EU_DATE,
+					},
+				});
+
+				const doc = createMockDoc('doc-date', 'Date Test Doc');
+				doc.created_at = '2024-03-15T10:30:00Z';
+
+				const result = (converter as any).generateDatePrefixedFilename(doc);
+
+				expect(result).toContain('15-03-2024 - ');
+			});
+
+			it('should generate dot date prefix', () => {
+				converter.updateSettings({
+					...mockSettings,
+					content: {
+						...mockSettings.content,
+						datePrefixFormat: DatePrefixFormat.DOT_DATE,
+					},
+				});
+
+				const doc = createMockDoc('doc-date', 'Date Test Doc');
+				doc.created_at = '2024-03-15T10:30:00Z';
+
+				const result = (converter as any).generateDatePrefixedFilename(doc);
+
+				expect(result).toContain('2024.03.15 - ');
+			});
+
+			it('should handle no date prefix', () => {
+				converter.updateSettings({
+					...mockSettings,
+					content: {
+						...mockSettings.content,
+						datePrefixFormat: DatePrefixFormat.NONE,
+					},
+				});
+
+				const doc = createMockDoc('doc-date', 'Date Test Doc');
+				doc.created_at = '2024-03-15T10:30:00Z';
+
+				const result = (converter as any).generateDatePrefixedFilename(doc);
+
+				expect(result).not.toContain('2024');
+				expect(result).toBe('date-test-doc.md');
+			});
+
+			it('should handle invalid date gracefully', () => {
+				converter.updateSettings({
+					...mockSettings,
+					content: {
+						...mockSettings.content,
+						datePrefixFormat: DatePrefixFormat.ISO_DATE,
+					},
+				});
+
+				const doc = createMockDoc('doc-date', 'Date Test Doc');
+				doc.created_at = 'invalid-date';
+
+				const result = (converter as any).generateDatePrefixedFilename(doc);
+
+				// Should fallback to no prefix when date is invalid
+				expect(result).toBe('date-test-doc.md');
+			});
+		});
+
+		describe('Content Priority Fallback Logic', () => {
+			it('should fallback from panel to notes when panel is invalid', () => {
+				const doc = createMockDoc('doc-fallback', 'Fallback Test', true, true);
+				doc.last_viewed_panel.content = null; // Invalid panel content
+
+				jest.spyOn(converter as any, 'isValidProseMirrorDoc')
+					.mockReturnValueOnce(false) // Panel content is invalid
+					.mockReturnValueOnce(true); // Notes content is valid
+
+				jest.spyOn(converter as any, 'convertProseMirrorToMarkdown').mockReturnValue(
+					'# Notes Content'
+				);
+				jest.spyOn(converter as any, 'generateFrontmatter').mockReturnValue({
+					created: '2024-01-01T00:00:00Z',
+					source: 'Granola',
+				});
+				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue(
+					'fallback-test.md'
+				);
+
+				const result = converter.convertDocument(doc);
+
+				expect(result.content).toContain('# Notes Content');
+			});
+
+			it('should fallback from notes to panel when notes is invalid', () => {
+				converter.updateSettings({
+					...mockSettings,
+					content: {
+						...mockSettings.content,
+						contentPriority: ContentPriority.NOTES_FIRST,
+					},
+				});
+
+				const doc = createMockDoc('doc-fallback', 'Fallback Test', true, true);
+				doc.notes = null; // Invalid notes content
+
+				jest.spyOn(converter as any, 'isValidProseMirrorDoc')
+					.mockReturnValueOnce(false) // Notes content is invalid
+					.mockReturnValueOnce(true); // Panel content is valid
+
+				jest.spyOn(converter as any, 'convertProseMirrorToMarkdown').mockReturnValue(
+					'# Panel Content'
+				);
+				jest.spyOn(converter as any, 'generateFrontmatter').mockReturnValue({
+					created: '2024-01-01T00:00:00Z',
+					source: 'Granola',
+				});
+				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue(
+					'fallback-test.md'
+				);
+
+				const result = converter.convertDocument(doc);
+
+				expect(result.content).toContain('# Panel Content');
+			});
+
+			it('should handle ProseMirror conversion failure gracefully', () => {
+				const doc = createMockDoc('doc-fallback', 'Conversion Failure');
+				doc.notes_markdown = 'Fallback markdown content';
+
+				jest.spyOn(converter as any, 'isValidProseMirrorDoc').mockReturnValue(true);
+				jest.spyOn(converter as any, 'convertProseMirrorToMarkdown').mockImplementation(() => {
+					throw new Error('Conversion failed');
+				});
+				jest.spyOn(converter as any, 'generateFrontmatter').mockReturnValue({
+					created: '2024-01-01T00:00:00Z',
+					source: 'Granola',
+				});
+				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue(
+					'conversion-failure.md'
+				);
+
+				const result = converter.convertDocument(doc);
+
+				expect(result.content).toContain('Fallback markdown content');
+			});
+		});
 	});
 
 	describe('NodeConverters - node-converters.ts', () => {
@@ -627,6 +812,524 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 				const result = nodeConverters.convertHeading(malformedHeading);
 
 				expect(result).toBe('# Malformed\n\n'); // Should default to level 1
+			});
+		});
+
+		describe('List Conversion', () => {
+			it('should convert bullet list with multiple items', () => {
+				const bulletListNode: ProseMirrorNode = {
+					type: 'bulletList',
+					content: [
+						{
+							type: 'listItem',
+							content: [
+								{
+									type: 'paragraph',
+									content: [{ type: 'text', text: 'First item' }],
+								},
+							],
+						},
+						{
+							type: 'listItem',
+							content: [
+								{
+									type: 'paragraph',
+									content: [{ type: 'text', text: 'Second item' }],
+								},
+							],
+						},
+					],
+				};
+
+				const result = nodeConverters.convertList(bulletListNode);
+
+				expect(result).toBe('- First item\n- Second item\n\n');
+				expect(mockLogger.debug).toHaveBeenCalledWith(
+					'Converting list node:',
+					bulletListNode
+				);
+			});
+
+			it('should convert ordered list with multiple items', () => {
+				const orderedListNode: ProseMirrorNode = {
+					type: 'orderedList',
+					content: [
+						{
+							type: 'listItem',
+							content: [
+								{
+									type: 'paragraph',
+									content: [{ type: 'text', text: 'First numbered item' }],
+								},
+							],
+						},
+						{
+							type: 'listItem',
+							content: [
+								{
+									type: 'paragraph',
+									content: [{ type: 'text', text: 'Second numbered item' }],
+								},
+							],
+						},
+					],
+				};
+
+				const result = nodeConverters.convertList(orderedListNode);
+
+				expect(result).toBe('1. First numbered item\n2. Second numbered item\n\n');
+			});
+
+			it('should handle empty list', () => {
+				const emptyListNode: ProseMirrorNode = {
+					type: 'bulletList',
+					content: [],
+				};
+
+				const result = nodeConverters.convertList(emptyListNode);
+
+				expect(result).toBe('');
+			});
+
+			it('should handle list with no content property', () => {
+				const noContentListNode: ProseMirrorNode = {
+					type: 'bulletList',
+				};
+
+				const result = nodeConverters.convertList(noContentListNode);
+
+				expect(result).toBe('');
+			});
+
+			it('should handle list item with empty content', () => {
+				const emptyItemNode: ProseMirrorNode = {
+					type: 'listItem',
+					content: [],
+				};
+
+				const result = nodeConverters.convertListItem(emptyItemNode);
+
+				expect(result).toBe('');
+			});
+
+			it('should skip empty list items', () => {
+				const listWithEmptyItemNode: ProseMirrorNode = {
+					type: 'bulletList',
+					content: [
+						{
+							type: 'listItem',
+							content: [
+								{
+									type: 'paragraph',
+									content: [{ type: 'text', text: 'Valid item' }],
+								},
+							],
+						},
+						{
+							type: 'listItem',
+							content: [],
+						},
+					],
+				};
+
+				const result = nodeConverters.convertList(listWithEmptyItemNode);
+
+				expect(result).toBe('- Valid item\n\n');
+			});
+		});
+
+		describe('Text Formatting Conversion', () => {
+			it('should convert text with bold formatting', () => {
+				const boldTextNode: ProseMirrorNode = {
+					type: 'text',
+					text: 'Bold text',
+					marks: [{ type: 'strong' }],
+				};
+
+				const result = nodeConverters.convertText(boldTextNode);
+
+				expect(result).toBe('**Bold text**');
+			});
+
+			it('should convert text with italic formatting', () => {
+				const italicTextNode: ProseMirrorNode = {
+					type: 'text',
+					text: 'Italic text',
+					marks: [{ type: 'em' }],
+				};
+
+				const result = nodeConverters.convertText(italicTextNode);
+
+				expect(result).toBe('_Italic text_');
+			});
+
+			it('should convert text with inline code formatting', () => {
+				const codeTextNode: ProseMirrorNode = {
+					type: 'text',
+					text: 'code snippet',
+					marks: [{ type: 'code' }],
+				};
+
+				const result = nodeConverters.convertText(codeTextNode);
+
+				expect(result).toBe('`code snippet`');
+			});
+
+			it('should convert text with link formatting', () => {
+				const linkTextNode: ProseMirrorNode = {
+					type: 'text',
+					text: 'Click here',
+					marks: [{ type: 'link', attrs: { href: 'https://example.com' } }],
+				};
+
+				const result = nodeConverters.convertText(linkTextNode);
+
+				expect(result).toBe('[Click here](https://example.com)');
+			});
+
+			it('should handle link without href attribute', () => {
+				const linkTextNode: ProseMirrorNode = {
+					type: 'text',
+					text: 'Broken link',
+					marks: [{ type: 'link' }],
+				};
+
+				const result = nodeConverters.convertText(linkTextNode);
+
+				expect(result).toBe('[Broken link](#)');
+			});
+
+			it('should convert text with multiple marks', () => {
+				const multiMarkTextNode: ProseMirrorNode = {
+					type: 'text',
+					text: 'Bold italic text',
+					marks: [{ type: 'strong' }, { type: 'em' }],
+				};
+
+				const result = nodeConverters.convertText(multiMarkTextNode);
+
+				expect(result).toBe('_**Bold italic text**_');
+			});
+
+			it('should handle text without marks', () => {
+				const plainTextNode: ProseMirrorNode = {
+					type: 'text',
+					text: 'Plain text',
+				};
+
+				const result = nodeConverters.convertText(plainTextNode);
+
+				expect(result).toBe('Plain text');
+			});
+
+			it('should handle text node without text property', () => {
+				const emptyTextNode: ProseMirrorNode = {
+					type: 'text',
+				};
+
+				const result = nodeConverters.convertText(emptyTextNode);
+
+				expect(result).toBe('');
+			});
+		});
+
+		describe('Code Block Conversion', () => {
+			it('should convert code block with language', () => {
+				const codeBlockNode: ProseMirrorNode = {
+					type: 'codeBlock',
+					attrs: { language: 'javascript' },
+					content: [{ type: 'text', text: 'console.log("Hello, world!");' }],
+				};
+
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue(
+					'console.log("Hello, world!");'
+				);
+
+				const result = nodeConverters.convertCodeBlock(codeBlockNode);
+
+				expect(result).toBe('```javascript\nconsole.log("Hello, world!");\n```\n\n');
+				expect(mockLogger.debug).toHaveBeenCalledWith(
+					'Converting code block node:',
+					codeBlockNode
+				);
+			});
+
+			it('should convert code block without language', () => {
+				const codeBlockNode: ProseMirrorNode = {
+					type: 'codeBlock',
+					content: [{ type: 'text', text: 'generic code' }],
+				};
+
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue(
+					'generic code'
+				);
+
+				const result = nodeConverters.convertCodeBlock(codeBlockNode);
+
+				expect(result).toBe('```\ngeneric code\n```\n\n');
+			});
+
+			it('should handle code block with text property instead of content', () => {
+				const codeBlockNode: ProseMirrorNode = {
+					type: 'codeBlock',
+					text: 'direct text code',
+				};
+
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue('');
+
+				const result = nodeConverters.convertCodeBlock(codeBlockNode);
+
+				expect(result).toBe('```\ndirect text code\n```\n\n');
+			});
+
+			it('should handle empty code block', () => {
+				const emptyCodeBlockNode: ProseMirrorNode = {
+					type: 'codeBlock',
+					content: [],
+				};
+
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue('');
+
+				const result = nodeConverters.convertCodeBlock(emptyCodeBlockNode);
+
+				expect(result).toBe('```\n\n```\n\n');
+			});
+		});
+
+		describe('Blockquote Conversion', () => {
+			it('should convert simple blockquote', () => {
+				const blockquoteNode: ProseMirrorNode = {
+					type: 'blockquote',
+					content: [
+						{
+							type: 'paragraph',
+							content: [{ type: 'text', text: 'This is a quote.' }],
+						},
+					],
+				};
+
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue(
+					'This is a quote.'
+				);
+
+				const result = nodeConverters.convertBlockquote(blockquoteNode);
+
+				expect(result).toBe('> This is a quote.\n\n');
+				expect(mockLogger.debug).toHaveBeenCalledWith(
+					'Converting blockquote node:',
+					blockquoteNode
+				);
+			});
+
+			it('should convert multi-paragraph blockquote', () => {
+				const multiParagraphBlockquoteNode: ProseMirrorNode = {
+					type: 'blockquote',
+					content: [
+						{
+							type: 'paragraph',
+							content: [{ type: 'text', text: 'First paragraph.' }],
+						},
+						{
+							type: 'paragraph',
+							content: [{ type: 'text', text: 'Second paragraph.' }],
+						},
+					],
+				};
+
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes')
+					.mockReturnValueOnce('First paragraph.')
+					.mockReturnValueOnce('Second paragraph.');
+
+				const result = nodeConverters.convertBlockquote(multiParagraphBlockquoteNode);
+
+				expect(result).toBe('> First paragraph.\n> Second paragraph.\n\n');
+			});
+
+			it('should handle blockquote with empty paragraphs', () => {
+				const emptyParagraphBlockquoteNode: ProseMirrorNode = {
+					type: 'blockquote',
+					content: [
+						{
+							type: 'paragraph',
+							content: [{ type: 'text', text: 'Content' }],
+						},
+						{
+							type: 'paragraph',
+							content: [],
+						},
+					],
+				};
+
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes')
+					.mockReturnValueOnce('Content')
+					.mockReturnValueOnce('');
+
+				const result = nodeConverters.convertBlockquote(emptyParagraphBlockquoteNode);
+
+				expect(result).toBe('> Content\n> \n\n');
+			});
+
+			it('should handle empty blockquote', () => {
+				const emptyBlockquoteNode: ProseMirrorNode = {
+					type: 'blockquote',
+					content: [],
+				};
+
+				const result = nodeConverters.convertBlockquote(emptyBlockquoteNode);
+
+				expect(result).toBe('> \n\n');
+			});
+
+			it('should handle blockquote with no content property', () => {
+				const noContentBlockquoteNode: ProseMirrorNode = {
+					type: 'blockquote',
+				};
+
+				const result = nodeConverters.convertBlockquote(noContentBlockquoteNode);
+
+				expect(result).toBe('> \n\n');
+			});
+
+			it('should handle blockquote with multi-line text', () => {
+				const multiLineBlockquoteNode: ProseMirrorNode = {
+					type: 'blockquote',
+					content: [
+						{
+							type: 'paragraph',
+							content: [{ type: 'text', text: 'Line one\nLine two\nLine three' }],
+						},
+					],
+				};
+
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue(
+					'Line one\nLine two\nLine three'
+				);
+
+				const result = nodeConverters.convertBlockquote(multiLineBlockquoteNode);
+
+				expect(result).toBe('> Line one\n> Line two\n> Line three\n\n');
+			});
+		});
+
+		describe('Table Conversion', () => {
+			it('should convert simple table', () => {
+				const tableNode: ProseMirrorNode = {
+					type: 'table',
+					content: [
+						{
+							type: 'tableRow',
+							content: [
+								{
+									type: 'tableCell',
+									content: [
+										{
+											type: 'paragraph',
+											content: [{ type: 'text', text: 'Header 1' }],
+										},
+									],
+								},
+								{
+									type: 'tableCell',
+									content: [
+										{
+											type: 'paragraph',
+											content: [{ type: 'text', text: 'Header 2' }],
+										},
+									],
+								},
+							],
+						},
+						{
+							type: 'tableRow',
+							content: [
+								{
+									type: 'tableCell',
+									content: [
+										{
+											type: 'paragraph',
+											content: [{ type: 'text', text: 'Cell 1' }],
+										},
+									],
+								},
+								{
+									type: 'tableCell',
+									content: [
+										{
+											type: 'paragraph',
+											content: [{ type: 'text', text: 'Cell 2' }],
+										},
+									],
+								},
+							],
+						},
+					],
+				};
+
+				jest.spyOn(nodeConverters, 'convertTableRow')
+					.mockReturnValueOnce('| Header 1 | Header 2 |')
+					.mockReturnValueOnce('| Cell 1 | Cell 2 |');
+
+				const result = nodeConverters.convertTable(tableNode);
+
+				expect(result).toBe('| Header 1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |\n\n');
+				expect(mockLogger.debug).toHaveBeenCalledWith('Converting table node:', tableNode);
+			});
+
+			it('should handle empty table', () => {
+				const emptyTableNode: ProseMirrorNode = {
+					type: 'table',
+					content: [],
+				};
+
+				const result = nodeConverters.convertTable(emptyTableNode);
+
+				expect(result).toBe('');
+			});
+
+			it('should handle table with no content property', () => {
+				const noContentTableNode: ProseMirrorNode = {
+					type: 'table',
+				};
+
+				const result = nodeConverters.convertTable(noContentTableNode);
+
+				expect(result).toBe('');
+			});
+
+			it('should convert table row', () => {
+				const tableRowNode: ProseMirrorNode = {
+					type: 'tableRow',
+					content: [
+						{
+							type: 'tableCell',
+							content: [
+								{
+									type: 'paragraph',
+									content: [{ type: 'text', text: 'Cell content' }],
+								},
+							],
+						},
+					],
+				};
+
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue(
+					'Cell content'
+				);
+
+				const result = nodeConverters.convertTableRow(tableRowNode);
+
+				expect(result).toBe('| Cell content |');
+			});
+
+			it('should handle empty table row', () => {
+				const emptyTableRowNode: ProseMirrorNode = {
+					type: 'tableRow',
+					content: [],
+				};
+
+				const result = nodeConverters.convertTableRow(emptyTableRowNode);
+
+				expect(result).toBe('');
 			});
 		});
 	});
