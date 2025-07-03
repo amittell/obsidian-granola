@@ -395,7 +395,12 @@ function checkForRegressions(current, history) {
 		return { hasRegressions: false, message: 'No previous data for comparison' };
 	}
 
-	const previous = history[history.length - 1];
+	// Find the most recent entry with summary data
+	const previous = history.slice().reverse().find(entry => entry.summary);
+	if (!previous || !previous.summary) {
+		return { hasRegressions: false, message: 'No previous performance data with summary found' };
+	}
+
 	const issues = [];
 
 	// Check modal loading time

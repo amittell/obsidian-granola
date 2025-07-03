@@ -31,27 +31,27 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 		user_id: 'user-1',
 		last_viewed_panel: hasPanel
 			? {
-				content: {
+					content: {
+						type: 'doc',
+						content: [
+							{
+								type: 'paragraph',
+								content: [{ type: 'text', text: 'Panel content for ' + title }],
+							},
+						],
+					},
+				}
+			: undefined,
+		notes: hasNotes
+			? {
 					type: 'doc',
 					content: [
 						{
 							type: 'paragraph',
-							content: [{ type: 'text', text: 'Panel content for ' + title }],
+							content: [{ type: 'text', text: 'Notes content for ' + title }],
 						},
 					],
-				},
-			}
-			: undefined,
-		notes: hasNotes
-			? {
-				type: 'doc',
-				content: [
-					{
-						type: 'paragraph',
-						content: [{ type: 'text', text: 'Notes content for ' + title }],
-					},
-				],
-			}
+				}
 			: undefined,
 		notes_markdown: hasMarkdown ? `# ${title}\n\nMarkdown content for ${title}` : '',
 		notes_plain: hasPlain ? `Plain text content for ${title}` : '',
@@ -122,7 +122,6 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 		});
 
 		describe('Document Conversion with Content Priority', () => {
-
 			it('should prioritize panel content when PANEL_FIRST', () => {
 				const doc = createMockDoc('doc-1', 'Test Document');
 
@@ -444,7 +443,6 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 			});
 		});
 
-
 		describe('ProseMirror Document Validation', () => {
 			it('should validate valid ProseMirror document', () => {
 				const validDoc = {
@@ -653,7 +651,9 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 			});
 
 			it('should handle complex filename sanitization', () => {
-				const result = (converter as any).sanitizeFilename('  <file>: "name"  with   /\\|?* chars  ');
+				const result = (converter as any).sanitizeFilename(
+					'  <file>: "name"  with   /\\|?* chars  '
+				);
 
 				expect(result).toBe('file name with chars');
 			});
@@ -1421,7 +1421,9 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 
 				const result = nodeConverters.convertTable(tableNode);
 
-				expect(result).toBe('| Header 1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |\n\n');
+				expect(result).toBe(
+					'| Header 1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |\n\n'
+				);
 				expect(mockLogger.debug).toHaveBeenCalledWith('Converting table node:', tableNode);
 			});
 
