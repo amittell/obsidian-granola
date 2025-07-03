@@ -1,0 +1,126 @@
+[
+	{
+		"timestamp": "2025-07-02T23:48:37.877Z",
+		"git": {
+			"commit": "a77e71c2332313d41d1b3b54911dc19e63393690",
+			"branch": "main",
+			"message": "chore: update deployment scripts with personalized vault path and bundle metadata"
+		},
+		"securityScore": 49,
+		"npmAudit": {
+			"success": true,
+			"vulnerabilities": {},
+			"metadata": {
+				"vulnerabilities": {
+					"info": 0,
+					"low": 0,
+					"moderate": 0,
+					"high": 0,
+					"critical": 0,
+					"total": 0
+				},
+				"dependencies": {
+					"prod": 1,
+					"dev": 604,
+					"optional": 26,
+					"peer": 6,
+					"peerOptional": 0,
+					"total": 604
+				}
+			},
+			"summary": {
+				"total": 0,
+				"critical": 0,
+				"high": 0,
+				"moderate": 0,
+				"low": 0,
+				"info": 0
+			}
+		},
+		"codeIssues": [
+			{
+				"file": "main.js",
+				"line": 194,
+				"severity": "moderate",
+				"description": "Direct innerHTML assignment (XSS risk)",
+				"match": "innerHTML='<span style=\""
+			},
+			{
+				"file": "main.js",
+				"line": 194,
+				"severity": "moderate",
+				"description": "Direct innerHTML assignment (XSS risk)",
+				"match": "innerHTML='<span style=\""
+			},
+			{
+				"file": "main.js",
+				"line": 194,
+				"severity": "moderate",
+				"description": "Direct innerHTML assignment (XSS risk)",
+				"match": "innerHTML='<span style=\""
+			},
+			{
+				"file": "main.js",
+				"line": 194,
+				"severity": "moderate",
+				"description": "Direct innerHTML assignment (XSS risk)",
+				"match": "innerHTML=`<span style=\""
+			},
+			{
+				"file": "main.js",
+				"line": 194,
+				"severity": "moderate",
+				"description": "Direct innerHTML assignment (XSS risk)",
+				"match": "innerHTML='<span style=\""
+			},
+			{
+				"file": "src/settings.ts",
+				"line": 301,
+				"severity": "moderate",
+				"description": "Direct innerHTML assignment (XSS risk)",
+				"match": "innerHTML = '<span style=\""
+			},
+			{
+				"file": "src/settings.ts",
+				"line": 316,
+				"severity": "moderate",
+				"description": "Direct innerHTML assignment (XSS risk)",
+				"match": "innerHTML =\n\t\t\t\t\t'<span style=\""
+			},
+			{
+				"file": "src/settings.ts",
+				"line": 301,
+				"severity": "moderate",
+				"description": "Direct innerHTML assignment (XSS risk)",
+				"match": "innerHTML = '<span style=\""
+			},
+			{
+				"file": "src/settings.ts",
+				"line": 340,
+				"severity": "moderate",
+				"description": "Direct innerHTML assignment (XSS risk)",
+				"match": "innerHTML = `<span style=\""
+			},
+			{
+				"file": "src/settings.ts",
+				"line": 301,
+				"severity": "moderate",
+				"description": "Direct innerHTML assignment (XSS risk)",
+				"match": "innerHTML = '<span style=\""
+			}
+		],
+		"dependencyIssues": [],
+		"configIssues": [
+			{
+				"type": "config",
+				"severity": "low",
+				"description": "No audit script defined in package.json"
+			}
+		],
+		"summary": {
+			"totalIssues": 11,
+			"highSeverityCount": 0,
+			"passed": false
+		}
+	}
+]

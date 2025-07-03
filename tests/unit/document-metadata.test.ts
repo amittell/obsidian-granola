@@ -10,9 +10,15 @@ describe('DocumentMetadataService', () => {
 	let service: DocumentMetadataService;
 	let mockDocument: GranolaDocument;
 	let mockImportStatus: DuplicateCheckResult;
+	let mockFile: any;
 
 	beforeEach(() => {
 		service = new DocumentMetadataService();
+
+		mockFile = {
+			name: 'test-file.md',
+			path: 'test-folder/test-file.md'
+		};
 
 		mockDocument = {
 			id: 'test-doc-1',
@@ -79,9 +85,9 @@ describe('DocumentMetadataService', () => {
 		it('should generate time ago format', () => {
 			const metadata = service.extractMetadata(mockDocument, mockImportStatus);
 
-			// Since we're testing with fixed dates in the past, should show "days ago"
-			expect(metadata.createdAgo).toMatch(/\d+ days? ago/);
-			expect(metadata.updatedAgo).toMatch(/\d+ days? ago/);
+			// Since we're testing with fixed dates in the past, should show time ago format
+			expect(metadata.createdAgo).toMatch(/\d+ (years?|days?|hours?|minutes?) ago/);
+			expect(metadata.updatedAgo).toMatch(/\d+ (years?|days?|hours?|minutes?) ago/);
 		});
 
 		it('should calculate word count from plain text', () => {
@@ -455,6 +461,400 @@ describe('DocumentMetadataService', () => {
 			const metadata = service.extractMetadata(malformedDoc, mockImportStatus);
 
 			expect(metadata.preview).toBe('No content available');
+		});
+	});
+
+	describe('edge cases and error handling', () => {
+		it('should handle documents with null or undefined properties', () => {
+			const nullDoc: GranolaDocument = {
+				...mockDocument,
+				title: null as any,
+				notes_plain: null as any,
+				notes_markdown: null as any,
+				notes: null as any,
+				created_at: null as any,
+				updated_at: null as any,
+			};
+
+			const metadata = service.extractMetadata(nullDoc, mockImportStatus);
+
+			expect(metadata.title).toBe('Untitled Document');
+			expect(metadata.preview).toBe('No content available');
+			expect(metadata.createdDate).toBe('Invalid Date');
+			expect(metadata.updatedDate).toBe('Invalid Date');
+		});
+
+		it('should handle documents with extremely long content', () => {
+			const longContent = 'word '.repeat(9000); // 9000 words, ~45,000 characters
+			const longDoc: GranolaDocument = {
+				...mockDocument,
+				notes_plain: longContent,
+			};
+
+			const metadata = service.extractMetadata(longDoc, mockImportStatus);
+
+			// Preview should be truncated to reasonable length
+			expect(metadata.preview.length).toBeLessThan(longContent.length);
+			expect(metadata.wordCount).toBeGreaterThan(1000);
+			expect(metadata.readingTime).toBeGreaterThan(40); // Long reading time (9000 words / 200 wpm = 45 minutes)
+		});
+
+		it('should handle documents with special characters and unicode', () => {
+			const unicodeDoc: GranolaDocument = {
+				...mockDocument,
+				title: '📝 Special Title with émojis & characters',
+				notes_plain: 'Content with 🎉 émojis and spéciál characters: 中文 العربية русский',
+			};
+
+			const metadata = service.extractMetadata(unicodeDoc, mockImportStatus);
+
+			expect(metadata.title).toBe('📝 Special Title with émojis & characters');
+			expect(metadata.preview).toContain('émojis');
+			expect(metadata.preview).toContain('中文');
+			expect(metadata.wordCount).toBeGreaterThan(0);
+		});
+
+		it('should handle empty string values gracefully', () => {
+			const emptyStringDoc: GranolaDocument = {
+				...mockDocument,
+				title: '',
+				notes_plain: '',
+				notes_markdown: '',
+				notes: undefined as any,
+			};
+
+			const metadata = service.extractMetadata(emptyStringDoc, mockImportStatus);
+
+			expect(metadata.title).toBe('Untitled Document');
+			expect(metadata.preview).toBe('No content available');
+			expect(metadata.wordCount).toBe(3); // "No content available"
+		});
+
+		it('should handle mixed line endings and whitespace', () => {
+			const mixedDoc: GranolaDocument = {
+				...mockDocument,
+				notes_plain: '  \r\n  Line with mixed endings\r\n\n\r\n  Another line  \t\n  ',
+			};
+
+			const metadata = service.extractMetadata(mixedDoc, mockImportStatus);
+
+			expect(metadata.preview).not.toMatch(/^\s+/); // Should not start with whitespace
+			expect(metadata.preview).not.toMatch(/\s+$/); // Should not end with whitespace
+			expect(metadata.wordCount).toBe(6); // "Line with mixed endings Another line"
+		});
+
+		it('should handle documents with only whitespace', () => {
+			const whitespaceDoc: GranolaDocument = {
+				...mockDocument,
+				notes_plain: '   \t\n\r\n   \t  ',
+				notes_markdown: '\n\n\t\t\n',
+				notes: null as any,
+				last_viewed_panel: null as any,
+			};
+
+			const metadata = service.extractMetadata(whitespaceDoc, mockImportStatus);
+
+			expect(metadata.preview).toBe('No content available');
+			expect(metadata.wordCount).toBe(3); // Falls back to "No content available"
+		});
+
+		it('should handle future dates', () => {
+			const futureDate = new Date(Date.now() + 86400000).toISOString(); // Tomorrow
+			const futureDoc: GranolaDocument = {
+				...mockDocument,
+				created_at: futureDate,
+				updated_at: futureDate,
+			};
+
+			const metadata = service.extractMetadata(futureDoc, mockImportStatus);
+
+			expect(metadata.createdAgo).toContain('in'); // "in X hours/days"
+			expect(metadata.updatedAgo).toContain('in');
+		});
+
+		it('should handle very old dates', () => {
+			const oldDate = '1970-01-01T00:00:00.000Z'; // Unix epoch
+			const oldDoc: GranolaDocument = {
+				...mockDocument,
+				created_at: oldDate,
+				updated_at: oldDate,
+			};
+
+			const metadata = service.extractMetadata(oldDoc, mockImportStatus);
+
+			expect(metadata.createdAgo).toContain('years ago');
+			expect(metadata.updatedAgo).toContain('years ago');
+		});
+
+		it('should handle ProseMirror content with nested structures', () => {
+			const nestedDoc: GranolaDocument = {
+				...mockDocument,
+				notes_plain: '',
+				notes_markdown: '',
+				notes: {
+					type: 'doc',
+					content: [
+						{
+							type: 'heading',
+							attrs: { level: 1 },
+							content: [{ type: 'text', text: 'Main Heading' }],
+						},
+						{
+							type: 'bulletList',
+							content: [
+								{
+									type: 'listItem',
+									content: [
+										{
+											type: 'paragraph',
+											content: [{ type: 'text', text: 'First item' }],
+										},
+									],
+								},
+								{
+									type: 'listItem',
+									content: [
+										{
+											type: 'paragraph',
+											content: [
+												{ type: 'text', text: 'Second item with ' },
+												{
+													type: 'text',
+													marks: [{ type: 'strong' }],
+													text: 'bold text',
+												},
+											],
+										},
+									],
+								},
+							],
+						},
+					],
+				},
+			};
+
+			const metadata = service.extractMetadata(nestedDoc, mockImportStatus);
+
+			expect(metadata.preview).toContain('Main Heading');
+			expect(metadata.preview).toContain('First item');
+			expect(metadata.wordCount).toBeGreaterThan(5);
+		});
+
+		it('should handle malformed ProseMirror with invalid structure', () => {
+			const malformedDoc: GranolaDocument = {
+				...mockDocument,
+				notes_plain: '',
+				notes_markdown: '',
+				notes: {
+					type: 'invalid',
+					content: 'not an array',
+				} as any,
+			};
+
+			const metadata = service.extractMetadata(malformedDoc, mockImportStatus);
+
+			expect(metadata.preview).toBe('No content available');
+			expect(metadata.wordCount).toBe(3);
+		});
+
+		it('should handle different import status scenarios', () => {
+			const conflictStatus: DocumentImportStatus = {
+				status: 'CONFLICT',
+				requiresUserChoice: true,
+				existingFile: mockFile,
+				localModifications: true,
+				isNewer: false,
+			};
+
+			const metadata = service.extractMetadata(mockDocument, conflictStatus);
+
+			expect(metadata.importStatus).toEqual(conflictStatus);
+		});
+
+		it('should handle documents with excessive nested content', () => {
+			// Create deeply nested ProseMirror structure
+			const deeplyNested: any = {
+				type: 'doc',
+				content: [
+					{
+						type: 'paragraph',
+						content: [{ type: 'text', text: 'Level 1' }],
+					},
+				],
+			};
+
+			// Add 10 levels of nesting
+			for (let i = 0; i < 10; i++) {
+				deeplyNested.content = [
+					{
+						type: 'paragraph',
+						content: [
+							{ type: 'text', text: `Nested level ${i}` },
+							{
+								type: 'doc',
+								content: deeplyNested.content,
+							},
+						],
+					},
+				];
+			}
+
+			const nestedDoc: GranolaDocument = {
+				...mockDocument,
+				notes_plain: '',
+				notes_markdown: '',
+				notes: deeplyNested,
+			};
+
+			// Should not crash with deeply nested structures
+			const metadata = service.extractMetadata(nestedDoc, mockImportStatus);
+
+			expect(metadata.preview).toBeTruthy();
+			expect(metadata.wordCount).toBeGreaterThan(0);
+		});
+
+		it('should handle documents with unknown node types', () => {
+			const unknownNodeDoc: GranolaDocument = {
+				...mockDocument,
+				notes_plain: '',
+				notes_markdown: '',
+				notes: {
+					type: 'doc',
+					content: [
+						{
+							type: 'unknown_node_type',
+							content: [{ type: 'text', text: 'Unknown content' }],
+						},
+						{
+							type: 'paragraph',
+							content: [{ type: 'text', text: 'Known content' }],
+						},
+					],
+				},
+			};
+
+			const metadata = service.extractMetadata(unknownNodeDoc, mockImportStatus);
+
+			// Should still extract text from known nodes
+			expect(metadata.preview).toContain('Known content');
+			expect(metadata.wordCount).toBeGreaterThan(0);
+		});
+
+		it('should handle documents with circular references gracefully', () => {
+			// Create a circular reference in the content
+			const circularContent: any = {
+				type: 'paragraph',
+				content: [{ type: 'text', text: 'Circular reference test' }],
+			};
+			circularContent.parent = circularContent; // Create circular reference
+
+			const circularDoc: GranolaDocument = {
+				...mockDocument,
+				notes_plain: '',
+				notes_markdown: '',
+				notes: {
+					type: 'doc',
+					content: [circularContent],
+				},
+			};
+
+			// Should not get stuck in infinite loop
+			const metadata = service.extractMetadata(circularDoc, mockImportStatus);
+
+			expect(metadata.preview).toContain('Circular reference test');
+			expect(metadata.wordCount).toBe(3);
+		});
+
+		it('should handle content priority fallback scenarios', () => {
+			// Test when primary content source is empty but fallback has content
+			const fallbackDoc: GranolaDocument = {
+				...mockDocument,
+				notes_plain: 'Fallback plain text content',
+				notes_markdown: '',
+				notes: null as any,
+			};
+
+			const metadata = service.extractMetadata(fallbackDoc, mockImportStatus);
+
+			expect(metadata.preview).toContain('Fallback plain text content');
+			expect(metadata.wordCount).toBe(4);
+		});
+
+		it('should handle extremely short content', () => {
+			const shortDoc: GranolaDocument = {
+				...mockDocument,
+				notes_plain: 'Hi',
+			};
+
+			const metadata = service.extractMetadata(shortDoc, mockImportStatus);
+
+			expect(metadata.preview).toBe('Hi');
+			expect(metadata.wordCount).toBe(1);
+			expect(metadata.readingTime).toBe(1); // Minimum reading time
+		});
+
+		it('should handle content with only punctuation and numbers', () => {
+			const punctuationDoc: GranolaDocument = {
+				...mockDocument,
+				notes_plain: '!@#$%^&*()_+ 123 456.789',
+			};
+
+			const metadata = service.extractMetadata(punctuationDoc, mockImportStatus);
+
+			expect(metadata.preview).toBe('!@#$%^&*()_+ 123 456.789');
+			// Should count numbers as words
+			expect(metadata.wordCount).toBeGreaterThan(0);
+		});
+	});
+
+	describe('performance and boundary testing', () => {
+		it('should handle processing many documents efficiently', () => {
+			const startTime = Date.now();
+			const documents = Array(100)
+				.fill(mockDocument)
+				.map((doc, i) => ({
+					...doc,
+					id: `doc-${i}`,
+					title: `Document ${i}`,
+				}));
+
+			const metadataArray = documents.map(doc =>
+				service.extractMetadata(doc, mockImportStatus)
+			);
+
+			const processingTime = Date.now() - startTime;
+
+			expect(metadataArray).toHaveLength(100);
+			expect(processingTime).toBeLessThan(1000); // Should process 100 docs in under 1 second
+			expect(metadataArray.every(m => m.title.startsWith('Document'))).toBe(true);
+		});
+
+		it('should handle zero-length arrays and empty objects', () => {
+			const emptyArrayDoc: GranolaDocument = {
+				...mockDocument,
+				notes_plain: null as any,
+				notes_markdown: null as any,
+				notes: {
+					type: 'doc',
+					content: [],
+				},
+				last_viewed_panel: null as any,
+			};
+
+			const metadata = service.extractMetadata(emptyArrayDoc, mockImportStatus);
+
+			expect(metadata.preview).toBe('No content available');
+			expect(metadata.wordCount).toBe(3);
+		});
+
+		it('should maintain consistent behavior with same input', () => {
+			// Extract metadata multiple times with same input
+			const metadata1 = service.extractMetadata(mockDocument, mockImportStatus);
+			const metadata2 = service.extractMetadata(mockDocument, mockImportStatus);
+			const metadata3 = service.extractMetadata(mockDocument, mockImportStatus);
+
+			expect(metadata1).toEqual(metadata2);
+			expect(metadata2).toEqual(metadata3);
 		});
 	});
 });

@@ -125,6 +125,20 @@ describe('DocumentSelectionModal', () => {
 	let mockGranolaDocuments: GranolaDocument[];
 	let mockDocumentMetadata: DocumentDisplayMetadata[];
 
+	describe('constructor', () => {
+		it('should create modal instance', () => {
+			const testModal = new DocumentSelectionModal(
+				mockApp,
+				mockAPI,
+				mockDuplicateDetector,
+				mockMetadataService,
+				mockImportManager,
+				mockConverter
+			);
+			expect(testModal).toBeInstanceOf(DocumentSelectionModal);
+		});
+	});
+
 	beforeEach(() => {
 		// Reset all mocks
 		jest.clearAllMocks();

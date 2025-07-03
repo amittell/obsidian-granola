@@ -1,8 +1,8 @@
 import { ProseMirrorDoc, ProseMirrorNode, GranolaDocument } from './api';
-import { Logger, GranolaSettings } from './settings';
+import { Logger, GranolaSettings } from './types';
 
-// Converter Constants
-const MAX_FILENAME_LENGTH = 100;
+// Converter Constants (removing unused constant)
+// const MAX_FILENAME_LENGTH = 100;
 
 /**
  * Represents a successfully converted document ready for Obsidian import.
@@ -91,7 +91,7 @@ export class ProseMirrorConverter {
 
 	/**
 	 * Updates the converter settings.
-	 * 
+	 *
 	 * @param {GranolaSettings} settings - New settings to apply
 	 */
 	updateSettings(settings: GranolaSettings): void {
@@ -232,7 +232,7 @@ export class ProseMirrorConverter {
 		}
 
 		const frontmatter = this.generateFrontmatter(doc);
-		const filename = this.generateDatePrefixedFilename(doc);
+		const filename = this.generateFilename(doc);
 
 		const content = this.generateFileContent(frontmatter, markdown);
 
@@ -241,6 +241,30 @@ export class ProseMirrorConverter {
 			content,
 			frontmatter,
 		};
+	}
+
+	/**
+	 * Generates a filename for the converted document based on settings.
+	 *
+	 * Creates filenames with optional date prefix based on datePrefixFormat setting.
+	 * This allows flexible filename formats while preventing duplicates.
+	 *
+	 * @private
+	 * @param {GranolaDocument} doc - Source document with title and created_at
+	 * @returns {string} Filename without extension
+	 */
+	private generateFilename(doc: GranolaDocument): string {
+		// Get sanitized title
+		const title = doc.title || `Untitled-${doc.id}`;
+		const sanitizedTitle = this.sanitizeFilename(title);
+
+		// Check if date prefix is disabled
+		if (this.settings.content.datePrefixFormat === 'none') {
+			return sanitizedTitle;
+		}
+
+		// Generate date prefix using existing method
+		return this.generateDatePrefixedFilename(doc);
 	}
 
 	/**
@@ -930,7 +954,7 @@ export class ProseMirrorConverter {
 	 * Transforms the Granola document metadata into a standardized frontmatter
 	 * structure that will be embedded at the top of the Markdown file.
 	 * Provides consistent metadata format across all imported documents.
-	 * 
+	 *
 	 * When enhanced frontmatter is enabled in settings, includes additional
 	 * fields like document ID, title, and updated timestamp.
 	 *
@@ -943,7 +967,7 @@ export class ProseMirrorConverter {
 	 * // Basic frontmatter (default)
 	 * const frontmatter = this.generateFrontmatter(granolaDoc);
 	 * // Result: { created: '2024-01-01T10:00:00Z', source: 'Granola' }
-	 * 
+	 *
 	 * // Enhanced frontmatter (when setting enabled)
 	 * // Result: { id: 'doc-123', title: 'Meeting Notes', created: '...', updated: '...', source: 'Granola' }
 	 * ```
@@ -970,7 +994,7 @@ export class ProseMirrorConverter {
 	 * Creates the complete file content by serializing the frontmatter metadata
 	 * to YAML format, wrapping it in frontmatter delimiters (---), and appending
 	 * the converted Markdown content. Handles proper escaping of YAML values.
-	 * 
+	 *
 	 * Includes enhanced frontmatter fields (id, title, updated) when present.
 	 *
 	 * @private
@@ -984,7 +1008,7 @@ export class ProseMirrorConverter {
 	 * const frontmatter = { created: '2024-01-01T10:00:00Z', source: 'Granola' };
 	 * const content = this.generateFileContent(frontmatter, markdown);
 	 * // Result: "---\ncreated: 2024-01-01T10:00:00Z\nsource: Granola\n---\n\n# Title\n..."
-	 * 
+	 *
 	 * // Enhanced frontmatter
 	 * const enhanced = { id: 'doc-123', title: 'My "Notes"', created: '...', updated: '...', source: 'Granola' };
 	 * // Result: "---\nid: doc-123\ntitle: \"My \\\"Notes\\\"\"\ncreated: ...\n---\n\n# Title\n..."
@@ -1005,11 +1029,11 @@ export class ProseMirrorConverter {
 
 		// Always include basic fields
 		yamlLines.push(`created: ${frontmatter.created}`);
-		
+
 		if (frontmatter.updated) {
 			yamlLines.push(`updated: ${frontmatter.updated}`);
 		}
-		
+
 		yamlLines.push(`source: ${frontmatter.source}`);
 		yamlLines.push('---', '');
 
@@ -1044,6 +1068,6 @@ export class ProseMirrorConverter {
 			.replace(/[<>:"/\\|?*]/g, '-')
 			.replace(/\s+/g, ' ')
 			.trim()
-			.substring(0, MAX_FILENAME_LENGTH); // Limit length
+			.substring(0, this.settings.import.maxFilenameLength); // Limit length
 	}
 }

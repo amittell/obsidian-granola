@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { Logger, DEFAULT_SETTINGS } from '../src/settings';
+import { DEFAULT_SETTINGS, Logger } from '../src/types';
 
 export const mockCognitoTokens = {
 	access_token:

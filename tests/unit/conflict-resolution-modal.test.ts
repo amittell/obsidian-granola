@@ -26,6 +26,16 @@ describe('ConflictResolutionModal', () => {
 	let mockDocument: GranolaDocument;
 	let mockMetadata: DocumentDisplayMetadata;
 
+	describe('constructor', () => {
+		it('should create modal instance', () => {
+			const mockDoc = {} as GranolaDocument;
+			const mockMeta = {} as DocumentDisplayMetadata;
+			const mockFile = {} as TFile;
+			const testModal = new ConflictResolutionModal(mockApp, mockDoc, mockMeta, mockFile);
+			expect(testModal).toBeInstanceOf(ConflictResolutionModal);
+		});
+	});
+
 	beforeEach(() => {
 		mockDocument = {
 			id: 'test-doc-1',

@@ -146,12 +146,12 @@ export class DuplicateDetector {
 			// Check if a file with this exact filename exists (non-Granola) in any folder
 			const existingFile = this.findFileByBasename(filename);
 			if (existingFile) {
-								return {
+				return {
 					status: 'CONFLICT',
 					existingFile,
 					reason: `File already exists: ${existingFile.path}`,
 					requiresUserChoice: true,
-			};
+				};
 			}
 		}
 

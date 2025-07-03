@@ -307,7 +307,13 @@ export class DocumentMetadataService {
 	 */
 	private formatDate(dateString: string): string {
 		try {
+			if (!dateString || dateString === 'null' || dateString === null) {
+				return 'Invalid Date';
+			}
 			const date = new Date(dateString);
+			if (isNaN(date.getTime())) {
+				return 'Invalid Date';
+			}
 			return date.toLocaleDateString('en-US', {
 				year: 'numeric',
 				month: 'short',
@@ -332,11 +338,31 @@ export class DocumentMetadataService {
 			const date = new Date(dateString);
 			const now = new Date();
 			const diffMs = now.getTime() - date.getTime();
-			const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-			const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-			const diffMinutes = Math.floor(diffMs / (1000 * 60));
+			const absDiffMs = Math.abs(diffMs);
+			const diffYears = Math.floor(absDiffMs / (1000 * 60 * 60 * 24 * 365));
+			const diffDays = Math.floor(absDiffMs / (1000 * 60 * 60 * 24));
+			const diffHours = Math.floor(absDiffMs / (1000 * 60 * 60));
+			const diffMinutes = Math.floor(absDiffMs / (1000 * 60));
 
-			if (diffDays > 0) {
+			// Handle future dates
+			if (diffMs < 0) {
+				if (diffYears > 0) {
+					return `in ${diffYears} year${diffYears === 1 ? '' : 's'}`;
+				} else if (diffDays > 0) {
+					return `in ${diffDays} day${diffDays === 1 ? '' : 's'}`;
+				} else if (diffHours > 0) {
+					return `in ${diffHours} hour${diffHours === 1 ? '' : 's'}`;
+				} else if (diffMinutes > 0) {
+					return `in ${diffMinutes} minute${diffMinutes === 1 ? '' : 's'}`;
+				} else {
+					return 'Just now';
+				}
+			}
+
+			// Handle past dates
+			if (diffYears > 0) {
+				return `${diffYears} year${diffYears === 1 ? '' : 's'} ago`;
+			} else if (diffDays > 0) {
 				return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
 			} else if (diffHours > 0) {
 				return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
@@ -477,7 +503,7 @@ export class DocumentMetadataService {
 
 		// Status filter
 		if (filter.statusFilter && filter.statusFilter.length > 0) {
-			if (!filter.statusFilter.includes(doc.importStatus.status)) {
+			if (!doc.importStatus || !filter.statusFilter.includes(doc.importStatus.status)) {
 				return false;
 			}
 		}

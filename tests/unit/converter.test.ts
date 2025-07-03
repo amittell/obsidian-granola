@@ -2,7 +2,7 @@ import { jest } from '@jest/globals';
 import { ProseMirrorConverter } from '../../src/converter';
 import { GranolaDocument } from '../../src/api';
 import { createMockLogger } from '../helpers';
-import { DEFAULT_SETTINGS, GranolaSettings } from '../../src/settings';
+import { DEFAULT_SETTINGS, GranolaSettings } from '../../src/types';
 
 describe('ProseMirrorConverter', () => {
 	let converter: ProseMirrorConverter;

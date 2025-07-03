@@ -1,0 +1,95 @@
+{
+	"timestamp": "2025-07-03T00:07:03.815Z",
+	"git": {
+		"commit": "a77e71c2332313d41d1b3b54911dc19e63393690",
+		"branch": "main",
+		"message": "chore: update deployment scripts with personalized vault path and bundle metadata"
+	},
+	"checks": {
+		"bundle": {
+			"status": "passed",
+			"data": {
+				"stats": {
+					"timestamp": "2025-07-03T00:07:04.026Z",
+					"bundleSize": 78185,
+					"inputSize": 206440,
+					"fileCount": 12,
+					"compressionRatio": 0.6212701026932765,
+					"git": {
+						"commit": "a77e71c2332313d41d1b3b54911dc19e63393690",
+						"branch": "main",
+						"message": "chore: update deployment scripts with personalized vault path and bundle metadata"
+					}
+				},
+				"regression": {
+					"hasRegression": false,
+					"message": "Bundle size: 78185 bytes (decreased by 5078 bytes, -6.10%)",
+					"sizeDiff": -5078,
+					"percentChange": -6.098747342757287
+				}
+			},
+			"error": null
+		},
+		"coverage": {
+			"status": "failed",
+			"data": {
+				"stats": {
+					"timestamp": "2025-07-03T00:07:04.206Z",
+					"lines": 37.391304347826086,
+					"functions": 17.647058823529413,
+					"statements": 36.440677966101696,
+					"branches": 40,
+					"totals": {
+						"lines": {
+							"total": 115,
+							"covered": 43
+						},
+						"functions": {
+							"total": 51,
+							"covered": 9
+						},
+						"statements": {
+							"total": 118,
+							"covered": 43
+						},
+						"branches": {
+							"total": 10,
+							"covered": 4
+						}
+					},
+					"files": 1,
+					"git": {
+						"commit": "a77e71c2332313d41d1b3b54911dc19e63393690",
+						"branch": "main",
+						"message": "chore: update deployment scripts with personalized vault path and bundle metadata"
+					},
+					"overall": 32.8697602843643
+				},
+				"regression": {
+					"hasRegressions": true,
+					"issues": [
+						"branches: 40.00% (below minimum 70%)",
+						"functions: 17.65% (below minimum 70%)",
+						"lines: 37.39% (below minimum 70%)",
+						"statements: 36.44% (below minimum 70%)",
+						"functions: dropped by 31.99% (17.65% → 49.63%)",
+						"lines: dropped by 14.86% (37.39% → 52.25%)",
+						"statements: dropped by 15.14% (36.44% → 51.58%)"
+					],
+					"message": "🚨 COVERAGE REGRESSIONS DETECTED!\nbranches: 40.00% (below minimum 70%)\nfunctions: 17.65% (below minimum 70%)\nlines: 37.39% (below minimum 70%)\nstatements: 36.44% (below minimum 70%)\nfunctions: dropped by 31.99% (17.65% → 49.63%)\nlines: dropped by 14.86% (37.39% → 52.25%)\nstatements: dropped by 15.14% (36.44% → 51.58%)"
+				}
+			},
+			"error": null
+		},
+		"performance": {
+			"status": "error",
+			"data": null,
+			"error": "Cannot read properties of undefined (reading 'totalModalLoadTime')"
+		}
+	},
+	"summary": {
+		"passed": 1,
+		"failed": 2,
+		"total": 3
+	}
+}

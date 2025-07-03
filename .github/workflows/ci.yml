@@ -75,21 +75,32 @@ jobs:
             - name: Full build
               run: npm run build
 
-            - name: Bundle size check
-              run: |
-                  npm run build
-                  size=$(wc -c < main.js)
-                  echo "Bundle size: $size bytes"
-                  # Fail if bundle is over 80KB (current: ~70KB)
-                  # TODO: Optimize bundle size in future PR (target: <50KB)
-                  if [ $size -gt 81920 ]; then
-                    echo "❌ Bundle too large: $size bytes (max: 80KB)"
-                    exit 1
-                  fi
-                  echo "✅ Bundle size OK: $size bytes"
+            - name: Run tests
+              run: npm run test:ci
 
-            - name: Security audit
-              run: npm audit --audit-level=moderate
+            - name: Coverage threshold enforcement with trend monitoring
+              run: |
+                  # Run coverage monitoring with threshold enforcement
+                  npm run monitor:coverage:check
+
+            - name: Bundle size monitoring with regression detection
+              run: |
+                  # Build and generate metafile for analysis
+                  npm run build
+                  npm run analyze
+
+                  # Run bundle size tracker with regression detection
+                  npm run monitor:bundle:check
+
+            - name: Performance regression testing
+              run: |
+                  # Run performance benchmarks with regression detection
+                  npm run monitor:performance:check
+
+            - name: Enhanced security audit with vulnerability scanning
+              run: |
+                  # Run comprehensive security audit
+                  node scripts/security-audit.js check
 
             - name: Build documentation
               run: npm run docs:build
@@ -138,6 +149,11 @@ jobs:
 
             - name: Build for release check
               run: npm run build
+
+            - name: Deployment validation with smoke tests
+              run: |
+                  # Run comprehensive deployment validation
+                  node scripts/deployment-validation.js check
 
             - name: Check version consistency
               run: |

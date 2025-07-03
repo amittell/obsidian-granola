@@ -6,7 +6,8 @@ import { DuplicateDetector } from './src/services/duplicate-detector';
 import { DocumentMetadataService } from './src/services/document-metadata';
 import { SelectiveImportManager } from './src/services/import-manager';
 import { DocumentSelectionModal } from './src/ui/document-selection-modal';
-import { GranolaSettings, DEFAULT_SETTINGS, Logger, GranolaSettingTab } from './src/settings';
+import { GranolaSettings, DEFAULT_SETTINGS, Logger } from './src/types';
+import { GranolaSettingTab } from './src/settings';
 
 // Error Message Constants
 const ERROR_MESSAGES = {
@@ -133,14 +134,17 @@ export default class GranolaImporterPlugin extends Plugin {
 			},
 		});
 
-		// Debug command for API response inspection
-		this.addCommand({
-			id: 'debug-granola-api',
-			name: 'Debug Granola API Response',
-			callback: () => {
-				this.debugAPIResponse();
-			},
-		});
+		// Debug command for API response inspection (development only)
+		// @ts-ignore - esbuild will replace this constant
+		if (typeof __DEV__ !== 'undefined' && __DEV__) {
+			this.addCommand({
+				id: 'debug-granola-api',
+				name: 'Debug Granola API Response',
+				callback: () => {
+					this.debugAPIResponse();
+				},
+			});
+		}
 	}
 
 	/**
@@ -173,6 +177,10 @@ export default class GranolaImporterPlugin extends Plugin {
 	 * @returns {Promise<void>} Resolves when debug analysis is complete
 	 */
 	async debugAPIResponse(): Promise<void> {
+		// @ts-ignore - esbuild will replace this constant
+		if (typeof __DEV__ === 'undefined' || !__DEV__) {
+			return; // Strip debug functionality in production
+		}
 		const debugNotice = new Notice('Starting API response debug analysis...', 0);
 
 		try {
@@ -402,7 +410,7 @@ export default class GranolaImporterPlugin extends Plugin {
 	 */
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
-		
+
 		// Update converter settings if it exists
 		if (this.converter) {
 			this.converter.updateSettings(this.settings);

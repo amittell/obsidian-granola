@@ -1,0 +1,129 @@
+{
+	"timestamp": "2025-07-02T23:48:47.329Z",
+	"deploymentReady": false,
+	"summary": {
+		"total": 29,
+		"errors": 1,
+		"warnings": 2,
+		"successes": 23,
+		"info": 3
+	},
+	"results": [
+		{
+			"type": "success",
+			"message": "Required file OK: main.js (83263 bytes)"
+		},
+		{
+			"type": "success",
+			"message": "Required file OK: manifest.json (360 bytes)"
+		},
+		{
+			"type": "success",
+			"message": "Required file OK: styles.css (199 bytes)"
+		},
+		{
+			"type": "success",
+			"message": "Required file OK: README.md (3694 bytes)"
+		},
+		{
+			"type": "success",
+			"message": "Required file OK: package.json (3223 bytes)"
+		},
+		{
+			"type": "success",
+			"message": "Manifest field OK: id = \"granola-importer\""
+		},
+		{
+			"type": "success",
+			"message": "Manifest field OK: name = \"Granola Importer\""
+		},
+		{
+			"type": "success",
+			"message": "Manifest field OK: version = \"1.0.0\""
+		},
+		{
+			"type": "success",
+			"message": "Manifest field OK: minAppVersion = \"0.15.0\""
+		},
+		{
+			"type": "success",
+			"message": "Manifest field OK: description = \"Import your Granola notes into Obsidian with perfect formatting preservation\""
+		},
+		{
+			"type": "success",
+			"message": "Manifest field OK: author = \"amittell\""
+		},
+		{
+			"type": "success",
+			"message": "Manifest field OK: authorUrl = \"https://github.com/amittell\""
+		},
+		{
+			"type": "success",
+			"message": "Version consistency OK: 1.0.0"
+		},
+		{
+			"type": "error",
+			"message": "Bundle too large: 83263 bytes (max: 81920)"
+		},
+		{
+			"type": "warning",
+			"message": "Bundle may contain error indicators"
+		},
+		{
+			"type": "success",
+			"message": "Bundle content validation passed"
+		},
+		{
+			"type": "success",
+			"message": "Smoke test: Plugin class structure detected"
+		},
+		{
+			"type": "success",
+			"message": "Smoke test: Loading time OK: 0.18ms"
+		},
+		{
+			"type": "success",
+			"message": "Smoke test: Memory usage OK: 4.32MB"
+		},
+		{
+			"type": "success",
+			"message": "Smoke test: Configuration consistency validated"
+		},
+		{
+			"type": "success",
+			"message": "Smoke test: Obsidian API integration detected"
+		},
+		{
+			"type": "warning",
+			"message": "Git working directory is not clean (uncommitted changes)"
+		},
+		{
+			"type": "info",
+			"message": "Optional deployment file missing: CHANGELOG.md"
+		},
+		{
+			"type": "info",
+			"message": "Optional deployment file missing: LICENSE"
+		},
+		{
+			"type": "success",
+			"message": "Deployment file present: .gitignore"
+		},
+		{
+			"type": "success",
+			"message": "Package.json field OK: author"
+		},
+		{
+			"type": "success",
+			"message": "Package.json field OK: license"
+		},
+		{
+			"type": "success",
+			"message": "Package.json field OK: description"
+		},
+		{
+			"type": "info",
+			"message": "Package.json field missing: repository"
+		}
+	]
+}

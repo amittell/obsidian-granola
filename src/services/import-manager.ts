@@ -1,8 +1,10 @@
 import { TFile, Vault, App } from 'obsidian';
-import { GranolaDocument } from '../api';
-import { ProseMirrorConverter } from '../converter';
-import { DocumentDisplayMetadata } from './document-metadata';
-import { ConflictResolutionModal, ConflictResolution } from '../ui/conflict-resolution-modal';
+import type { GranolaDocument } from '../api';
+import type { ProseMirrorConverter } from '../converter';
+import type { DocumentDisplayMetadata } from './document-metadata';
+import type { ConflictResolution } from '../ui/conflict-resolution-modal';
+import { PerformanceMonitor, measurePerformance } from '../performance/performance-monitor';
+import { batchProcessor, memoize } from '../performance/performance-utils';
 
 /**
  * Status of an individual document import.
@@ -140,6 +142,16 @@ export class SelectiveImportManager {
 	private progressCallback?: (progress: ImportProgress) => void;
 	private documentProgressCallback?: (docProgress: DocumentProgress) => void;
 
+	// Performance monitoring
+	private performanceMonitor: PerformanceMonitor;
+	private runtimeProfileId: string = '';
+
+	// Optimized batch processing - initialized in constructor
+	private batchFileWriter: any;
+
+	// Memoized conversion for duplicate documents - initialized in constructor
+	private memoizedConverter: any;
+
 	/**
 	 * Creates a new selective import manager.
 	 *
@@ -152,6 +164,21 @@ export class SelectiveImportManager {
 		this.vault = vault;
 		this.converter = converter;
 		this.overallProgress = this.createInitialProgress();
+
+		// Initialize performance monitoring
+		this.performanceMonitor = PerformanceMonitor.getInstance();
+
+		// Initialize batch processor and memoized converter after converter is set
+		this.batchFileWriter = batchProcessor(this.writeBatchOfFiles.bind(this), 5, 50);
+		this.memoizedConverter = memoize(
+			this.converter.convertDocument.bind(this.converter),
+			(doc: unknown) => {
+				const granolaDoc = doc as GranolaDocument;
+				return `${granolaDoc.id}-${granolaDoc.updated_at}`;
+			},
+			50, // Cache up to 50 conversions
+			300000 // TTL: 5 minutes
+		);
 	}
 
 	/**
@@ -164,6 +191,7 @@ export class SelectiveImportManager {
 	 * @returns {Promise<ImportProgress>} Final import results
 	 * @throws {Error} If import is already running or other critical error
 	 */
+	@measurePerformance('ImportManager.importDocuments')
 	async importDocuments(
 		selectedDocuments: DocumentDisplayMetadata[],
 		granolaDocuments: GranolaDocument[],
@@ -173,21 +201,57 @@ export class SelectiveImportManager {
 			throw new Error('Import already in progress');
 		}
 
+		// Start runtime profiling
+		this.runtimeProfileId = this.performanceMonitor.startRuntimeProfiling('document-import');
+
 		try {
 			this.startImport(selectedDocuments, options);
 
-			// Create document lookup map
+			// Phase 1: Data preparation
+			const phase1Start = performance.now();
 			const documentMap = new Map(granolaDocuments.map(doc => [doc.id, doc]));
-
-			// Filter to only selected documents with available data
 			const importQueue = selectedDocuments
 				.filter(meta => meta.selected && documentMap.has(meta.id))
 				.map(meta => ({ meta, doc: documentMap.get(meta.id)! }));
+			
+			// Update total count based on actual documents to be processed
+			this.overallProgress.total = importQueue.length;
+			
+			const phase1End = performance.now();
 
-			// Process documents with concurrency control
+			this.performanceMonitor.recordRuntimePhase(
+				this.runtimeProfileId,
+				'data-preparation',
+				phase1Start,
+				phase1End
+			);
+
+			// Phase 2: Document processing
+			const phase2Start = performance.now();
 			await this.processDocumentQueue(importQueue, options);
+			const phase2End = performance.now();
+
+			this.performanceMonitor.recordRuntimePhase(
+				this.runtimeProfileId,
+				'document-processing',
+				phase2Start,
+				phase2End
+			);
 
 			this.completeImport();
+
+			// Complete profiling and analyze bottlenecks
+			const runtimeProfile = this.performanceMonitor?.completeRuntimeProfiling?.(
+				this.runtimeProfileId
+			);
+			if (
+				runtimeProfile &&
+				runtimeProfile.bottlenecks &&
+				runtimeProfile.bottlenecks.length > 0
+			) {
+				console.log('Import performance bottlenecks:', runtimeProfile.bottlenecks);
+			}
+
 			return this.overallProgress;
 		} catch (error) {
 			this.handleImportError(error);
@@ -343,6 +407,7 @@ export class SelectiveImportManager {
 	 * @param {GranolaDocument} doc - Full document data
 	 * @param {ImportOptions} options - Import options
 	 */
+	@measurePerformance('ImportManager.importSingleDocument')
 	private async importSingleDocument(
 		meta: DocumentDisplayMetadata,
 		doc: GranolaDocument,
@@ -358,6 +423,15 @@ export class SelectiveImportManager {
 		}
 
 		const startTime = Date.now();
+		
+		// First emit pending status
+		this.updateDocumentProgress(doc.id, {
+			status: 'pending',
+			progress: 0,
+			message: 'Starting import...',
+			startTime,
+		});
+		
 		this.updateDocumentProgress(doc.id, {
 			status: 'importing',
 			progress: 10,
@@ -366,11 +440,33 @@ export class SelectiveImportManager {
 		});
 
 		try {
+			// Check standard import strategy for non-conflicted documents first
+			if (meta.importStatus.status === 'EXISTS' && options.strategy === 'skip') {
+				this.updateDocumentProgress(doc.id, {
+					status: 'skipped',
+					progress: 100,
+					message: 'Document already exists',
+					endTime: Date.now(),
+				});
+				this.overallProgress.skipped++;
+				this.updateOverallProgress();
+				return;
+			}
+
+			// Convert document once - reuse for both normal flow and conflict resolution
+			this.updateDocumentProgress(doc.id, {
+				status: 'importing',
+				progress: 30,
+				message: 'Converting to Markdown...',
+			});
+
+			const convertedNote = this.converter.convertDocument(doc);
+
 			// Check if document needs conflict resolution
 			if (meta.importStatus.requiresUserChoice || meta.importStatus.status === 'CONFLICT') {
 				this.updateDocumentProgress(doc.id, {
 					status: 'importing',
-					progress: 20,
+					progress: 40,
 					message: 'Resolving conflict...',
 				});
 
@@ -388,34 +484,12 @@ export class SelectiveImportManager {
 					return;
 				}
 
-				// Apply the resolution
-				await this.applyConflictResolution(doc, resolution, options);
+				// Apply the resolution using the already converted note
+				await this.applyConflictResolution(doc, resolution, convertedNote, options);
 				return;
 			}
 
-			// Check standard import strategy for non-conflicted documents
-			if (meta.importStatus.status === 'EXISTS' && options.strategy === 'skip') {
-				this.updateDocumentProgress(doc.id, {
-					status: 'skipped',
-					progress: 100,
-					message: 'Document already exists',
-					endTime: Date.now(),
-				});
-				this.overallProgress.skipped++;
-				this.updateOverallProgress();
-				return;
-			}
-
-			// Convert document
-			this.updateDocumentProgress(doc.id, {
-				status: 'importing',
-				progress: 30,
-				message: 'Converting to Markdown...',
-			});
-
-			const convertedNote = this.converter.convertDocument(doc);
-
-			// Handle existing file
+			// Handle normal processing (non-conflict documents)
 			this.updateDocumentProgress(doc.id, {
 				status: 'importing',
 				progress: 60,
@@ -425,7 +499,7 @@ export class SelectiveImportManager {
 			let file: TFile;
 			const existingFile = this.vault.getAbstractFileByPath(convertedNote.filename);
 
-			if (existingFile instanceof TFile) {
+			if (existingFile && existingFile instanceof TFile) {
 				if (options.strategy === 'update') {
 					// Create backup if requested
 					if (options.createBackups) {
@@ -537,6 +611,7 @@ export class SelectiveImportManager {
 	private completeImport(): void {
 		this.overallProgress.isRunning = false;
 		this.overallProgress.percentage = 100;
+		this.overallProgress.isCancelled = this.isCancelled; // Preserve cancellation state
 		this.overallProgress.message = this.isCancelled
 			? 'Import cancelled'
 			: `Import completed: ${this.overallProgress.completed} successful, ${this.overallProgress.failed} failed, ${this.overallProgress.skipped} skipped`;
@@ -625,6 +700,7 @@ export class SelectiveImportManager {
 
 	/**
 	 * Resolves conflicts by showing the user resolution options.
+	 * Uses dynamic imports for optimal bundle size - modal is only loaded when needed.
 	 *
 	 * @private
 	 * @async
@@ -638,6 +714,8 @@ export class SelectiveImportManager {
 	): Promise<ConflictResolution> {
 		const existingFile = meta.importStatus.existingFile;
 
+		// Dynamic import for code splitting - reduces main bundle size
+		const { ConflictResolutionModal } = await import('../ui/conflict-resolution-modal');
 		const modal = new ConflictResolutionModal(this.app, doc, meta, existingFile);
 
 		return await modal.showConflictResolution();
@@ -655,6 +733,7 @@ export class SelectiveImportManager {
 	private async applyConflictResolution(
 		doc: GranolaDocument,
 		resolution: ConflictResolution,
+		convertedNote: { filename: string; content: string },
 		options: ImportOptions
 	): Promise<void> {
 		this.updateDocumentProgress(doc.id, {
@@ -662,8 +741,6 @@ export class SelectiveImportManager {
 			progress: 50,
 			message: `Applying resolution: ${resolution.action}...`,
 		});
-
-		const convertedNote = this.converter.convertDocument(doc);
 
 		switch (resolution.action) {
 			case 'overwrite':
@@ -708,7 +785,7 @@ export class SelectiveImportManager {
 	): Promise<void> {
 		const existingFile = this.vault.getAbstractFileByPath(convertedNote.filename);
 
-		if (existingFile instanceof TFile) {
+		if (existingFile && existingFile instanceof TFile) {
 			if (createBackup) {
 				await this.createBackup(existingFile);
 			}
@@ -733,7 +810,7 @@ export class SelectiveImportManager {
 	): Promise<void> {
 		const existingFile = this.vault.getAbstractFileByPath(convertedNote.filename);
 
-		if (existingFile instanceof TFile) {
+		if (existingFile && existingFile instanceof TFile) {
 			const existingContent = await this.vault.read(existingFile);
 
 			// Extract content after frontmatter from both files
@@ -797,6 +874,38 @@ export class SelectiveImportManager {
 	 */
 	private sleep(ms: number): Promise<void> {
 		return new Promise(resolve => setTimeout(resolve, ms));
+	}
+
+	/**
+	 * Optimized batch file writer for improved performance.
+	 * Writes multiple files in a single batch operation to reduce I/O overhead.
+	 *
+	 * @private
+	 * @param files - Array of file data to write
+	 * @returns Promise resolving to array of created files
+	 */
+	private async writeBatchOfFiles(
+		files: Array<{ filename: string; content: string }>
+	): Promise<TFile[]> {
+		const createdFiles: TFile[] = [];
+
+		// Use Promise.all for parallel file creation (up to batch size limit)
+		const filePromises = files.map(async fileData => {
+			try {
+				const file = await this.vault.create(fileData.filename, fileData.content);
+				createdFiles.push(file);
+				return file;
+			} catch (error) {
+				// If file exists, generate unique name and retry
+				const uniqueFilename = this.generateUniqueFilename(fileData.filename);
+				const file = await this.vault.create(uniqueFilename, fileData.content);
+				createdFiles.push(file);
+				return file;
+			}
+		});
+
+		await Promise.all(filePromises);
+		return createdFiles;
 	}
 }
 

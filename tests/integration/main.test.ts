@@ -83,11 +83,8 @@ describe('GranolaImporterPlugin Integration', () => {
 				callback: expect.any(Function),
 			});
 
-			expect(addCommandSpy).toHaveBeenCalledWith({
-				id: 'debug-granola-api',
-				name: 'Debug Granola API Response',
-				callback: expect.any(Function),
-			});
+			// Debug command is only registered in development mode
+			expect(addCommandSpy).toHaveBeenCalledTimes(1);
 		});
 
 		it('should initialize plugin components', async () => {

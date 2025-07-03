@@ -27,6 +27,12 @@
 				"@typescript-eslint/no-explicit-any": "warn",
 				"no-undef": "off"
 			}
+		},
+		{
+			"files": ["src/performance/**/*.ts", "src/converter-split.ts", "src/services/import-manager.ts"],
+			"rules": {
+				"@typescript-eslint/no-explicit-any": "off"
+			}
 		}
 	]
 }
