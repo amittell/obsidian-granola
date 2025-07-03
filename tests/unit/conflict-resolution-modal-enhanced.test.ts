@@ -494,21 +494,29 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 	});
 
 	describe('Content Preview Generation', () => {
-		it('should generate Granola preview from notes_plain', () => {
+		it('should generate Granola preview from available content sources', () => {
 			const preview = (modal as any).getGranolaPreview();
 
+			// With the new implementation, it tries ProseMirror first, then fallbacks
+			// The mock document has notes_plain, so it should be used
 			expect(preview).toBe('Test content for preview...');
 		});
 
-		it('should fallback to metadata preview when notes_plain is unavailable', () => {
-			const modalWithoutPlain = new ConflictResolutionModal(
+		it('should fallback to metadata preview when no content sources are available', () => {
+			const modalWithoutContent = new ConflictResolutionModal(
 				mockApp,
-				{ ...mockDocument, notes_plain: undefined },
+				{ 
+					...mockDocument, 
+					notes_plain: undefined,
+					notes_markdown: undefined,
+					notes: undefined,
+					last_viewed_panel: undefined
+				},
 				mockMetadata,
 				mockFile
 			);
 
-			const preview = (modalWithoutPlain as any).getGranolaPreview();
+			const preview = (modalWithoutContent as any).getGranolaPreview();
 
 			expect(preview).toBe(mockMetadata.preview);
 		});

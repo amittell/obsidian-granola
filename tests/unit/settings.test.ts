@@ -592,13 +592,16 @@ describe('Settings Module', () => {
 			it('should update logger settings', () => {
 				const newSettings = { ...testSettings };
 				newSettings.debug.logLevel = LogLevel.DEBUG;
+				newSettings.debug.enabled = false; // explicitly disable debug
 
 				logger.updateSettings(newSettings);
 
 				// Verify settings were updated by testing log behavior
 				logger.debug('test message');
-				expect(consoleLogSpy).not.toHaveBeenCalled(); // debug is disabled
+				// With new logic: debug shows when log level is DEBUG even if debug disabled
+				expect(consoleLogSpy).toHaveBeenCalledWith('[Granola Importer Debug] test message');
 
+				consoleLogSpy.mockClear();
 				newSettings.debug.enabled = true;
 				logger.updateSettings(newSettings);
 				logger.debug('test message');
@@ -691,31 +694,31 @@ describe('Settings Module', () => {
 				);
 			});
 
-			it('should not log debug messages when debug is disabled', () => {
+			it('should log debug messages when log level is DEBUG even if debug is disabled', () => {
 				testSettings.debug.enabled = false;
 				testSettings.debug.logLevel = LogLevel.DEBUG;
 				logger.updateSettings(testSettings);
 
 				logger.debug('Test debug message');
 
-				expect(consoleLogSpy).not.toHaveBeenCalled();
+				expect(consoleLogSpy).toHaveBeenCalledWith('[Granola Importer Debug] Test debug message');
 			});
 
-			it('should not log debug messages when log level is too low', () => {
+			it('should log debug messages when debug is enabled even if log level is low', () => {
 				testSettings.debug.enabled = true;
 				testSettings.debug.logLevel = LogLevel.INFO;
 				logger.updateSettings(testSettings);
 
 				logger.debug('Test debug message');
 
-				expect(consoleLogSpy).not.toHaveBeenCalled();
+				expect(consoleLogSpy).toHaveBeenCalledWith('[Granola Importer Debug] Test debug message');
 			});
 
-			it('should require both debug enabled and proper log level', () => {
-				// Test all combinations
+			it('should log debug messages when debug enabled OR log level is DEBUG', () => {
+				// Test all combinations with new OR logic
 				const testCases = [
-					{ enabled: false, logLevel: LogLevel.DEBUG, shouldLog: false },
-					{ enabled: true, logLevel: LogLevel.INFO, shouldLog: false },
+					{ enabled: false, logLevel: LogLevel.DEBUG, shouldLog: true },
+					{ enabled: true, logLevel: LogLevel.INFO, shouldLog: true },
 					{ enabled: false, logLevel: LogLevel.INFO, shouldLog: false },
 					{ enabled: true, logLevel: LogLevel.DEBUG, shouldLog: true },
 				];
@@ -740,16 +743,16 @@ describe('Settings Module', () => {
 		});
 
 		describe('log level hierarchy', () => {
-			it('should respect log level hierarchy for all methods', () => {
-				// Set to INFO level
-				testSettings.debug.enabled = true; // For debug method
+			it('should respect log level hierarchy for non-debug methods', () => {
+				// Set to INFO level with debug disabled to test pure hierarchy
+				testSettings.debug.enabled = false;
 				testSettings.debug.logLevel = LogLevel.INFO;
 				logger.updateSettings(testSettings);
 
 				logger.error('error'); // Should log
 				logger.warn('warn'); // Should log
 				logger.info('info'); // Should log
-				logger.debug('debug'); // Should NOT log
+				logger.debug('debug'); // Should NOT log (debug disabled and level < DEBUG)
 
 				expect(consoleErrorSpy).toHaveBeenCalledWith('[Granola Importer] error');
 				expect(consoleWarnSpy).toHaveBeenCalledWith('[Granola Importer] warn');

@@ -297,8 +297,8 @@ export class ConflictResolutionModal extends Modal {
 				});
 			});
 
-		// Scroll the dialog into view for better UX
-		confirmDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		// Scroll the dialog into view for better UX (if available)
+		confirmDiv.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
 	}
 
 	private showMergeOptions(): void {
@@ -331,8 +331,8 @@ export class ConflictResolutionModal extends Modal {
 			mergeDiv.remove();
 		});
 
-		// Scroll the dialog into view for better UX
-		mergeDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		// Scroll the dialog into view for better UX (if available)
+		mergeDiv.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
 	}
 
 	private showRenameOptions(): void {
@@ -370,8 +370,8 @@ export class ConflictResolutionModal extends Modal {
 				}
 			});
 
-		// Scroll the dialog into view for better UX
-		renameDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		// Scroll the dialog into view for better UX (if available)
+		renameDiv.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
 
 		// Focus the input and select text for easy editing
 		input.focus();
