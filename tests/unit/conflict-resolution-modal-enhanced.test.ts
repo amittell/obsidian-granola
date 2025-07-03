@@ -498,8 +498,8 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 			const preview = (modal as any).getGranolaPreview();
 
 			// With the new implementation, it tries ProseMirror first, then fallbacks
-			// The mock document has notes_plain, so it should be used
-			expect(preview).toBe('Test content for preview...');
+			// The mock document has notes_plain, so it should be used (no ellipsis since < 300 chars)
+			expect(preview).toBe('Test content for preview');
 		});
 
 		it('should fallback to metadata preview when no content sources are available', () => {
@@ -524,14 +524,20 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 		it('should return fallback message when no preview available', () => {
 			const modalWithoutContent = new ConflictResolutionModal(
 				mockApp,
-				{ ...mockDocument, notes_plain: undefined },
+				{ 
+					...mockDocument, 
+					notes_plain: undefined,
+					notes_markdown: undefined,
+					notes: undefined,
+					last_viewed_panel: undefined
+				},
 				{ ...mockMetadata, preview: undefined },
 				mockFile
 			);
 
 			const preview = (modalWithoutContent as any).getGranolaPreview();
 
-			expect(preview).toBe('No preview available');
+			expect(preview).toBe('No content available');
 		});
 
 		it('should generate existing content preview with frontmatter removal', () => {
