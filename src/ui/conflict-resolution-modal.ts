@@ -384,12 +384,16 @@ export class ConflictResolutionModal extends Modal {
 
 		// Try last_viewed_panel.content first (most reliable)
 		if (this.document.last_viewed_panel?.content) {
-			content = this.extractTextFromProseMirror(this.document.last_viewed_panel.content);
+			content = this.extractTextFromProseMirror(
+				this.document.last_viewed_panel.content as unknown as Record<string, unknown>
+			);
 		}
 
 		// Fallback to notes field
 		if (!content && this.document.notes) {
-			content = this.extractTextFromProseMirror(this.document.notes);
+			content = this.extractTextFromProseMirror(
+				this.document.notes as unknown as Record<string, unknown>
+			);
 		}
 
 		// Fallback to notes_plain

@@ -505,12 +505,12 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 		it('should fallback to metadata preview when no content sources are available', () => {
 			const modalWithoutContent = new ConflictResolutionModal(
 				mockApp,
-				{ 
-					...mockDocument, 
+				{
+					...mockDocument,
 					notes_plain: undefined,
 					notes_markdown: undefined,
 					notes: undefined,
-					last_viewed_panel: undefined
+					last_viewed_panel: undefined,
 				},
 				mockMetadata,
 				mockFile
@@ -524,12 +524,12 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 		it('should return fallback message when no preview available', () => {
 			const modalWithoutContent = new ConflictResolutionModal(
 				mockApp,
-				{ 
-					...mockDocument, 
+				{
+					...mockDocument,
 					notes_plain: undefined,
 					notes_markdown: undefined,
 					notes: undefined,
-					last_viewed_panel: undefined
+					last_viewed_panel: undefined,
 				},
 				{ ...mockMetadata, preview: undefined },
 				mockFile

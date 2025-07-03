@@ -701,7 +701,9 @@ describe('Settings Module', () => {
 
 				logger.debug('Test debug message');
 
-				expect(consoleLogSpy).toHaveBeenCalledWith('[Granola Importer Debug] Test debug message');
+				expect(consoleLogSpy).toHaveBeenCalledWith(
+					'[Granola Importer Debug] Test debug message'
+				);
 			});
 
 			it('should log debug messages when debug is enabled even if log level is low', () => {
@@ -711,7 +713,9 @@ describe('Settings Module', () => {
 
 				logger.debug('Test debug message');
 
-				expect(consoleLogSpy).toHaveBeenCalledWith('[Granola Importer Debug] Test debug message');
+				expect(consoleLogSpy).toHaveBeenCalledWith(
+					'[Granola Importer Debug] Test debug message'
+				);
 			});
 
 			it('should log debug messages when debug enabled OR log level is DEBUG', () => {
