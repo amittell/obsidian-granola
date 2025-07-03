@@ -16,7 +16,7 @@ export class MockSettingBuilder {
 		toggles: [],
 		sliders: [],
 		texts: [],
-		buttons: []
+		buttons: [],
 	};
 
 	addDropdown(options: string[], defaultValue: string): this {
@@ -67,66 +67,66 @@ export class MockSettingBuilder {
 		const mockSetting = {
 			setName: jest.fn().mockReturnThis(),
 			setDesc: jest.fn().mockReturnThis(),
-			addDropdown: jest.fn().mockImplementation((fn) => {
+			addDropdown: jest.fn().mockImplementation(fn => {
 				const mockDropdown = {
 					addOption: jest.fn().mockReturnThis(),
 					setValue: jest.fn().mockReturnThis(),
-					onChange: jest.fn().mockImplementation((callback) => {
+					onChange: jest.fn().mockImplementation(callback => {
 						this.callbacks.dropdowns.push(callback);
 						return mockDropdown;
-					})
+					}),
 				};
 				fn(mockDropdown);
 				return mockSetting;
 			}),
-			addToggle: jest.fn().mockImplementation((fn) => {
+			addToggle: jest.fn().mockImplementation(fn => {
 				const mockToggle = {
 					setValue: jest.fn().mockReturnThis(),
-					onChange: jest.fn().mockImplementation((callback) => {
+					onChange: jest.fn().mockImplementation(callback => {
 						this.callbacks.toggles.push(callback);
 						return mockToggle;
-					})
+					}),
 				};
 				fn(mockToggle);
 				return mockSetting;
 			}),
-			addSlider: jest.fn().mockImplementation((fn) => {
+			addSlider: jest.fn().mockImplementation(fn => {
 				const mockSlider = {
 					setLimits: jest.fn().mockReturnThis(),
 					setValue: jest.fn().mockReturnThis(),
 					setDynamicTooltip: jest.fn().mockReturnThis(),
-					onChange: jest.fn().mockImplementation((callback) => {
+					onChange: jest.fn().mockImplementation(callback => {
 						this.callbacks.sliders.push(callback);
 						return mockSlider;
-					})
+					}),
 				};
 				fn(mockSlider);
 				return mockSetting;
 			}),
-			addText: jest.fn().mockImplementation((fn) => {
+			addText: jest.fn().mockImplementation(fn => {
 				const mockText = {
 					setPlaceholder: jest.fn().mockReturnThis(),
 					setValue: jest.fn().mockReturnThis(),
-					onChange: jest.fn().mockImplementation((callback) => {
+					onChange: jest.fn().mockImplementation(callback => {
 						this.callbacks.texts.push(callback);
 						return mockText;
-					})
+					}),
 				};
 				fn(mockText);
 				return mockSetting;
 			}),
-			addButton: jest.fn().mockImplementation((fn) => {
+			addButton: jest.fn().mockImplementation(fn => {
 				const mockButton = {
 					setButtonText: jest.fn().mockReturnThis(),
 					setCta: jest.fn().mockReturnThis(),
-					onClick: jest.fn().mockImplementation((callback) => {
+					onClick: jest.fn().mockImplementation(callback => {
 						this.callbacks.buttons.push(callback);
 						return mockButton;
-					})
+					}),
 				};
 				fn(mockButton);
 				return mockSetting;
-			})
+			}),
 		};
 
 		return mockSetting;
@@ -141,19 +141,19 @@ export function createMockModal(): any {
 				createEl: jest.fn().mockReturnThis(),
 				createDiv: jest.fn().mockReturnThis(),
 				addClass: jest.fn().mockReturnThis(),
-				appendChild: jest.fn().mockReturnThis()
+				appendChild: jest.fn().mockReturnThis(),
 			})),
 			createDiv: jest.fn().mockReturnThis(),
 			empty: jest.fn().mockReturnThis(),
-			addClass: jest.fn().mockReturnThis()
+			addClass: jest.fn().mockReturnThis(),
 		},
 		titleEl: {
-			setText: jest.fn()
+			setText: jest.fn(),
 		},
 		open: jest.fn(),
 		close: jest.fn(),
 		onOpen: jest.fn(),
-		onClose: jest.fn()
+		onClose: jest.fn(),
 	};
 }
 
@@ -167,6 +167,6 @@ export function setupUITestEnvironment(): {
 		mockModal: createMockModal,
 		reset: () => {
 			jest.clearAllMocks();
-		}
+		},
 	};
 }

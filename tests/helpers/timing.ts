@@ -13,7 +13,7 @@ export class MockTimer {
 
 	advance(ms: number): void {
 		const targetTime = this.currentTime + ms;
-		
+
 		// Execute any timers that should fire
 		for (const [id, timer] of this.timers) {
 			if (timer.time <= targetTime) {
@@ -21,7 +21,7 @@ export class MockTimer {
 				this.timers.delete(id);
 			}
 		}
-		
+
 		this.currentTime = targetTime;
 	}
 
@@ -48,14 +48,14 @@ export async function waitForCondition(
 	interval = 10
 ): Promise<void> {
 	const start = Date.now();
-	
+
 	while (Date.now() - start < timeout) {
 		if (await condition()) {
 			return;
 		}
 		await new Promise(resolve => setTimeout(resolve, interval));
 	}
-	
+
 	throw new Error(`Condition not met within ${timeout}ms`);
 }
 
@@ -70,13 +70,13 @@ export function createDeterministicTimeRange(): {
 } {
 	let currentTime = 1640995200000;
 	const startTime = currentTime;
-	
+
 	return {
 		startTime,
 		advance: (ms: number) => {
 			currentTime += ms;
 			return currentTime;
 		},
-		getElapsed: () => currentTime - startTime
+		getElapsed: () => currentTime - startTime,
 	};
 }

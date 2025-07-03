@@ -155,10 +155,10 @@ describe('SelectiveImportManager', () => {
 		// Reset mocks
 		jest.clearAllMocks();
 
-		// Setup default mock for conflict resolution 
+		// Setup default mock for conflict resolution
 		mockConflictResolutionModal.showConflictResolution.mockResolvedValue({
 			action: 'overwrite',
-			createBackup: false
+			createBackup: false,
 		});
 
 		// Setup default mock implementations
@@ -170,7 +170,7 @@ describe('SelectiveImportManager', () => {
 				title: 'Test Document',
 				created_at: '2023-01-01T00:00:00.000Z',
 				updated_at: '2023-01-01T00:00:00.000Z',
-			}
+			},
 		});
 		(mockConverter.generateFilename as jest.Mock).mockReturnValue('test-document.md');
 		(mockVault.create as jest.Mock).mockResolvedValue(createMockFile('test-document.md'));
@@ -283,7 +283,7 @@ describe('SelectiveImportManager', () => {
 				.mockReturnValue({
 					filename: 'test-document.md',
 					content: '# Test\n\nMarkdown content',
-					frontmatter: { granola_id: 'test-id', title: 'Test Document' }
+					frontmatter: { granola_id: 'test-id', title: 'Test Document' },
 				});
 
 			const result = await importManager.importDocuments(
@@ -336,11 +336,18 @@ describe('SelectiveImportManager', () => {
 		it('should cancel running import', done => {
 			// Mock slow conversion to allow cancellation
 			(mockConverter.convertDocument as jest.Mock).mockImplementation(
-				() => new Promise(resolve => setTimeout(() => resolve({
-					filename: 'test-document.md',
-					content: 'content',
-					frontmatter: { granola_id: 'test-id', title: 'Test Document' }
-				}), 1000))
+				() =>
+					new Promise(resolve =>
+						setTimeout(
+							() =>
+								resolve({
+									filename: 'test-document.md',
+									content: 'content',
+									frontmatter: { granola_id: 'test-id', title: 'Test Document' },
+								}),
+							1000
+						)
+					)
 			);
 
 			const importPromise = importManager.importDocuments(
@@ -563,7 +570,7 @@ describe('SelectiveImportManager', () => {
 				.mockReturnValue({
 					filename: 'test-document.md',
 					content: '# Test\n\nContent',
-					frontmatter: { granola_id: 'test-id', title: 'Test Document' }
+					frontmatter: { granola_id: 'test-id', title: 'Test Document' },
 				});
 
 			await importManager.importDocuments(mockDocumentMetadata, mockGranolaDocuments, {
@@ -599,10 +606,14 @@ describe('SelectiveImportManager', () => {
 				throw new Error('Critical conversion error');
 			});
 
-			const result = await importManager.importDocuments(mockDocumentMetadata, mockGranolaDocuments, {
-				...defaultOptions,
-				stopOnError: true,
-			});
+			const result = await importManager.importDocuments(
+				mockDocumentMetadata,
+				mockGranolaDocuments,
+				{
+					...defaultOptions,
+					stopOnError: true,
+				}
+			);
 
 			// Since the import manager handles errors gracefully, check the result instead
 			expect(result.failed).toBeGreaterThan(0);
@@ -865,7 +876,9 @@ describe('SelectiveImportManager', () => {
 			];
 
 			// Mock vault methods for conflict resolution
-			(mockVault.getAbstractFileByPath as jest.Mock).mockReturnValue(createMockFile('test-document.md'));
+			(mockVault.getAbstractFileByPath as jest.Mock).mockReturnValue(
+				createMockFile('test-document.md')
+			);
 			(mockVault.modify as jest.Mock).mockResolvedValue(undefined);
 			(mockVault.read as jest.Mock).mockResolvedValue('# Existing content');
 
@@ -937,7 +950,7 @@ describe('SelectiveImportManager', () => {
 
 		it('should handle malformed document data', async () => {
 			// Make the converter throw an error for malformed data
-			(mockConverter.convertDocument as jest.Mock).mockImplementation((doc) => {
+			(mockConverter.convertDocument as jest.Mock).mockImplementation(doc => {
 				throw new Error('Cannot convert document with null ID');
 			});
 

@@ -1062,7 +1062,7 @@ describe('DocumentSelectionModal - Enhanced Coverage Tests', () => {
 			const mockItem = createMockElement();
 			const container = createMockElement();
 			container.createDiv = jest.fn(() => mockItem);
-			
+
 			const doc = mockDocumentMetadata[0];
 
 			(modal as any).renderDocumentItem(container, doc);

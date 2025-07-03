@@ -17,7 +17,7 @@ describe('DocumentMetadataService', () => {
 
 		mockFile = {
 			name: 'test-file.md',
-			path: 'test-folder/test-file.md'
+			path: 'test-folder/test-file.md',
 		};
 
 		mockDocument = {

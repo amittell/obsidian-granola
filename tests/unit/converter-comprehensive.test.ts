@@ -1,7 +1,13 @@
 import { ProseMirrorConverter } from '../../src/converter-split';
 import { NodeConverters } from '../../src/converter/node-converters';
 import { GranolaDocument, ProseMirrorDoc, ProseMirrorNode } from '../../src/api';
-import { Logger, GranolaSettings, ContentPriority, DatePrefixFormat, ImportStrategy } from '../../src/types';
+import {
+	Logger,
+	GranolaSettings,
+	ContentPriority,
+	DatePrefixFormat,
+	ImportStrategy,
+} from '../../src/types';
 
 describe('Converter Modules - Comprehensive Coverage Tests', () => {
 	let converter: ProseMirrorConverter;
@@ -87,49 +93,59 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 				created_at: '2024-01-01T00:00:00Z',
 				updated_at: '2024-01-01T01:00:00Z',
 				user_id: 'user-1',
-				last_viewed_panel: hasPanel ? {
-					content: {
-						type: 'doc',
-						content: [
-							{
-								type: 'paragraph',
-								content: [{ type: 'text', text: 'Panel content' }],
+				last_viewed_panel: hasPanel
+					? {
+							content: {
+								type: 'doc',
+								content: [
+									{
+										type: 'paragraph',
+										content: [{ type: 'text', text: 'Panel content' }],
+									},
+								],
 							},
-						],
-					},
-				} : null,
-				notes: hasNotes ? {
-					type: 'doc',
-					content: [
-						{
-							type: 'paragraph',
-							content: [{ type: 'text', text: 'Notes content' }],
-						},
-					],
-				} : null,
+						}
+					: null,
+				notes: hasNotes
+					? {
+							type: 'doc',
+							content: [
+								{
+									type: 'paragraph',
+									content: [{ type: 'text', text: 'Notes content' }],
+								},
+							],
+						}
+					: null,
 				notes_markdown: hasMarkdown ? '# Markdown Content\n\nPre-converted markdown' : null,
 				notes_plain: hasPlain ? 'Plain text content' : null,
 			});
 
 			it('should prioritize panel content when PANEL_FIRST', () => {
 				const doc = createMockDoc('doc-1', 'Test Document');
-				
+
 				// Mock the ProseMirror conversion
 				jest.spyOn(converter as any, 'isValidProseMirrorDoc').mockReturnValue(true);
-				jest.spyOn(converter as any, 'convertProseMirrorToMarkdown').mockReturnValue('# Converted Panel Content');
+				jest.spyOn(converter as any, 'convertProseMirrorToMarkdown').mockReturnValue(
+					'# Converted Panel Content'
+				);
 				jest.spyOn(converter as any, 'generateFrontmatter').mockReturnValue({
 					created: '2024-01-01T00:00:00Z',
 					source: 'Granola',
 					id: 'doc-1',
 					title: 'Test Document',
 				});
-				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue('2024-01-01 - Test Document.md');
+				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue(
+					'2024-01-01 - Test Document.md'
+				);
 
 				const result = converter.convertDocument(doc);
 
 				expect(result.filename).toBe('2024-01-01 - Test Document.md');
 				expect(result.content).toContain('# Converted Panel Content');
-				expect(mockLogger.debug).toHaveBeenCalledWith('Processing document: doc-1 - "Test Document"');
+				expect(mockLogger.debug).toHaveBeenCalledWith(
+					'Processing document: doc-1 - "Test Document"'
+				);
 			});
 
 			it('should prioritize notes content when NOTES_FIRST', () => {
@@ -142,14 +158,18 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 				});
 
 				const doc = createMockDoc('doc-2', 'Notes First Doc');
-				
+
 				jest.spyOn(converter as any, 'isValidProseMirrorDoc').mockReturnValue(true);
-				jest.spyOn(converter as any, 'convertProseMirrorToMarkdown').mockReturnValue('# Converted Notes Content');
+				jest.spyOn(converter as any, 'convertProseMirrorToMarkdown').mockReturnValue(
+					'# Converted Notes Content'
+				);
 				jest.spyOn(converter as any, 'generateFrontmatter').mockReturnValue({
 					created: '2024-01-01T00:00:00Z',
 					source: 'Granola',
 				});
-				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue('notes-first-doc');
+				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue(
+					'notes-first-doc'
+				);
 
 				const result = converter.convertDocument(doc);
 
@@ -166,14 +186,18 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 				});
 
 				const doc = createMockDoc('doc-3', 'Panel Only Doc', true, true);
-				
+
 				jest.spyOn(converter as any, 'isValidProseMirrorDoc').mockReturnValue(true);
-				jest.spyOn(converter as any, 'convertProseMirrorToMarkdown').mockReturnValue('# Panel Only Content');
+				jest.spyOn(converter as any, 'convertProseMirrorToMarkdown').mockReturnValue(
+					'# Panel Only Content'
+				);
 				jest.spyOn(converter as any, 'generateFrontmatter').mockReturnValue({
 					created: '2024-01-01T00:00:00Z',
 					source: 'Granola',
 				});
-				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue('panel-only-doc.md');
+				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue(
+					'panel-only-doc.md'
+				);
 
 				const result = converter.convertDocument(doc);
 
@@ -190,14 +214,18 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 				});
 
 				const doc = createMockDoc('doc-4', 'Notes Only Doc', true, true);
-				
+
 				jest.spyOn(converter as any, 'isValidProseMirrorDoc').mockReturnValue(true);
-				jest.spyOn(converter as any, 'convertProseMirrorToMarkdown').mockReturnValue('# Notes Only Content');
+				jest.spyOn(converter as any, 'convertProseMirrorToMarkdown').mockReturnValue(
+					'# Notes Only Content'
+				);
 				jest.spyOn(converter as any, 'generateFrontmatter').mockReturnValue({
 					created: '2024-01-01T00:00:00Z',
 					source: 'Granola',
 				});
-				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue('notes-only-doc.md');
+				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue(
+					'notes-only-doc.md'
+				);
 
 				const result = converter.convertDocument(doc);
 
@@ -206,16 +234,20 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 
 			it('should fallback from panel to notes when PANEL_FIRST and panel invalid', () => {
 				const doc = createMockDoc('doc-5', 'Fallback Doc');
-				
+
 				jest.spyOn(converter as any, 'isValidProseMirrorDoc')
 					.mockReturnValueOnce(false) // Panel is invalid
 					.mockReturnValueOnce(true); // Notes is valid
-				jest.spyOn(converter as any, 'convertProseMirrorToMarkdown').mockReturnValue('# Fallback Notes Content');
+				jest.spyOn(converter as any, 'convertProseMirrorToMarkdown').mockReturnValue(
+					'# Fallback Notes Content'
+				);
 				jest.spyOn(converter as any, 'generateFrontmatter').mockReturnValue({
 					created: '2024-01-01T00:00:00Z',
 					source: 'Granola',
 				});
-				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue('fallback-doc.md');
+				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue(
+					'fallback-doc.md'
+				);
 
 				const result = converter.convertDocument(doc);
 
@@ -232,16 +264,20 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 				});
 
 				const doc = createMockDoc('doc-6', 'Notes First Fallback');
-				
+
 				jest.spyOn(converter as any, 'isValidProseMirrorDoc')
 					.mockReturnValueOnce(false) // Notes is invalid (first call)
 					.mockReturnValueOnce(true); // Panel is valid (second call)
-				jest.spyOn(converter as any, 'convertProseMirrorToMarkdown').mockReturnValue('# Fallback Panel Content');
+				jest.spyOn(converter as any, 'convertProseMirrorToMarkdown').mockReturnValue(
+					'# Fallback Panel Content'
+				);
 				jest.spyOn(converter as any, 'generateFrontmatter').mockReturnValue({
 					created: '2024-01-01T00:00:00Z',
 					source: 'Granola',
 				});
-				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue('notes-first-fallback.md');
+				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue(
+					'notes-first-fallback.md'
+				);
 
 				const result = converter.convertDocument(doc);
 
@@ -250,13 +286,15 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 
 			it('should use notes_markdown fallback when ProseMirror conversion fails', () => {
 				const doc = createMockDoc('doc-7', 'Markdown Fallback');
-				
+
 				jest.spyOn(converter as any, 'isValidProseMirrorDoc').mockReturnValue(false);
 				jest.spyOn(converter as any, 'generateFrontmatter').mockReturnValue({
 					created: '2024-01-01T00:00:00Z',
 					source: 'Granola',
 				});
-				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue('markdown-fallback');
+				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue(
+					'markdown-fallback'
+				);
 
 				const result = converter.convertDocument(doc);
 
@@ -265,12 +303,14 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 
 			it('should use notes_plain fallback when no markdown available', () => {
 				const doc = createMockDoc('doc-8', 'Plain Fallback', false, false, false, true);
-				
+
 				jest.spyOn(converter as any, 'generateFrontmatter').mockReturnValue({
 					created: '2024-01-01T00:00:00Z',
 					source: 'Granola',
 				});
-				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue('plain-fallback');
+				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue(
+					'plain-fallback'
+				);
 
 				const result = converter.convertDocument(doc);
 
@@ -279,12 +319,14 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 
 			it('should handle documents with no content at all', () => {
 				const doc = createMockDoc('doc-9', 'Empty Doc', false, false, false, false);
-				
+
 				jest.spyOn(converter as any, 'generateFrontmatter').mockReturnValue({
 					created: '2024-01-01T00:00:00Z',
 					source: 'Granola',
 				});
-				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue('empty-doc.md');
+				jest.spyOn(converter as any, 'generateDatePrefixedFilename').mockReturnValue(
+					'empty-doc.md'
+				);
 
 				const result = converter.convertDocument(doc);
 
@@ -306,17 +348,20 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 			it('should convert paragraph with text content', () => {
 				const paragraphNode: ProseMirrorNode = {
 					type: 'paragraph',
-					content: [
-						{ type: 'text', text: 'This is a paragraph.' },
-					],
+					content: [{ type: 'text', text: 'This is a paragraph.' }],
 				};
 
-				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue('This is a paragraph.');
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue(
+					'This is a paragraph.'
+				);
 
 				const result = nodeConverters.convertParagraph(paragraphNode);
 
 				expect(result).toBe('This is a paragraph.\n\n');
-				expect(mockLogger.debug).toHaveBeenCalledWith('Converting paragraph node:', paragraphNode);
+				expect(mockLogger.debug).toHaveBeenCalledWith(
+					'Converting paragraph node:',
+					paragraphNode
+				);
 			});
 
 			it('should handle empty paragraph content', () => {
@@ -346,29 +391,32 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 				const headingNode: ProseMirrorNode = {
 					type: 'heading',
 					attrs: { level: 1 },
-					content: [
-						{ type: 'text', text: 'Main Heading' },
-					],
+					content: [{ type: 'text', text: 'Main Heading' }],
 				};
 
-				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue('Main Heading');
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue(
+					'Main Heading'
+				);
 
 				const result = nodeConverters.convertHeading(headingNode);
 
 				expect(result).toBe('# Main Heading\n\n');
-				expect(mockLogger.debug).toHaveBeenCalledWith('Converting heading node:', headingNode);
+				expect(mockLogger.debug).toHaveBeenCalledWith(
+					'Converting heading node:',
+					headingNode
+				);
 			});
 
 			it('should convert heading with level 3', () => {
 				const headingNode: ProseMirrorNode = {
 					type: 'heading',
 					attrs: { level: 3 },
-					content: [
-						{ type: 'text', text: 'Sub Heading' },
-					],
+					content: [{ type: 'text', text: 'Sub Heading' }],
 				};
 
-				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue('Sub Heading');
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue(
+					'Sub Heading'
+				);
 
 				const result = nodeConverters.convertHeading(headingNode);
 
@@ -379,12 +427,12 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 				const headingNode: ProseMirrorNode = {
 					type: 'heading',
 					attrs: { level: 0 },
-					content: [
-						{ type: 'text', text: 'Clamped Heading' },
-					],
+					content: [{ type: 'text', text: 'Clamped Heading' }],
 				};
 
-				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue('Clamped Heading');
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue(
+					'Clamped Heading'
+				);
 
 				const result = nodeConverters.convertHeading(headingNode);
 
@@ -395,12 +443,12 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 				const headingNode: ProseMirrorNode = {
 					type: 'heading',
 					attrs: { level: 10 },
-					content: [
-						{ type: 'text', text: 'Max Heading' },
-					],
+					content: [{ type: 'text', text: 'Max Heading' }],
 				};
 
-				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue('Max Heading');
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue(
+					'Max Heading'
+				);
 
 				const result = nodeConverters.convertHeading(headingNode);
 
@@ -410,12 +458,12 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 			it('should handle heading with no attrs', () => {
 				const headingNode: ProseMirrorNode = {
 					type: 'heading',
-					content: [
-						{ type: 'text', text: 'Default Heading' },
-					],
+					content: [{ type: 'text', text: 'Default Heading' }],
 				};
 
-				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue('Default Heading');
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue(
+					'Default Heading'
+				);
 
 				const result = nodeConverters.convertHeading(headingNode);
 
@@ -449,12 +497,12 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 				const headingNode: ProseMirrorNode = {
 					type: 'heading',
 					attrs: { level: 'invalid' },
-					content: [
-						{ type: 'text', text: 'Invalid Level Heading' },
-					],
+					content: [{ type: 'text', text: 'Invalid Level Heading' }],
 				};
 
-				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue('Invalid Level Heading');
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue(
+					'Invalid Level Heading'
+				);
 
 				const result = nodeConverters.convertHeading(headingNode);
 
@@ -495,10 +543,10 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 
 			it('should handle text nodes with marks', () => {
 				const textNodesWithMarks = [
-					{ 
-						type: 'text', 
+					{
+						type: 'text',
 						text: 'Bold text',
-						marks: [{ type: 'strong' }]
+						marks: [{ type: 'strong' }],
 					},
 				];
 
@@ -514,16 +562,18 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 					type: 'paragraph',
 					content: [
 						{ type: 'text', text: 'Start ' },
-						{ 
-							type: 'text', 
+						{
+							type: 'text',
 							text: 'bold',
-							marks: [{ type: 'strong' }]
+							marks: [{ type: 'strong' }],
 						},
 						{ type: 'text', text: ' end.' },
 					],
 				};
 
-				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue('Start bold end.');
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue(
+					'Start bold end.'
+				);
 
 				const result = nodeConverters.convertParagraph(complexParagraph);
 
@@ -533,12 +583,12 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 			it('should handle whitespace in text content', () => {
 				const whitespaceParagraph: ProseMirrorNode = {
 					type: 'paragraph',
-					content: [
-						{ type: 'text', text: '  Whitespace content  ' },
-					],
+					content: [{ type: 'text', text: '  Whitespace content  ' }],
 				};
 
-				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue('  Whitespace content  ');
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue(
+					'  Whitespace content  '
+				);
 
 				const result = nodeConverters.convertParagraph(whitespaceParagraph);
 
@@ -570,7 +620,9 @@ describe('Converter Modules - Comprehensive Coverage Tests', () => {
 					content: [{ type: 'text', text: 'Malformed' }],
 				};
 
-				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue('Malformed');
+				jest.spyOn(nodeConverters as any, 'extractTextFromNodes').mockReturnValue(
+					'Malformed'
+				);
 
 				const result = nodeConverters.convertHeading(malformedHeading);
 

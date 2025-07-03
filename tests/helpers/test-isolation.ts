@@ -18,14 +18,14 @@ export class TestIsolationManager {
 				console.warn('Cleanup function failed:', error);
 			}
 		});
-		
+
 		// Clear the cleanup list
 		this.cleanupFunctions = [];
-		
+
 		// Reset Jest mocks
 		jest.clearAllMocks();
 		jest.restoreAllMocks();
-		
+
 		// Clear any setTimeout/setInterval
 		jest.clearAllTimers();
 	}
@@ -48,7 +48,7 @@ export function createIsolatedTestSuite(): TestIsolationManager {
 export async function waitForAsyncOperations(): Promise<void> {
 	// Wait for all promises to resolve
 	await new Promise(resolve => setImmediate(resolve));
-	
+
 	// Wait one more tick for any chained promises
 	await new Promise(resolve => setImmediate(resolve));
 }
@@ -58,7 +58,7 @@ export function createMockWithCleanup<T>(
 	cleanup?: () => void
 ): jest.MockedFunction<any> {
 	const mock = jest.fn().mockImplementation(mockImplementation);
-	
+
 	if (cleanup) {
 		// Store cleanup function for later execution
 		if (!(global as any).__testCleanupFunctions) {
@@ -66,7 +66,7 @@ export function createMockWithCleanup<T>(
 		}
 		(global as any).__testCleanupFunctions.push(cleanup);
 	}
-	
+
 	return mock;
 }
 

@@ -396,7 +396,7 @@ describe('Settings Coverage Tests', () => {
 
 			// Verify the dropdown callback was captured
 			expect(mockCallbacks.dropdownChange).toBeDefined();
-			
+
 			// Test callback functionality by manually updating settings like the real callback would
 			if (mockCallbacks.dropdownChange) {
 				mockPlugin.settings.content.datePrefixFormat = 'MM-DD-YYYY';
@@ -442,7 +442,7 @@ describe('Settings Coverage Tests', () => {
 
 			// Verify the toggle callback was captured
 			expect(mockCallbacks.toggleChange).toBeDefined();
-			
+
 			// Test callback functionality by manually updating settings like the real callback would
 			if (mockCallbacks.toggleChange) {
 				mockPlugin.settings.ui.autoCloseModal = true;
@@ -458,7 +458,7 @@ describe('Settings Coverage Tests', () => {
 
 			// Verify the toggle callback was captured
 			expect(mockCallbacks.toggleChange).toBeDefined();
-			
+
 			// Test callback functionality by manually updating settings like the real callback would
 			if (mockCallbacks.toggleChange) {
 				mockPlugin.settings.ui.showProgressNotifications = false;

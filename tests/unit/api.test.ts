@@ -602,7 +602,9 @@ describe('GranolaAPI', () => {
 			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
 
 			// Should fail after max retries with rate limit error (not maximum retry error for 429s)
-			await expect(api.getDocuments()).rejects.toThrow('Rate limit exceeded. Please try again later.');
+			await expect(api.getDocuments()).rejects.toThrow(
+				'Rate limit exceeded. Please try again later.'
+			);
 
 			// Should have attempted the maximum number of retries (3)
 			expect(mockFetch).toHaveBeenCalledTimes(3);
@@ -620,7 +622,9 @@ describe('GranolaAPI', () => {
 			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
 
 			// Should fail immediately without retries for non-429 errors
-			await expect(api.getDocuments()).rejects.toThrow('API request failed: 500 Internal Server Error');
+			await expect(api.getDocuments()).rejects.toThrow(
+				'API request failed: 500 Internal Server Error'
+			);
 
 			// Should only be called once (no retries for non-429)
 			expect(mockFetch).toHaveBeenCalledTimes(1);

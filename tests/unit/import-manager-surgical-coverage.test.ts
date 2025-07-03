@@ -44,27 +44,27 @@ class MockTFile extends TFile {
 	}
 }
 
-const createMockFile = (name: string, path: string = name): TFile => 
-	new MockTFile(name, path);
+const createMockFile = (name: string, path: string = name): TFile => new MockTFile(name, path);
 
 describe('ImportManager - Surgical Coverage Tests', () => {
 	let importManager: SelectiveImportManager;
 
 	beforeEach(() => {
 		jest.clearAllMocks();
-		
+
 		// Initialize manager
 		importManager = new SelectiveImportManager(mockApp, mockVault, mockConverter);
-		
+
 		// Mock setup for tests
 		mockVault.create.mockResolvedValue(createMockFile('test-file.md'));
 		mockVault.modify.mockResolvedValue(undefined);
 		mockVault.read.mockResolvedValue('---\ncreated: "2024-01-01"\n---\nExisting content');
 		mockVault.getAbstractFileByPath.mockReturnValue(createMockFile('existing.md'));
-		
+
 		mockConverter.convertDocument.mockReturnValue({
 			filename: 'test-doc.md',
-			content: '---\ncreated: "2024-01-01"\nsource: Granola\n---\n# Test Document\n\nContent here',
+			content:
+				'---\ncreated: "2024-01-01"\nsource: Granola\n---\n# Test Document\n\nContent here',
 			frontmatter: {
 				created: '2024-01-01T00:00:00Z',
 				source: 'Granola',
@@ -84,7 +84,9 @@ describe('ImportManager - Surgical Coverage Tests', () => {
 			mockVault.getAbstractFileByPath.mockReturnValue(existingFile);
 
 			// Mock the internal methods
-			const createBackupSpy = jest.spyOn(importManager as any, 'createBackup').mockResolvedValue(undefined);
+			const createBackupSpy = jest
+				.spyOn(importManager as any, 'createBackup')
+				.mockResolvedValue(undefined);
 
 			await (importManager as any).handleOverwrite(convertedNote, true);
 
@@ -98,14 +100,16 @@ describe('ImportManager - Surgical Coverage Tests', () => {
 			const existingFile = createMockFile('existing.md');
 			const convertedNote = {
 				filename: 'existing.md',
-				content: '---\ncreated: "2024-01-01"\nsource: Granola\n---\n# New Content\n\nNew body content',
+				content:
+					'---\ncreated: "2024-01-01"\nsource: Granola\n---\n# New Content\n\nNew body content',
 			};
 
 			// Reset mock to return the specific file
 			mockVault.getAbstractFileByPath.mockReturnValue(existingFile);
 
 			// Mock existing content with frontmatter
-			const existingContent = '---\ncreated: "2024-01-01"\noriginal: true\n---\n# Existing Content\n\nExisting body content';
+			const existingContent =
+				'---\ncreated: "2024-01-01"\noriginal: true\n---\n# Existing Content\n\nExisting body content';
 			mockVault.read.mockResolvedValue(existingContent);
 
 			await (importManager as any).handleMerge(convertedNote, 'append');
@@ -129,13 +133,15 @@ describe('ImportManager - Surgical Coverage Tests', () => {
 			const existingFile = createMockFile('existing.md');
 			const convertedNote = {
 				filename: 'existing.md',
-				content: '---\ncreated: "2024-01-01"\nsource: Granola\n---\n# New Content\n\nNew body content',
+				content:
+					'---\ncreated: "2024-01-01"\nsource: Granola\n---\n# New Content\n\nNew body content',
 			};
 
 			// Reset mock to return the specific file
 			mockVault.getAbstractFileByPath.mockReturnValue(existingFile);
 
-			const existingContent = '---\ncreated: "2024-01-01"\noriginal: true\n---\n# Existing Content\n\nExisting body content';
+			const existingContent =
+				'---\ncreated: "2024-01-01"\noriginal: true\n---\n# Existing Content\n\nExisting body content';
 			mockVault.read.mockResolvedValue(existingContent);
 
 			await (importManager as any).handleMerge(convertedNote, 'prepend');
@@ -162,7 +168,10 @@ describe('ImportManager - Surgical Coverage Tests', () => {
 
 			await (importManager as any).handleMerge(convertedNote, 'append');
 
-			expect(mockVault.create).toHaveBeenCalledWith(convertedNote.filename, convertedNote.content);
+			expect(mockVault.create).toHaveBeenCalledWith(
+				convertedNote.filename,
+				convertedNote.content
+			);
 		});
 	});
 
@@ -170,11 +179,11 @@ describe('ImportManager - Surgical Coverage Tests', () => {
 		it('should use memoized converter with doc ID and timestamp', () => {
 			// This test covers the creation of the memoized converter in constructor
 			// Lines 176-177: return `${granolaDoc.id}-${granolaDoc.updated_at}`;
-			
+
 			// The constructor already ran in beforeEach, which creates the memoized converter
 			// Just verify the manager was created successfully
 			expect(importManager).toBeDefined();
-			
+
 			// The memoized converter function is created with a key generator that uses these lines
 			// This provides coverage for the type conversion and key generation logic
 		});

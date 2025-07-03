@@ -213,10 +213,10 @@ export class SelectiveImportManager {
 			const importQueue = selectedDocuments
 				.filter(meta => meta.selected && documentMap.has(meta.id))
 				.map(meta => ({ meta, doc: documentMap.get(meta.id)! }));
-			
+
 			// Update total count based on actual documents to be processed
 			this.overallProgress.total = importQueue.length;
-			
+
 			const phase1End = performance.now();
 
 			this.performanceMonitor.recordRuntimePhase(
@@ -423,7 +423,7 @@ export class SelectiveImportManager {
 		}
 
 		const startTime = Date.now();
-		
+
 		// First emit pending status
 		this.updateDocumentProgress(doc.id, {
 			status: 'pending',
@@ -431,7 +431,7 @@ export class SelectiveImportManager {
 			message: 'Starting import...',
 			startTime,
 		});
-		
+
 		this.updateDocumentProgress(doc.id, {
 			status: 'importing',
 			progress: 10,

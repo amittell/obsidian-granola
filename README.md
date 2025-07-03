@@ -49,23 +49,27 @@ npm run dev
 #### Development Commands
 
 **Build and Development:**
+
 - `npm run dev` - Watch mode with hot reload
 - `npm run build` - Production build with TypeScript checking
 - `npm run version` - Bump version and update manifest files
 
 **Testing:**
+
 - `npm test` - Run all 614 tests
 - `npm run test:watch` - Run tests in watch mode
 - `npm run test:coverage` - Run tests with coverage report (70% threshold)
 - `npm run test:ci` - Run tests in CI mode
 
 **Code Quality:**
+
 - `npm run lint` - Run ESLint (zero warnings allowed)
 - `npm run lint:fix` - Auto-fix linting issues
 - `npm run format` - Auto-format code with Prettier
 - `npm run type-check` - TypeScript type checking
 
 **Performance Analysis:**
+
 - `npm run analyze` - Bundle size analysis with detailed metrics
 - `npm run perf` - Performance audit (bundle analysis + security audit)
 - `npm run monitor:bundle` - Bundle size tracking and regression detection
@@ -79,11 +83,13 @@ See [DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md) for detailed deployment instructi
 The project uses a cost-effective, layered CI/CD strategy:
 
 **Layer 1: Local Git Hooks (Free)**
+
 - Pre-commit validation catches issues locally
 - Formatting, TypeScript, and build checks
 - Setup: `./setup-hooks.sh`
 
 **Layer 2: GitHub Actions (Budget-Conscious)**
+
 - Quick checks on all branches (~2 min, $0.02/run)
 - Full tests only on main branch and PRs (~4 min, $0.04/run)
 - Automated monitoring: bundle size, coverage, performance, security
@@ -173,18 +179,21 @@ The plugin maintains a comprehensive test suite with 614 tests covering:
 - **Mock Infrastructure** - Realistic Obsidian API simulation
 
 **Coverage Requirements:**
+
 - 70% threshold for branches, functions, lines, and statements
 - Current coverage: Lines 57.57%, Functions 52.44%, Statements 57.0%, Branches 39.78%
 - TFile instance validation for proper `instanceof` checks
 - Performance monitoring and memory leak detection
 
 **Automated Monitoring:**
+
 - Bundle size regression detection (5% threshold)
 - Performance benchmarking (modal loading, interactions, processing)
 - Security vulnerability scanning
 - Coverage trend analysis with visual dashboards
 
 **Test Categories:**
+
 - Core business logic (import strategies, conflict resolution)
 - Error handling and recovery scenarios
 - Progress tracking and cancellation

@@ -20,12 +20,14 @@ jest.mock('../../src/performance/performance-monitor', () => ({
 			completeRuntimeProfiling: jest.fn(() => ({ bottlenecks: [] })),
 		})),
 	},
-	measurePerformance: jest.fn(() => (target: any, propertyName: string, descriptor: PropertyDescriptor) => descriptor),
+	measurePerformance: jest.fn(
+		() => (target: any, propertyName: string, descriptor: PropertyDescriptor) => descriptor
+	),
 }));
 
 jest.mock('../../src/performance/performance-utils', () => ({
-	batchProcessor: jest.fn((fn) => fn),
-	memoize: jest.fn((fn) => fn),
+	batchProcessor: jest.fn(fn => fn),
+	memoize: jest.fn(fn => fn),
 }));
 
 // Mock conflict resolution modal for testing conflict scenarios
@@ -96,7 +98,8 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 
 		(mockConverter.convertDocument as jest.Mock).mockReturnValue({
 			filename: 'test-document.md',
-			content: '---\nid: doc-1\ncreated: 2024-01-01T00:00:00Z\nsource: Granola\n---\n\n# Test Document\n\nTest content',
+			content:
+				'---\nid: doc-1\ncreated: 2024-01-01T00:00:00Z\nsource: Granola\n---\n\n# Test Document\n\nTest content',
 			frontmatter: {
 				id: 'doc-1',
 				created: '2024-01-01T00:00:00Z',
@@ -110,7 +113,7 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 		// Setup default conflict resolution mock to allow processing CONFLICT documents
 		mockConflictResolutionModal.showConflictResolution.mockResolvedValue({
 			action: 'overwrite',
-			createBackup: false
+			createBackup: false,
 		});
 
 		// Setup comprehensive test data
@@ -185,7 +188,9 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 				last_viewed_panel: {
 					content: {
 						type: 'doc',
-						content: [{ type: 'paragraph', content: [{ type: 'text', text: 'New content' }] }],
+						content: [
+							{ type: 'paragraph', content: [{ type: 'text', text: 'New content' }] },
+						],
 					},
 				},
 				notes: null,
@@ -201,7 +206,12 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 				last_viewed_panel: {
 					content: {
 						type: 'doc',
-						content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Existing content' }] }],
+						content: [
+							{
+								type: 'paragraph',
+								content: [{ type: 'text', text: 'Existing content' }],
+							},
+						],
 					},
 				},
 				notes: null,
@@ -217,7 +227,12 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 				last_viewed_panel: {
 					content: {
 						type: 'doc',
-						content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Conflict content' }] }],
+						content: [
+							{
+								type: 'paragraph',
+								content: [{ type: 'text', text: 'Conflict content' }],
+							},
+						],
 					},
 				},
 				notes: null,
@@ -233,7 +248,12 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 				last_viewed_panel: {
 					content: {
 						type: 'doc',
-						content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Unselected content' }] }],
+						content: [
+							{
+								type: 'paragraph',
+								content: [{ type: 'text', text: 'Unselected content' }],
+							},
+						],
 					},
 				},
 				notes: null,
@@ -301,7 +321,7 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 			expect(documentProgressUpdates.length).toBeGreaterThan(0);
 
 			// Verify document processing - NEW and CONFLICT documents are processed with 'skip' strategy
-			// doc-1 (NEW) = processed, doc-2 (EXISTS) = skipped, doc-3 (CONFLICT) = requires user choice  
+			// doc-1 (NEW) = processed, doc-2 (EXISTS) = skipped, doc-3 (CONFLICT) = requires user choice
 			expect(mockConverter.convertDocument).toHaveBeenCalledTimes(2);
 		});
 
@@ -373,16 +393,17 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 
 		it('should handle EXISTS documents with skip strategy', async () => {
 			// Mock existing file
-			(mockVault.getAbstractFileByPath as jest.Mock).mockReturnValue(createMockFile('existing.md'));
+			(mockVault.getAbstractFileByPath as jest.Mock).mockReturnValue(
+				createMockFile('existing.md')
+			);
 
 			const existingDocOnly = [mockDocumentMetadata[1]]; // EXISTS document
 			const granolaDataOnly = [mockGranolaDocuments[1]];
 
-			const result = await importManager.importDocuments(
-				existingDocOnly,
-				granolaDataOnly,
-				{ ...defaultOptions, strategy: 'skip' }
-			);
+			const result = await importManager.importDocuments(existingDocOnly, granolaDataOnly, {
+				...defaultOptions,
+				strategy: 'skip',
+			});
 
 			expect(result.skipped).toBe(1);
 			expect(mockVault.create).not.toHaveBeenCalled();
@@ -391,11 +412,12 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 
 		it('should handle EXISTS documents with update strategy', async () => {
 			const existingFile = createMockFile('test-document.md');
-			
+
 			// Mock converter with detailed logging
 			const mockConvertedNote = {
 				filename: 'test-document.md',
-				content: '---\nid: doc-1\ncreated: 2024-01-01T00:00:00Z\nsource: Granola\n---\n\n# Test Document\n\nTest content',
+				content:
+					'---\nid: doc-1\ncreated: 2024-01-01T00:00:00Z\nsource: Granola\n---\n\n# Test Document\n\nTest content',
 				frontmatter: {
 					id: 'doc-1',
 					created: '2024-01-01T00:00:00Z',
@@ -403,7 +425,7 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 				},
 			};
 			(mockConverter.convertDocument as jest.Mock).mockReturnValue(mockConvertedNote);
-			
+
 			// Clear and reset the mock to ensure our implementation takes precedence
 			(mockVault.getAbstractFileByPath as jest.Mock).mockReset();
 			(mockVault.getAbstractFileByPath as jest.Mock).mockImplementation((path: string) => {
@@ -433,30 +455,36 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 			console.log('Document status:', existsDoc.importStatus.status);
 			console.log('Requires user choice:', existsDoc.importStatus.requiresUserChoice);
 
-			const result = await importManager.importDocuments(
-				existingDocOnly,
-				granolaDataOnly,
-				{ ...defaultOptions, strategy: 'update' }
-			);
+			const result = await importManager.importDocuments(existingDocOnly, granolaDataOnly, {
+				...defaultOptions,
+				strategy: 'update',
+			});
 
 			console.log('Import result:', result);
-			console.log('Converter calls:', (mockConverter.convertDocument as jest.Mock).mock.calls.length);
-			console.log('getAbstractFileByPath calls:', (mockVault.getAbstractFileByPath as jest.Mock).mock.calls);
+			console.log(
+				'Converter calls:',
+				(mockConverter.convertDocument as jest.Mock).mock.calls.length
+			);
+			console.log(
+				'getAbstractFileByPath calls:',
+				(mockVault.getAbstractFileByPath as jest.Mock).mock.calls
+			);
 			console.log('modify calls:', (mockVault.modify as jest.Mock).mock.calls.length);
 			console.log('create calls:', (mockVault.create as jest.Mock).mock.calls.length);
 
 			expect(result.completed).toBe(1);
-			
+
 			// Check which path was taken
-			const getAbstractFileByPathCalls = (mockVault.getAbstractFileByPath as jest.Mock).mock.calls;
+			const getAbstractFileByPathCalls = (mockVault.getAbstractFileByPath as jest.Mock).mock
+				.calls;
 			const modifyCalls = (mockVault.modify as jest.Mock).mock.calls.length;
 			const createCalls = (mockVault.create as jest.Mock).mock.calls.length;
-			
+
 			// Verify the correct execution path was taken
 			expect(getAbstractFileByPathCalls.length).toBe(1);
 			expect(modifyCalls).toBe(1);
 			expect(createCalls).toBe(0);
-			
+
 			expect(mockVault.modify).toHaveBeenCalledWith(
 				existingFile,
 				expect.stringContaining('# Test Document')
@@ -472,11 +500,10 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 			const existingDocOnly = [mockDocumentMetadata[1]]; // EXISTS document
 			const granolaDataOnly = [mockGranolaDocuments[1]];
 
-			await importManager.importDocuments(
-				existingDocOnly,
-				granolaDataOnly,
-				{ ...defaultOptions, strategy: 'create_new' }
-			);
+			await importManager.importDocuments(existingDocOnly, granolaDataOnly, {
+				...defaultOptions,
+				strategy: 'create_new',
+			});
 
 			expect(mockVault.create).toHaveBeenCalled();
 			expect(mockVault.modify).not.toHaveBeenCalled();
@@ -494,11 +521,11 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 			const existingDocOnly = [mockDocumentMetadata[1]]; // EXISTS document
 			const granolaDataOnly = [mockGranolaDocuments[1]];
 
-			await importManager.importDocuments(
-				existingDocOnly,
-				granolaDataOnly,
-				{ ...defaultOptions, strategy: 'update', createBackups: true }
-			);
+			await importManager.importDocuments(existingDocOnly, granolaDataOnly, {
+				...defaultOptions,
+				strategy: 'update',
+				createBackups: true,
+			});
 
 			// Should create backup file
 			expect(mockVault.create).toHaveBeenCalledWith(
@@ -566,14 +593,16 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 				if (path === 'test-document.md') return existingFile;
 				return null;
 			});
-			(mockVault.read as jest.Mock).mockResolvedValue('---\nid: existing\n---\n\n# Existing Content');
+			(mockVault.read as jest.Mock).mockResolvedValue(
+				'---\nid: existing\n---\n\n# Existing Content'
+			);
 
 			mockConflictResolutionModal.showConflictResolution.mockResolvedValue({
 				action: 'merge',
 				strategy: 'append',
 			});
 
-			const conflictDocOnly = [mockDocumentMetadata[2]]; // CONFLICT document  
+			const conflictDocOnly = [mockDocumentMetadata[2]]; // CONFLICT document
 			const granolaDataOnly = [mockGranolaDocuments[2]];
 
 			const result = await importManager.importDocuments(
@@ -619,11 +648,10 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 			const conflictDocOnly = [mockDocumentMetadata[2]]; // CONFLICT document
 			const granolaDataOnly = [mockGranolaDocuments[2]];
 
-			const result = await importManager.importDocuments(
-				conflictDocOnly,
-				granolaDataOnly,
-				{ ...defaultOptions, stopOnError: false }
-			);
+			const result = await importManager.importDocuments(conflictDocOnly, granolaDataOnly, {
+				...defaultOptions,
+				stopOnError: false,
+			});
 
 			expect(result.failed).toBe(1);
 		});
@@ -631,7 +659,7 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 
 	describe('Error Handling and Recovery', () => {
 		it('should handle conversion errors gracefully', async () => {
-			(mockConverter.convertDocument as jest.Mock).mockImplementation((doc) => {
+			(mockConverter.convertDocument as jest.Mock).mockImplementation(doc => {
 				if (doc.id === 'doc-1') {
 					throw new Error('Conversion failed for doc-1');
 				}
@@ -651,14 +679,14 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 
 			expect(result.failed).toBe(1); // doc-1 fails
 			expect(result.completed).toBe(2); // doc-2 and doc-3 succeed
-			
+
 			const failedDocProgress = importManager.getDocumentProgress('doc-1');
 			expect(failedDocProgress?.status).toBe('failed');
 			expect(failedDocProgress?.error).toContain('Conversion failed');
 		});
 
 		it('should stop on first error when stopOnError is true', async () => {
-			(mockConverter.convertDocument as jest.Mock).mockImplementation((doc) => {
+			(mockConverter.convertDocument as jest.Mock).mockImplementation(doc => {
 				if (doc.id === 'doc-1') {
 					throw new Error('Critical conversion error');
 				}
@@ -699,7 +727,9 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 				if (path === 'test-document.md') return existingFile;
 				return null;
 			});
-			(mockVault.modify as jest.Mock).mockRejectedValue(new Error('Vault modification failed'));
+			(mockVault.modify as jest.Mock).mockRejectedValue(
+				new Error('Vault modification failed')
+			);
 
 			const result = await importManager.importDocuments(
 				[mockDocumentMetadata[1]], // EXISTS document
@@ -730,12 +760,12 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 
 			// Should have multiple progress updates for phases
 			expect(documentProgressUpdates.length).toBeGreaterThan(1);
-			
+
 			// Check for expected progress phases
 			const pendingUpdate = documentProgressUpdates.find(p => p.status === 'pending');
 			const importingUpdate = documentProgressUpdates.find(p => p.status === 'importing');
 			const completedUpdate = documentProgressUpdates.find(p => p.status === 'completed');
-			
+
 			expect(pendingUpdate).toBeDefined();
 			expect(importingUpdate).toBeDefined();
 			expect(completedUpdate).toBeDefined();
@@ -793,7 +823,7 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 			// Mock vault to simulate existing files
 			(mockVault.getAbstractFileByPath as jest.Mock)
 				.mockReturnValueOnce(createMockFile('test-1.md')) // First attempt exists
-				.mockReturnValueOnce(createMockFile('test-2.md')) // Second attempt exists  
+				.mockReturnValueOnce(createMockFile('test-2.md')) // Second attempt exists
 				.mockReturnValueOnce(null); // Third attempt is free
 
 			// Access private method via reflection
@@ -803,20 +833,23 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 		});
 
 		it('should extract content after frontmatter correctly', () => {
-			const contentWithFrontmatter = '---\nid: test\ncreated: 2024-01-01\n---\n\n# Main Content\n\nSome text';
-			
+			const contentWithFrontmatter =
+				'---\nid: test\ncreated: 2024-01-01\n---\n\n# Main Content\n\nSome text';
+
 			// Access private method via reflection
-			const extractedContent = (importManager as any).extractContentAfterFrontmatter(contentWithFrontmatter);
-			
+			const extractedContent = (importManager as any).extractContentAfterFrontmatter(
+				contentWithFrontmatter
+			);
+
 			expect(extractedContent).toBe('\n# Main Content\n\nSome text');
 		});
 
 		it('should handle sleep utility method', async () => {
 			const startTime = Date.now();
-			
+
 			// Access private method via reflection
 			await (importManager as any).sleep(50);
-			
+
 			const endTime = Date.now();
 			expect(endTime - startTime).toBeGreaterThanOrEqual(45); // Allow some timing variance
 		});
@@ -841,8 +874,7 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 				.mockResolvedValueOnce(createMockFile('unique-batch1.md'))
 				.mockResolvedValueOnce(createMockFile('batch2.md'));
 
-			(mockVault.getAbstractFileByPath as jest.Mock)
-				.mockReturnValueOnce(null); // For unique filename generation
+			(mockVault.getAbstractFileByPath as jest.Mock).mockReturnValueOnce(null); // For unique filename generation
 
 			const files = [
 				{ filename: 'batch1.md', content: '# Batch 1' },
@@ -872,11 +904,10 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 				title: `Document ${i + 1}`,
 			}));
 
-			const result = await importManager.importDocuments(
-				manyDocs,
-				manyGranolaDocs,
-				{ ...defaultOptions, maxConcurrency: 2 }
-			);
+			const result = await importManager.importDocuments(manyDocs, manyGranolaDocs, {
+				...defaultOptions,
+				maxConcurrency: 2,
+			});
 
 			expect(result.total).toBe(5);
 			expect(result.completed).toBe(5);

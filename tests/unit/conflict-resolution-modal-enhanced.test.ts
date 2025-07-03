@@ -597,7 +597,7 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 		it('should not create merge option when no existing file', async () => {
 			// Reset button callbacks to isolate this test
 			mockButtonCallbacks = {};
-			
+
 			const modalWithoutFile = new ConflictResolutionModal(
 				mockApp,
 				mockDocument,
@@ -924,8 +924,8 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 			const invalidMetadata = {
 				importStatus: {
 					status: 'UNKNOWN',
-					reason: 'Invalid metadata'
-				}
+					reason: 'Invalid metadata',
+				},
 			} as DocumentDisplayMetadata;
 			const invalidModal = new ConflictResolutionModal(
 				mockApp,

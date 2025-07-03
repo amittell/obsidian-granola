@@ -311,11 +311,13 @@ X-Client-Version: 5.354.0
 The project uses a layered CI/CD approach optimized for solo developers:
 
 **Layer 1: Local Git Hooks (Free)**
+
 - Pre-commit validation with `./setup-hooks.sh`
 - Formatting, TypeScript, and build checks
 - Catches 80% of issues locally before push
 
 **Layer 2: GitHub Actions (Budget-Conscious)**
+
 - Quick checks: All branches (~2 min, $0.02/run)
 - Full tests: Main branch and PRs only (~4 min, $0.04/run)
 - Monthly cost: ~$0.60 vs $3-5 traditional CI (70-80% savings)
@@ -323,22 +325,26 @@ The project uses a layered CI/CD approach optimized for solo developers:
 ### Automated Monitoring Systems
 
 **Bundle Size Monitoring:**
+
 - Regression detection with 5% threshold
 - Historical tracking with 100-entry limit
 - CI failure on size increases beyond 80KB
 
 **Performance Benchmarking:**
+
 - Modal loading: < 100ms threshold
 - Interactions: < 50ms threshold
 - Processing: < 500ms threshold
 - Automated regression detection with 20% degradation alert
 
 **Test Coverage Monitoring:**
+
 - 70% threshold enforcement for all metrics
 - Historical trend analysis with visual dashboards
 - Regression detection on 5% coverage drops
 
 **Security Scanning:**
+
 - Automated vulnerability detection
 - Dependency auditing with version checking
 - Source code security pattern analysis
@@ -346,6 +352,7 @@ The project uses a layered CI/CD approach optimized for solo developers:
 ### Monitoring Data Storage
 
 All monitoring data is stored in `/monitoring/` directory:
+
 - `bundle-size-history.json` - Bundle size tracking
 - `coverage-history.json` - Test coverage trends
 - `performance-history.json` - Performance metrics

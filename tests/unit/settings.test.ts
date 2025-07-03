@@ -17,7 +17,7 @@ const globalCallbacks = {
 	dropdownCallbacks: [] as Array<(value: string) => Promise<void>>,
 	toggleCallbacks: [] as Array<(value: boolean) => Promise<void>>,
 	textCallbacks: [] as Array<(value: string) => Promise<void>>,
-	buttonCallbacks: [] as Array<() => Promise<void>>
+	buttonCallbacks: [] as Array<() => Promise<void>>,
 };
 
 // Mock the Setting class globally with our robust UI mock
@@ -27,66 +27,66 @@ jest.mock('obsidian', () => ({
 		const settingInstance = {
 			setName: jest.fn().mockReturnThis(),
 			setDesc: jest.fn().mockReturnThis(),
-			addSlider: jest.fn().mockImplementation((builderFn) => {
+			addSlider: jest.fn().mockImplementation(builderFn => {
 				const mockSlider = {
 					setLimits: jest.fn().mockReturnThis(),
 					setValue: jest.fn().mockReturnThis(),
 					setDynamicTooltip: jest.fn().mockReturnThis(),
-					onChange: jest.fn().mockImplementation((callback) => {
+					onChange: jest.fn().mockImplementation(callback => {
 						globalCallbacks.sliderCallbacks.push(callback);
 						return mockSlider;
-					})
+					}),
 				};
 				builderFn(mockSlider);
 				return settingInstance;
 			}),
-			addDropdown: jest.fn().mockImplementation((builderFn) => {
+			addDropdown: jest.fn().mockImplementation(builderFn => {
 				const mockDropdown = {
 					addOption: jest.fn().mockReturnThis(),
 					setValue: jest.fn().mockReturnThis(),
-					onChange: jest.fn().mockImplementation((callback) => {
+					onChange: jest.fn().mockImplementation(callback => {
 						globalCallbacks.dropdownCallbacks.push(callback);
 						return mockDropdown;
-					})
+					}),
 				};
 				builderFn(mockDropdown);
 				return settingInstance;
 			}),
-			addToggle: jest.fn().mockImplementation((builderFn) => {
+			addToggle: jest.fn().mockImplementation(builderFn => {
 				const mockToggle = {
 					setValue: jest.fn().mockReturnThis(),
-					onChange: jest.fn().mockImplementation((callback) => {
+					onChange: jest.fn().mockImplementation(callback => {
 						globalCallbacks.toggleCallbacks.push(callback);
 						return mockToggle;
-					})
+					}),
 				};
 				builderFn(mockToggle);
 				return settingInstance;
 			}),
-			addText: jest.fn().mockImplementation((builderFn) => {
+			addText: jest.fn().mockImplementation(builderFn => {
 				const mockText = {
 					setPlaceholder: jest.fn().mockReturnThis(),
 					setValue: jest.fn().mockReturnThis(),
-					onChange: jest.fn().mockImplementation((callback) => {
+					onChange: jest.fn().mockImplementation(callback => {
 						globalCallbacks.textCallbacks.push(callback);
 						return mockText;
-					})
+					}),
 				};
 				builderFn(mockText);
 				return settingInstance;
 			}),
-			addButton: jest.fn().mockImplementation((builderFn) => {
+			addButton: jest.fn().mockImplementation(builderFn => {
 				const mockButton = {
 					setButtonText: jest.fn().mockReturnThis(),
 					setCta: jest.fn().mockReturnThis(),
-					onClick: jest.fn().mockImplementation((callback) => {
+					onClick: jest.fn().mockImplementation(callback => {
 						globalCallbacks.buttonCallbacks.push(callback);
 						return mockButton;
-					})
+					}),
 				};
 				builderFn(mockButton);
 				return settingInstance;
-			})
+			}),
 		};
 		return settingInstance;
 	}),
@@ -1309,7 +1309,9 @@ describe('Settings Module', () => {
 
 				// Test all DatePrefixFormat values using captured callback
 				await callbacks.dropdownCallbacks[0](DatePrefixFormat.ISO_DATE);
-				expect(mockPlugin.settings.content.datePrefixFormat).toBe(DatePrefixFormat.ISO_DATE);
+				expect(mockPlugin.settings.content.datePrefixFormat).toBe(
+					DatePrefixFormat.ISO_DATE
+				);
 
 				await callbacks.dropdownCallbacks[0](DatePrefixFormat.US_DATE);
 				expect(mockPlugin.settings.content.datePrefixFormat).toBe(DatePrefixFormat.US_DATE);
@@ -1318,7 +1320,9 @@ describe('Settings Module', () => {
 				expect(mockPlugin.settings.content.datePrefixFormat).toBe(DatePrefixFormat.EU_DATE);
 
 				await callbacks.dropdownCallbacks[0](DatePrefixFormat.DOT_DATE);
-				expect(mockPlugin.settings.content.datePrefixFormat).toBe(DatePrefixFormat.DOT_DATE);
+				expect(mockPlugin.settings.content.datePrefixFormat).toBe(
+					DatePrefixFormat.DOT_DATE
+				);
 
 				await callbacks.dropdownCallbacks[0](DatePrefixFormat.NONE);
 				expect(mockPlugin.settings.content.datePrefixFormat).toBe(DatePrefixFormat.NONE);
@@ -1332,16 +1336,24 @@ describe('Settings Module', () => {
 
 				// Test all ContentPriority values using captured callback
 				await callbacks.dropdownCallbacks[1](ContentPriority.PANEL_FIRST);
-				expect(mockPlugin.settings.content.contentPriority).toBe(ContentPriority.PANEL_FIRST);
+				expect(mockPlugin.settings.content.contentPriority).toBe(
+					ContentPriority.PANEL_FIRST
+				);
 
 				await callbacks.dropdownCallbacks[1](ContentPriority.NOTES_FIRST);
-				expect(mockPlugin.settings.content.contentPriority).toBe(ContentPriority.NOTES_FIRST);
+				expect(mockPlugin.settings.content.contentPriority).toBe(
+					ContentPriority.NOTES_FIRST
+				);
 
 				await callbacks.dropdownCallbacks[1](ContentPriority.PANEL_ONLY);
-				expect(mockPlugin.settings.content.contentPriority).toBe(ContentPriority.PANEL_ONLY);
+				expect(mockPlugin.settings.content.contentPriority).toBe(
+					ContentPriority.PANEL_ONLY
+				);
 
 				await callbacks.dropdownCallbacks[1](ContentPriority.NOTES_ONLY);
-				expect(mockPlugin.settings.content.contentPriority).toBe(ContentPriority.NOTES_ONLY);
+				expect(mockPlugin.settings.content.contentPriority).toBe(
+					ContentPriority.NOTES_ONLY
+				);
 			});
 
 			it('should handle text input with various folder paths', async () => {
@@ -1361,7 +1373,9 @@ describe('Settings Module', () => {
 				expect(mockPlugin.settings.import.defaultFolder).toBe('Nested/Folder/Path');
 
 				await callbacks.textCallbacks[0]('Folder with spaces and-hyphens');
-				expect(mockPlugin.settings.import.defaultFolder).toBe('Folder with spaces and-hyphens');
+				expect(mockPlugin.settings.import.defaultFolder).toBe(
+					'Folder with spaces and-hyphens'
+				);
 			});
 
 			it('should handle all toggle combinations in UI section', async () => {
