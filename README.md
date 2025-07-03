@@ -46,6 +46,29 @@ npm install
 npm run dev
 ```
 
+#### Development Commands
+
+**Build and Development:**
+- `npm run dev` - Watch mode with hot reload
+- `npm run build` - Production build with TypeScript checking
+- `npm run version` - Bump version and update manifest files
+
+**Testing:**
+- `npm test` - Run all 614 tests
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Run tests with coverage report (70% threshold)
+- `npm run test:ci` - Run tests in CI mode
+
+**Code Quality:**
+- `npm run lint` - Run ESLint (zero warnings allowed)
+- `npm run lint:fix` - Auto-fix linting issues
+- `npm run format` - Auto-format code with Prettier
+- `npm run type-check` - TypeScript type checking
+
+**Performance Analysis:**
+- `npm run analyze` - Bundle size analysis
+- `npm run perf` - Performance audit (bundle + security)
+
 See [DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md) for detailed deployment instructions.
 
 ## Usage
@@ -57,22 +80,39 @@ See [DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md) for detailed deployment instructi
 
 ## Architecture
 
-This plugin follows an atomic-level design with maximum parallelization:
+This plugin follows an atomic-level modular design with strict separation of concerns and comprehensive testing coverage (614 tests, 100% pass rate).
 
 ### Core Modules
 
-- **Authentication (`src/auth.ts`)** - Secure credential discovery and token management
-- **API Client (`src/api.ts`)** - Lean HTTP client with retry logic and rate limiting
-- **Converter (`src/converter.ts`)** - ProseMirror JSON to Markdown transformation
-- **Integration (`main.ts`)** - Obsidian plugin implementation with native UI
+- **Authentication (`src/auth.ts`)** - Cross-platform credential discovery (macOS/Windows/Linux paths)
+- **API Client (`src/api.ts`)** - HTTP client with exponential backoff and batch processing
+- **Converter (`src/converter.ts`)** - ProseMirror JSON to clean Markdown transformation
+- **Integration (`main.ts`)** - Obsidian plugin orchestrating import workflow
 
-### Features
+### Extended Services Layer
 
-- **Cross-platform credential detection** - Automatically finds Granola credentials
-- **Robust error handling** - Graceful failures with user-friendly messages
-- **Rate limiting protection** - Exponential backoff for API requests
-- **Batch processing** - Efficient handling of large note collections
-- **Conflict resolution** - Updates existing notes or creates new ones
+- **Import Manager (`src/services/import-manager.ts`)** - Orchestrates selective document imports with real-time progress tracking
+- **Duplicate Detector (`src/services/duplicate-detector.ts`)** - Detects existing documents and classifies import status
+- **Document Metadata Service (`src/services/document-metadata.ts`)** - Extracts and formats document metadata for UI components
+
+### User Interface Layer
+
+- **Document Selection Modal (`src/ui/document-selection-modal.ts`)** - Comprehensive interface for previewing and selecting documents
+- **Conflict Resolution Modal (`src/ui/conflict-resolution-modal.ts`)** - Interactive dialog for handling document conflicts
+
+### Performance & Testing
+
+- **Performance Monitoring (`src/performance/`)** - Runtime profiling and bottleneck detection
+- **Comprehensive Test Suite** - 614 tests covering unit, integration, and edge cases
+- **Mock Infrastructure** - Realistic Obsidian API mocking with TFile instance validation
+
+### Key Features
+
+- **Selective Import** - Choose specific documents with conflict resolution
+- **Real-time Progress Tracking** - Document-level and overall progress with cancellation support
+- **Intelligent Conflict Resolution** - Skip, update, merge, or rename options
+- **Cross-platform Support** - Automatic credential detection across operating systems
+- **Performance Optimized** - Concurrent processing with memory leak detection
 
 ## Security
 
@@ -101,13 +141,36 @@ This plugin follows an atomic-level design with maximum parallelization:
 - Granola app installed with existing notes
 - Node.js 16+ (for development)
 
+## Testing
+
+The plugin maintains a comprehensive test suite with 614 tests covering:
+
+- **Unit Tests** - Individual module functionality
+- **Integration Tests** - Cross-module interactions
+- **Import Manager Tests** - Document processing workflows
+- **UI Component Tests** - Modal and conflict resolution
+- **Mock Infrastructure** - Realistic Obsidian API simulation
+
+**Coverage Requirements:**
+- 70% threshold for branches, functions, lines, and statements
+- TFile instance validation for proper `instanceof` checks
+- Performance monitoring and memory leak detection
+
+**Test Categories:**
+- Core business logic (import strategies, conflict resolution)
+- Error handling and recovery scenarios
+- Progress tracking and cancellation
+- Concurrent processing and rate limiting
+- Helper methods and edge cases
+
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Follow the atomic development structure
-4. Ensure tests pass: `npm run build`
-5. Submit a pull request
+4. Ensure all tests pass: `npm test && npm run lint && npm run build`
+5. Maintain 70% test coverage
+6. Submit a pull request
 
 ## License
 
