@@ -22,6 +22,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run test:coverage` - Run tests with coverage report
 - `npm run test:ci` - Run tests in CI mode (no watch, with coverage)
 - Coverage threshold: 70% for branches, functions, lines, and statements
+- Current baseline: ~57% coverage with automated trend monitoring
+- Regression detection: 5% drop triggers CI failure
+- Visual dashboard generation for coverage trends
 
 ### Code Quality
 
@@ -32,16 +35,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run format:check` - Check formatting without changes
 - `npm run type-check` - TypeScript type checking without build
 
-### Performance Analysis
+### Performance Analysis and Monitoring
 
 - `npm run analyze` - Bundle size analysis with detailed metrics
 - `npm run perf` - Performance audit (bundle analysis + security audit)
+- `npm run monitor:bundle` - Bundle size tracking and regression detection
+- `npm run monitor:coverage` - Coverage trend monitoring with dashboard
+- `npm run monitor:performance` - Performance benchmarking with thresholds
+- `npm run monitor:check` - Run all monitoring checks for CI integration
+- `npm run monitor:update` - Update historical monitoring data
+- `npm run monitor:report` - Generate comprehensive monitoring report
 - `npm run docs:build` - Generate TypeDoc documentation
 - `npm run docs:serve` - Serve documentation locally on port 8080
 
+### Security and Deployment
+
+- `npm run security:audit` - Comprehensive security vulnerability scanning
+- `npm run security:check` - Security validation for CI integration
+- `npm run deploy:validate` - Deployment readiness validation
+- `npm run deploy:check` - Production deployment verification
+
 ## Architecture Overview
 
-This is a lean Obsidian plugin (6.6KB bundle) that imports Granola notes with perfect formatting preservation. The codebase follows an atomic-level modular design with strict separation of concerns.
+This is a feature-rich Obsidian plugin (~74KB bundle with 61% compression) that imports Granola notes with perfect formatting preservation. The codebase follows an atomic-level modular design with strict separation of concerns and comprehensive monitoring systems.
 
 ### Core Module Structure
 
@@ -287,3 +303,52 @@ X-Client-Version: 5.354.0
 - Missing `include_last_viewed_panel` parameter results in empty content
 - Malformed ProseMirror structure indicates API changes
 - Empty content arrays suggest document sync issues
+
+## CI/CD and Monitoring Strategy
+
+### Cost-Effective CI Pipeline
+
+The project uses a layered CI/CD approach optimized for solo developers:
+
+**Layer 1: Local Git Hooks (Free)**
+- Pre-commit validation with `./setup-hooks.sh`
+- Formatting, TypeScript, and build checks
+- Catches 80% of issues locally before push
+
+**Layer 2: GitHub Actions (Budget-Conscious)**
+- Quick checks: All branches (~2 min, $0.02/run)
+- Full tests: Main branch and PRs only (~4 min, $0.04/run)
+- Monthly cost: ~$0.60 vs $3-5 traditional CI (70-80% savings)
+
+### Automated Monitoring Systems
+
+**Bundle Size Monitoring:**
+- Regression detection with 5% threshold
+- Historical tracking with 100-entry limit
+- CI failure on size increases beyond 80KB
+
+**Performance Benchmarking:**
+- Modal loading: < 100ms threshold
+- Interactions: < 50ms threshold
+- Processing: < 500ms threshold
+- Automated regression detection with 20% degradation alert
+
+**Test Coverage Monitoring:**
+- 70% threshold enforcement for all metrics
+- Historical trend analysis with visual dashboards
+- Regression detection on 5% coverage drops
+
+**Security Scanning:**
+- Automated vulnerability detection
+- Dependency auditing with version checking
+- Source code security pattern analysis
+
+### Monitoring Data Storage
+
+All monitoring data is stored in `/monitoring/` directory:
+- `bundle-size-history.json` - Bundle size tracking
+- `coverage-history.json` - Test coverage trends
+- `performance-history.json` - Performance metrics
+- `security-history.json` - Security audit results
+- `ci-report.json` - Latest CI status
+- `ci-summary.md` - Human-readable reports
