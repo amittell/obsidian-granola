@@ -396,9 +396,15 @@ function checkForRegressions(current, history) {
 	}
 
 	// Find the most recent entry with summary data
-	const previous = history.slice().reverse().find(entry => entry.summary);
+	const previous = history
+		.slice()
+		.reverse()
+		.find(entry => entry.summary);
 	if (!previous || !previous.summary) {
-		return { hasRegressions: false, message: 'No previous performance data with summary found' };
+		return {
+			hasRegressions: false,
+			message: 'No previous performance data with summary found',
+		};
 	}
 
 	const issues = [];
