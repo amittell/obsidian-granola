@@ -224,7 +224,13 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 		} as any;
 
 		// Create modal instance
-		modal = new ConflictResolutionModal(mockApp, mockDocument, mockMetadata, mockFile, mockLogger);
+		modal = new ConflictResolutionModal(
+			mockApp,
+			mockDocument,
+			mockMetadata,
+			mockFile,
+			mockLogger
+		);
 	});
 
 	afterEach(() => {
@@ -345,7 +351,13 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 				...mockMetadata,
 				importStatus: { status: 'EXISTS', reason: 'File already exists' },
 			};
-			const existsModal = new ConflictResolutionModal(mockApp, mockDocument, existsMetadata, undefined, mockLogger);
+			const existsModal = new ConflictResolutionModal(
+				mockApp,
+				mockDocument,
+				existsMetadata,
+				undefined,
+				mockLogger
+			);
 
 			const statusMessage = (existsModal as any).getStatusMessage();
 

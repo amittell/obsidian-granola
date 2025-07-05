@@ -61,7 +61,9 @@ export class ConflictResolutionModal extends Modal {
 		this.performanceMonitor = PerformanceMonitor.getInstance();
 
 		// Debug: Modal initialization
-		this.logger.debug(`ConflictResolutionModal initialized for document: ${document.title || 'Untitled'} (${document.id})`);
+		this.logger.debug(
+			`ConflictResolutionModal initialized for document: ${document.title || 'Untitled'} (${document.id})`
+		);
 		this.logger.debug(`Conflict reason: ${metadata.importStatus.reason}`);
 	}
 
@@ -82,7 +84,9 @@ export class ConflictResolutionModal extends Modal {
 			this.logger.debug(`Loading existing file content from: ${this.existingFile.path}`);
 			try {
 				this.existingContent = await this.app.vault.read(this.existingFile);
-				this.logger.debug(`Existing file content loaded: ${this.existingContent.length} characters`);
+				this.logger.debug(
+					`Existing file content loaded: ${this.existingContent.length} characters`
+				);
 			} catch (error) {
 				this.logger.debug('Failed to read existing file:', error);
 				console.warn('Failed to read existing file:', error);
@@ -440,7 +444,9 @@ export class ConflictResolutionModal extends Modal {
 
 		// Log final result
 		const preview = content.trim().substring(0, 300);
-		this.logger.debug(`Content preview generated from ${contentSource}: ${preview.length} characters (original: ${content.length})`);
+		this.logger.debug(
+			`Content preview generated from ${contentSource}: ${preview.length} characters (original: ${content.length})`
+		);
 
 		return preview.length === 300 ? preview + '...' : preview;
 	}

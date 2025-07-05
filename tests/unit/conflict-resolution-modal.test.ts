@@ -40,10 +40,20 @@ describe('ConflictResolutionModal', () => {
 		it('should create modal instance', () => {
 			const mockDoc = {} as GranolaDocument;
 			const mockMeta = {
-				importStatus: { status: 'CONFLICT', reason: 'Test conflict', requiresUserChoice: true }
+				importStatus: {
+					status: 'CONFLICT',
+					reason: 'Test conflict',
+					requiresUserChoice: true,
+				},
 			} as DocumentDisplayMetadata;
 			const mockFile = {} as TFile;
-			const testModal = new ConflictResolutionModal(mockApp, mockDoc, mockMeta, mockFile, mockLogger);
+			const testModal = new ConflictResolutionModal(
+				mockApp,
+				mockDoc,
+				mockMeta,
+				mockFile,
+				mockLogger
+			);
 			expect(testModal).toBeInstanceOf(ConflictResolutionModal);
 		});
 	});
@@ -76,7 +86,13 @@ describe('ConflictResolutionModal', () => {
 			selected: true,
 		};
 
-		modal = new ConflictResolutionModal(mockApp, mockDocument, mockMetadata, mockFile, mockLogger);
+		modal = new ConflictResolutionModal(
+			mockApp,
+			mockDocument,
+			mockMetadata,
+			mockFile,
+			mockLogger
+		);
 
 		// Reset mocks
 		jest.clearAllMocks();
@@ -244,7 +260,11 @@ describe('ConflictResolutionModal', () => {
 
 		it('should handle missing metadata gracefully', () => {
 			const invalidMetadata = {
-				importStatus: { status: 'UNKNOWN', reason: 'Missing metadata', requiresUserChoice: false }
+				importStatus: {
+					status: 'UNKNOWN',
+					reason: 'Missing metadata',
+					requiresUserChoice: false,
+				},
 			} as DocumentDisplayMetadata;
 			const invalidModal = new ConflictResolutionModal(
 				mockApp,
