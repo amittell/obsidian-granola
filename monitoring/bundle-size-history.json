@@ -1,12 +1,14 @@
-[{
-  "timestamp": "2025-07-05T16:59:56.000Z",
-  "bundleSize": 663774,
-  "inputSize": 663774,
-  "fileCount": 1,
-  "compressionRatio": 0,
-  "git": {
-    "commit": "95a8c78abfec6190f54d125d01a7c1470861e1d2",
-    "branch": "fix/conflict-resolution-ui",
-    "message": "fix: enable user-controllable debug logging in production builds - new baseline"
-  }
-}]
+[
+	{
+		"timestamp": "2025-07-05T16:59:56.000Z",
+		"bundleSize": 663774,
+		"inputSize": 663774,
+		"fileCount": 1,
+		"compressionRatio": 0,
+		"git": {
+			"commit": "95a8c78abfec6190f54d125d01a7c1470861e1d2",
+			"branch": "fix/conflict-resolution-ui",
+			"message": "fix: enable user-controllable debug logging in production builds - new baseline"
+		}
+	}
+]
