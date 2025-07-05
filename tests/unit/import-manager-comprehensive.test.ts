@@ -9,6 +9,7 @@ import {
 import { DocumentDisplayMetadata } from '../../src/services/document-metadata';
 import { GranolaDocument } from '../../src/api';
 import { ProseMirrorConverter } from '../../src/converter';
+import { Logger } from '../../src/types';
 import { App, Vault, TFile } from 'obsidian';
 
 // Mock the performance modules that import-manager depends on
@@ -90,6 +91,15 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 			updateSettings: jest.fn(),
 		} as unknown as ProseMirrorConverter;
 
+		// Setup mock logger
+		const mockLogger = {
+			debug: jest.fn(),
+			info: jest.fn(),
+			warn: jest.fn(),
+			error: jest.fn(),
+			updateSettings: jest.fn(),
+		} as unknown as Logger;
+
 		// Default mock implementations
 		(mockVault.create as jest.Mock).mockResolvedValue(createMockFile('created.md'));
 		(mockVault.modify as jest.Mock).mockResolvedValue(undefined);
@@ -108,7 +118,7 @@ describe('SelectiveImportManager - Comprehensive Coverage Tests', () => {
 		});
 
 		// Create import manager instance
-		importManager = new SelectiveImportManager(mockApp, mockVault, mockConverter);
+		importManager = new SelectiveImportManager(mockApp, mockVault, mockConverter, mockLogger);
 
 		// Setup default conflict resolution mock to allow processing CONFLICT documents
 		mockConflictResolutionModal.showConflictResolution.mockResolvedValue({

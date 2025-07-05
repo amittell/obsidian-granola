@@ -4,6 +4,7 @@ import {
 } from '../../src/ui/conflict-resolution-modal';
 import { GranolaDocument } from '../../src/api';
 import { DocumentDisplayMetadata } from '../../src/services/document-metadata';
+import { Logger } from '../../src/types';
 import { App, TFile } from 'obsidian';
 
 // Mock Obsidian App
@@ -21,6 +22,15 @@ const mockFile = {
 	extension: 'md',
 } as TFile;
 
+// Mock Logger
+const mockLogger = {
+	debug: jest.fn(),
+	info: jest.fn(),
+	warn: jest.fn(),
+	error: jest.fn(),
+	updateSettings: jest.fn(),
+} as unknown as Logger;
+
 describe('ConflictResolutionModal', () => {
 	let modal: ConflictResolutionModal;
 	let mockDocument: GranolaDocument;
@@ -29,9 +39,11 @@ describe('ConflictResolutionModal', () => {
 	describe('constructor', () => {
 		it('should create modal instance', () => {
 			const mockDoc = {} as GranolaDocument;
-			const mockMeta = {} as DocumentDisplayMetadata;
+			const mockMeta = {
+				importStatus: { status: 'CONFLICT', reason: 'Test conflict', requiresUserChoice: true }
+			} as DocumentDisplayMetadata;
 			const mockFile = {} as TFile;
-			const testModal = new ConflictResolutionModal(mockApp, mockDoc, mockMeta, mockFile);
+			const testModal = new ConflictResolutionModal(mockApp, mockDoc, mockMeta, mockFile, mockLogger);
 			expect(testModal).toBeInstanceOf(ConflictResolutionModal);
 		});
 	});
@@ -64,7 +76,7 @@ describe('ConflictResolutionModal', () => {
 			selected: true,
 		};
 
-		modal = new ConflictResolutionModal(mockApp, mockDocument, mockMetadata, mockFile);
+		modal = new ConflictResolutionModal(mockApp, mockDocument, mockMetadata, mockFile, mockLogger);
 
 		// Reset mocks
 		jest.clearAllMocks();
@@ -79,7 +91,9 @@ describe('ConflictResolutionModal', () => {
 			const modalWithoutFile = new ConflictResolutionModal(
 				mockApp,
 				mockDocument,
-				mockMetadata
+				mockMetadata,
+				undefined,
+				mockLogger
 			);
 			expect(modalWithoutFile).toBeInstanceOf(ConflictResolutionModal);
 		});
@@ -220,18 +234,24 @@ describe('ConflictResolutionModal', () => {
 			const invalidModal = new ConflictResolutionModal(
 				mockApp,
 				invalidDocument,
-				mockMetadata
+				mockMetadata,
+				undefined,
+				mockLogger
 			);
 
 			expect(invalidModal).toBeInstanceOf(ConflictResolutionModal);
 		});
 
 		it('should handle missing metadata gracefully', () => {
-			const invalidMetadata = {} as DocumentDisplayMetadata;
+			const invalidMetadata = {
+				importStatus: { status: 'UNKNOWN', reason: 'Missing metadata', requiresUserChoice: false }
+			} as DocumentDisplayMetadata;
 			const invalidModal = new ConflictResolutionModal(
 				mockApp,
 				mockDocument,
-				invalidMetadata
+				invalidMetadata,
+				undefined,
+				mockLogger
 			);
 
 			expect(invalidModal).toBeInstanceOf(ConflictResolutionModal);

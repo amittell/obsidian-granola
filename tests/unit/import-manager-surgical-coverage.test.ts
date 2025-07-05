@@ -9,6 +9,7 @@ import {
 import { DocumentDisplayMetadata } from '../../src/services/document-metadata';
 import { GranolaDocument } from '../../src/api';
 import { ProseMirrorConverter } from '../../src/converter';
+import { Logger } from '../../src/types';
 import { App, Vault, TFile } from 'obsidian';
 
 // Mock dependencies optimized for coverage testing
@@ -27,6 +28,14 @@ const mockApp = {
 const mockConverter = {
 	convertDocument: jest.fn(),
 } as unknown as ProseMirrorConverter;
+
+const mockLogger = {
+	debug: jest.fn(),
+	info: jest.fn(),
+	warn: jest.fn(),
+	error: jest.fn(),
+	updateSettings: jest.fn(),
+} as unknown as Logger;
 
 // Create a real TFile-like object that passes instanceof checks
 class MockTFile extends TFile {
@@ -53,7 +62,7 @@ describe('ImportManager - Surgical Coverage Tests', () => {
 		jest.clearAllMocks();
 
 		// Initialize manager
-		importManager = new SelectiveImportManager(mockApp, mockVault, mockConverter);
+		importManager = new SelectiveImportManager(mockApp, mockVault, mockConverter, mockLogger);
 
 		// Mock setup for tests
 		mockVault.create.mockResolvedValue(createMockFile('test-file.md'));

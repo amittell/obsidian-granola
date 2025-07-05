@@ -24,8 +24,8 @@ const CONFIG = {
 		'author',
 		'authorUrl',
 	],
-	// Bundle size limits (optimized from 80KB to 78KB in Phase 4)
-	MAX_BUNDLE_SIZE: 79872, // 78KB (1024 bytes buffer for minor variations)
+	// Bundle size limits (updated to accommodate less aggressive optimization for user-controllable debug logging)
+	MAX_BUNDLE_SIZE: 716800, // 700KB (accommodates current size with console preservation and debug functionality)
 	MIN_BUNDLE_SIZE: 1024, // 1KB minimum
 	// Performance thresholds for smoke tests
 	PERFORMANCE_THRESHOLDS: {

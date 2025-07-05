@@ -9,6 +9,7 @@ import {
 } from '../../src/ui/conflict-resolution-modal';
 import { GranolaDocument } from '../../src/api';
 import { DocumentDisplayMetadata } from '../../src/services/document-metadata';
+import { Logger } from '../../src/types';
 import { App, TFile } from 'obsidian';
 
 // Enhanced mock setup for comprehensive DOM interaction testing
@@ -144,6 +145,7 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 	let mockDocument: GranolaDocument;
 	let mockMetadata: DocumentDisplayMetadata;
 	let mockFile: TFile;
+	let mockLogger: Logger;
 
 	beforeEach(() => {
 		// Reset callbacks
@@ -201,6 +203,15 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 			extension: 'md',
 		} as TFile;
 
+		// Mock logger
+		mockLogger = {
+			debug: jest.fn(),
+			info: jest.fn(),
+			warn: jest.fn(),
+			error: jest.fn(),
+			updateSettings: jest.fn(),
+		} as unknown as Logger;
+
 		// Mock document styles setup
 		global.document = {
 			createElement: jest.fn(() => ({
@@ -213,7 +224,7 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 		} as any;
 
 		// Create modal instance
-		modal = new ConflictResolutionModal(mockApp, mockDocument, mockMetadata, mockFile);
+		modal = new ConflictResolutionModal(mockApp, mockDocument, mockMetadata, mockFile, mockLogger);
 	});
 
 	afterEach(() => {
@@ -234,7 +245,9 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 			const modalWithoutFile = new ConflictResolutionModal(
 				mockApp,
 				mockDocument,
-				mockMetadata
+				mockMetadata,
+				undefined,
+				mockLogger
 			);
 			expect(modalWithoutFile).toBeInstanceOf(ConflictResolutionModal);
 			expect((modalWithoutFile as any).existingFile).toBeUndefined();
@@ -294,7 +307,9 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 			const modalWithoutFile = new ConflictResolutionModal(
 				mockApp,
 				mockDocument,
-				mockMetadata
+				mockMetadata,
+				undefined,
+				mockLogger
 			);
 
 			await modalWithoutFile.onOpen();
@@ -313,7 +328,9 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 			const conflictModal = new ConflictResolutionModal(
 				mockApp,
 				mockDocument,
-				conflictMetadata
+				conflictMetadata,
+				undefined,
+				mockLogger
 			);
 
 			const statusMessage = (conflictModal as any).getStatusMessage();
@@ -328,7 +345,7 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 				...mockMetadata,
 				importStatus: { status: 'EXISTS', reason: 'File already exists' },
 			};
-			const existsModal = new ConflictResolutionModal(mockApp, mockDocument, existsMetadata);
+			const existsModal = new ConflictResolutionModal(mockApp, mockDocument, existsMetadata, undefined, mockLogger);
 
 			const statusMessage = (existsModal as any).getStatusMessage();
 
@@ -345,7 +362,9 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 			const updatedModal = new ConflictResolutionModal(
 				mockApp,
 				mockDocument,
-				updatedMetadata
+				updatedMetadata,
+				undefined,
+				mockLogger
 			);
 
 			const statusMessage = (updatedModal as any).getStatusMessage();
@@ -363,7 +382,9 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 			const unknownModal = new ConflictResolutionModal(
 				mockApp,
 				mockDocument,
-				unknownMetadata
+				unknownMetadata,
+				undefined,
+				mockLogger
 			);
 
 			const statusMessage = (unknownModal as any).getStatusMessage();
@@ -482,7 +503,8 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 				mockApp,
 				{ ...mockDocument, title: undefined },
 				mockMetadata,
-				mockFile
+				mockFile,
+				mockLogger
 			);
 			const container = createMockElement();
 
@@ -513,7 +535,8 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 					last_viewed_panel: undefined,
 				},
 				mockMetadata,
-				mockFile
+				mockFile,
+				mockLogger
 			);
 
 			const preview = (modalWithoutContent as any).getGranolaPreview();
@@ -532,7 +555,8 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 					last_viewed_panel: undefined,
 				},
 				{ ...mockMetadata, preview: undefined },
-				mockFile
+				mockFile,
+				mockLogger
 			);
 
 			const preview = (modalWithoutContent as any).getGranolaPreview();
@@ -615,7 +639,9 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 			const modalWithoutFile = new ConflictResolutionModal(
 				mockApp,
 				mockDocument,
-				mockMetadata
+				mockMetadata,
+				undefined,
+				mockLogger
 			);
 			await modalWithoutFile.onOpen();
 
@@ -767,7 +793,8 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 				mockApp,
 				{ ...mockDocument, title: 'Test: Document<>|?*' },
 				mockMetadata,
-				mockFile
+				mockFile,
+				mockLogger
 			);
 
 			const filename = (modalWithSpecialChars as any).generateAlternativeFilename();
@@ -785,7 +812,8 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 				mockApp,
 				{ ...mockDocument, title: undefined },
 				mockMetadata,
-				mockFile
+				mockFile,
+				mockLogger
 			);
 
 			const filename = (modalUntitled as any).generateAlternativeFilename();
@@ -925,7 +953,9 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 			const invalidModal = new ConflictResolutionModal(
 				mockApp,
 				invalidDocument,
-				mockMetadata
+				mockMetadata,
+				undefined,
+				mockLogger
 			);
 
 			expect(invalidModal).toBeInstanceOf(ConflictResolutionModal);
@@ -944,7 +974,9 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 			const invalidModal = new ConflictResolutionModal(
 				mockApp,
 				mockDocument,
-				invalidMetadata
+				invalidMetadata,
+				undefined,
+				mockLogger
 			);
 
 			expect(invalidModal).toBeInstanceOf(ConflictResolutionModal);
@@ -1053,7 +1085,8 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 					title: 'File<name>with:forbidden"chars/and\\pipe|chars?and*asterisk',
 				},
 				mockMetadata,
-				mockFile
+				mockFile,
+				mockLogger
 			);
 
 			const filename = (modalWithForbiddenChars as any).generateAlternativeFilename();
@@ -1074,7 +1107,8 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 				mockApp,
 				{ ...mockDocument, title: 'Document    with    many    spaces' },
 				mockMetadata,
-				mockFile
+				mockFile,
+				mockLogger
 			);
 
 			const filename = (modalWithSpaces as any).generateAlternativeFilename();
@@ -1087,7 +1121,8 @@ describe('ConflictResolutionModal - Enhanced Coverage Tests', () => {
 				mockApp,
 				{ ...mockDocument, title: '  Document with leading and trailing spaces  ' },
 				mockMetadata,
-				mockFile
+				mockFile,
+				mockLogger
 			);
 
 			const filename = (modalWithWhitespace as any).generateAlternativeFilename();

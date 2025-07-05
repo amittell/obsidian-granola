@@ -9,6 +9,7 @@ import {
 import { DocumentDisplayMetadata } from '../../src/services/document-metadata';
 import { GranolaDocument } from '../../src/api';
 import { ProseMirrorConverter } from '../../src/converter';
+import { Logger } from '../../src/types';
 import { App, Vault, TFile } from 'obsidian';
 
 // Mock conflict resolution modal for testing conflict scenarios
@@ -38,6 +39,14 @@ const mockConverter = {
 	convertDocument: jest.fn(),
 } as unknown as ProseMirrorConverter;
 
+const mockLogger = {
+	debug: jest.fn(),
+	info: jest.fn(),
+	warn: jest.fn(),
+	error: jest.fn(),
+	updateSettings: jest.fn(),
+} as unknown as Logger;
+
 // Mock TFile
 const createMockFile = (name: string, path: string = name): TFile =>
 	({
@@ -57,7 +66,7 @@ describe('SelectiveImportManager', () => {
 	let defaultOptions: ImportOptions;
 
 	beforeEach(() => {
-		importManager = new SelectiveImportManager(mockApp, mockVault, mockConverter);
+		importManager = new SelectiveImportManager(mockApp, mockVault, mockConverter, mockLogger);
 
 		mockDocumentMetadata = [
 			{

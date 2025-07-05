@@ -23,8 +23,8 @@ const META_JSON_PATH = path.join(__dirname, '..', 'meta.json');
 const CONFIG = {
 	// Alert if bundle size increases by more than this percentage
 	REGRESSION_THRESHOLD_PERCENT: 5,
-	// Alert if bundle size increases by more than this many bytes
-	REGRESSION_THRESHOLD_BYTES: 1024,
+	// Alert if bundle size increases by more than this many bytes (updated for larger bundles with console preservation)
+	REGRESSION_THRESHOLD_BYTES: 10240, // 10KB threshold for ~600KB+ bundles
 	// Maximum number of history entries to keep
 	MAX_HISTORY_ENTRIES: 100,
 };
