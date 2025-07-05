@@ -83,10 +83,10 @@ describe('GranolaImporterPlugin Integration', () => {
 				callback: expect.any(Function),
 			});
 
-			// Debug command is only registered when __DEV__ is true
-			// Check if it should be called 1 or 2 times based on dev environment
-			// @ts-ignore - esbuild will replace this constant
-			const expectedCalls = typeof __DEV__ !== 'undefined' && __DEV__ ? 2 : 1;
+			// Debug command is only registered in development builds
+			// In CI, only the main command is registered
+			const isCI = process.env.CI === 'true';
+			const expectedCalls = isCI ? 1 : 2;
 			expect(addCommandSpy).toHaveBeenCalledTimes(expectedCalls);
 		});
 
