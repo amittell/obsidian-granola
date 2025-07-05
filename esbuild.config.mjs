@@ -99,12 +99,10 @@ const context = await esbuild.context({
 if (prod) {
 	const result = await context.rebuild();
 
-	// Save metafile for analysis if requested
-	if (process.argv.includes('--metafile=meta.json')) {
-		const fs = await import('fs');
-		fs.writeFileSync('meta.json', JSON.stringify(result.metafile));
-		console.log('Metafile written to meta.json for bundle analysis');
-	}
+	// Always save metafile for bundle analysis and tracking
+	const fs = await import('fs');
+	fs.writeFileSync('meta.json', JSON.stringify(result.metafile));
+	console.log('Metafile written to meta.json for bundle analysis');
 
 	process.exit(0);
 } else {

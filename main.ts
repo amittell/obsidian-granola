@@ -108,35 +108,13 @@ export default class GranolaImporterPlugin extends Plugin {
 	 * ```
 	 */
 	async onload(): Promise<void> {
+		this.logger.debug('Plugin initialization starting');
 		try {
-			console.log('🚀 GRANOLA IMPORTER: onload() starting...');
-
-			// Load settings and initialize logger
-			console.log('📋 GRANOLA IMPORTER: Loading settings...');
 			await this.loadSettings();
-			console.log('📋 GRANOLA IMPORTER: Settings loaded:', this.settings);
-
-			console.log('🔧 GRANOLA IMPORTER: Creating Logger...');
 			this.logger = new Logger(this.settings);
-			console.log('🔧 GRANOLA IMPORTER: Logger created');
-
-			// TEST LOGGING - Basic console output verification
-			console.log('🚀 GRANOLA IMPORTER: Plugin loading...');
-			console.error('🔴 GRANOLA IMPORTER: Test ERROR message');
-			console.warn('🟡 GRANOLA IMPORTER: Test WARN message');
-			console.info('🔵 GRANOLA IMPORTER: Test INFO message');
-
-			// TEST LOGGING - Logger class verification
-			console.log('🧪 GRANOLA IMPORTER: Testing Logger class...');
-			this.logger.error('Logger TEST: ERROR message');
-			this.logger.warn('Logger TEST: WARN message');
-			this.logger.info('Logger TEST: INFO message');
-			this.logger.debug('Logger TEST: DEBUG message');
-
-			console.log('🔧 GRANOLA IMPORTER: Settings debug config:', this.settings.debug);
-			console.log('✅ GRANOLA IMPORTER: Basic logging test complete');
+			this.logger.debug('Settings loaded and logger initialized');
 		} catch (error) {
-			console.error('💥 GRANOLA IMPORTER: FATAL ERROR in onload():', error);
+			this.logger.error('Fatal error during plugin initialization:', error);
 			throw error;
 		}
 

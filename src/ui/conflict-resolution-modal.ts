@@ -89,7 +89,7 @@ export class ConflictResolutionModal extends Modal {
 				);
 			} catch (error) {
 				this.logger.debug('Failed to read existing file:', error);
-				console.warn('Failed to read existing file:', error);
+				this.logger.warn('Failed to read existing file:', error);
 			}
 		} else {
 			this.logger.debug('No existing file to load');

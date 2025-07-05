@@ -83,11 +83,9 @@ describe('GranolaImporterPlugin Integration', () => {
 				callback: expect.any(Function),
 			});
 
-			// Debug command is only registered in development builds
-			// In CI, only the main command is registered
-			const isCI = process.env.CI === 'true';
-			const expectedCalls = isCI ? 1 : 2;
-			expect(addCommandSpy).toHaveBeenCalledTimes(expectedCalls);
+			// Debug command is only registered when __DEV__ is defined
+			// In Jest, __DEV__ is undefined, so only 1 command is registered
+			expect(addCommandSpy).toHaveBeenCalledTimes(1);
 		});
 
 		it('should initialize plugin components', async () => {
