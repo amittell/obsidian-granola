@@ -83,8 +83,11 @@ describe('GranolaImporterPlugin Integration', () => {
 				callback: expect.any(Function),
 			});
 
-			// Debug command is only registered in development mode (Jest runs in development mode)
-			expect(addCommandSpy).toHaveBeenCalledTimes(2);
+			// Debug command is only registered when __DEV__ is true
+			// Check if it should be called 1 or 2 times based on dev environment
+			// @ts-ignore - esbuild will replace this constant
+			const expectedCalls = (typeof __DEV__ !== 'undefined' && __DEV__) ? 2 : 1;
+			expect(addCommandSpy).toHaveBeenCalledTimes(expectedCalls);
 		});
 
 		it('should initialize plugin components', async () => {
