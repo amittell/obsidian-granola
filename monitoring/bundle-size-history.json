@@ -1,26 +1,12 @@
-[
-	{
-		"timestamp": "2025-07-02T21:29:14.595Z",
-		"bundleSize": 74364,
-		"inputSize": 190709,
-		"fileCount": 10,
-		"compressionRatio": 0.6100655973236712,
-		"git": {
-			"commit": "a77e71c2332313d41d1b3b54911dc19e63393690",
-			"branch": "main",
-			"message": "chore: update deployment scripts with personalized vault path and bundle metadata"
-		}
-	},
-	{
-		"timestamp": "2025-07-02T23:48:15.632Z",
-		"bundleSize": 83263,
-		"inputSize": 192351,
-		"fileCount": 11,
-		"compressionRatio": 0.5671298823504947,
-		"git": {
-			"commit": "a77e71c2332313d41d1b3b54911dc19e63393690",
-			"branch": "main",
-			"message": "chore: update deployment scripts with personalized vault path and bundle metadata"
-		}
-	}
-]
+[{
+  "timestamp": "2025-07-05T16:59:56.000Z",
+  "bundleSize": 663774,
+  "inputSize": 663774,
+  "fileCount": 1,
+  "compressionRatio": 0,
+  "git": {
+    "commit": "95a8c78abfec6190f54d125d01a7c1470861e1d2",
+    "branch": "fix/conflict-resolution-ui",
+    "message": "fix: enable user-controllable debug logging in production builds - new baseline"
+  }
+}]
