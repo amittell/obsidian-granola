@@ -88,7 +88,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('Enable debug mode')
 			.setDesc(
-				'Show detailed logging for troubleshooting. Automatically sets log level to "All messages" when enabled.'
+				'Show detailed logging for troubleshooting. Automatically sets log level to "Debug" when enabled.'
 			)
 			.addToggle(toggle => {
 				toggle.setValue(this.plugin.settings.debug.enabled).onChange(async value => {

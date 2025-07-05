@@ -443,7 +443,10 @@ export class ConflictResolutionModal extends Modal {
 		}
 
 		// Log final result
-		const preview = content.trim().substring(0, 300);
+		const preview = content
+			.trim()
+			.replace(/\.\.\.+$/, '')
+			.substring(0, 300);
 		this.logger.debug(
 			`Content preview generated from ${contentSource}: ${preview.length} characters (original: ${content.length})`
 		);
