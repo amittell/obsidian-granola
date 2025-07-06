@@ -16,7 +16,7 @@ describe('Initialization Order Tests', () => {
 		// Don't mock console - we want to catch real errors
 		consoleErrorSpy = jest.spyOn(console, 'error');
 		consoleWarnSpy = jest.spyOn(console, 'warn');
-		
+
 		plugin = new GranolaImporterPlugin(mockApp as any, {
 			id: 'granola-importer',
 			name: 'Granola Importer',
@@ -107,7 +107,7 @@ describe('Initialization Order Tests', () => {
 			// Converter should receive the initialized logger
 			const converter = (plugin as any).converter;
 			expect(converter).toBeDefined();
-			
+
 			// Call a converter method to ensure it has a working logger
 			expect(() => {
 				converter.convertDocument({
@@ -133,7 +133,7 @@ describe('Initialization Order Tests', () => {
 			} catch (error) {
 				expect(error).toBeInstanceOf(Error);
 				expect((error as Error).message).toBe('Simulated failure');
-				
+
 				// Should not have any additional TypeError about undefined logger
 				expect(consoleErrorSpy).toHaveBeenCalled();
 				expect(consoleErrorSpy.mock.calls[0][0]).toMatch(/fatal|error/i);
