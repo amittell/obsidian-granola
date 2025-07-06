@@ -108,13 +108,12 @@ export default class GranolaImporterPlugin extends Plugin {
 	 * ```
 	 */
 	async onload(): Promise<void> {
-		this.logger.debug('Plugin initialization starting');
 		try {
 			await this.loadSettings();
 			this.logger = new Logger(this.settings);
 			this.logger.debug('Settings loaded and logger initialized');
 		} catch (error) {
-			this.logger.error('Fatal error during plugin initialization:', error);
+			console.error('Fatal error during plugin initialization:', error);
 			throw error;
 		}
 
