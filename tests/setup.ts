@@ -82,10 +82,14 @@ beforeEach(() => {
 		});
 	}
 
-	// Reset console methods to prevent interference
-	jest.spyOn(console, 'warn').mockImplementation(() => {});
-	jest.spyOn(console, 'error').mockImplementation(() => {});
-	jest.spyOn(console, 'log').mockImplementation(() => {});
+	// Only mock console methods when specifically requested via environment variable
+	// This allows real errors to surface during development while still allowing
+	// tests to opt into silent console when needed
+	if (process.env.JEST_MOCK_CONSOLE === 'true') {
+		jest.spyOn(console, 'warn').mockImplementation(() => {});
+		jest.spyOn(console, 'error').mockImplementation(() => {});
+		jest.spyOn(console, 'log').mockImplementation(() => {});
+	}
 });
 
 afterEach(() => {

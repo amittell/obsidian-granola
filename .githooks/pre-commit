@@ -51,5 +51,21 @@ if ! npm run lint:quick; then
     exit 1
 fi
 
+# 5. Initialization order tests (catches logger and component issues)
+echo "🔧 Running initialization order tests..."
+if ! npm test -- --testPathPattern="initialization-order.test.ts" --silent; then
+    echo "❌ Initialization order tests failed!"
+    echo "💡 Check component initialization order and dependencies"
+    exit 1
+fi
+
+# 6. Bundle tests (catches issues in built code)
+echo "📦 Running bundle integration tests..."
+if ! npm test -- --testPathPattern="bundle.test.ts" --silent; then
+    echo "❌ Bundle tests failed!"
+    echo "💡 Issues detected in built plugin code"
+    exit 1
+fi
+
 echo "✅ All pre-commit checks passed!"
 echo "🚀 Ready to commit"
