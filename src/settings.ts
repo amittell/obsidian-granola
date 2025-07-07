@@ -116,7 +116,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 					.addOption(LogLevel.ERROR.toString(), 'Error only')
 					.addOption(LogLevel.WARN.toString(), 'Warning and above')
 					.addOption(LogLevel.INFO.toString(), 'Info and above')
-					.addOption(LogLevel.DEBUG.toString(), 'All messages')
+					.addOption(LogLevel.DEBUG.toString(), 'Debug and above')
 					.setValue(this.plugin.settings.debug.logLevel.toString())
 					.onChange(async value => {
 						this.plugin.settings.debug.logLevel = parseInt(value) as LogLevel;

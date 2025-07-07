@@ -4,6 +4,7 @@ import type { GranolaDocument } from '../api';
 import type { DocumentDisplayMetadata } from '../services/document-metadata';
 import type { Logger } from '../types';
 import { PerformanceMonitor, trackMemoryLeaks } from '../performance/performance-monitor';
+import { extractTextFromProseMirror } from '../utils/prosemirror';
 
 /**
  * User's choice for resolving a document conflict.
@@ -284,6 +285,7 @@ export class ConflictResolutionModal extends Modal {
 		this.clearExistingDialogs();
 
 		const confirmDiv = this.contentEl.createDiv('confirmation-dialog');
+		confirmDiv.setAttribute('data-granola-dialog', 'true');
 		confirmDiv.createEl('h4', { text: '⚠️ Confirm Replacement' });
 		confirmDiv.createEl('p', {
 			text: 'This will permanently replace the existing file. This action cannot be undone.',
@@ -325,6 +327,7 @@ export class ConflictResolutionModal extends Modal {
 		this.clearExistingDialogs();
 
 		const mergeDiv = this.contentEl.createDiv('merge-dialog');
+		mergeDiv.setAttribute('data-granola-dialog', 'true');
 		mergeDiv.createEl('h4', { text: '🔗 Choose Merge Strategy' });
 
 		const appendOption = mergeDiv.createDiv('merge-option');
@@ -360,6 +363,7 @@ export class ConflictResolutionModal extends Modal {
 		this.clearExistingDialogs();
 
 		const renameDiv = this.contentEl.createDiv('rename-dialog');
+		renameDiv.setAttribute('data-granola-dialog', 'true');
 		renameDiv.createEl('h4', { text: '📝 Enter New Filename' });
 
 		const inputContainer = renameDiv.createDiv('filename-input-container');
@@ -406,7 +410,7 @@ export class ConflictResolutionModal extends Modal {
 		// Try last_viewed_panel.content first (most reliable)
 		if (this.document.last_viewed_panel?.content) {
 			this.logger.debug('Trying last_viewed_panel.content for preview...');
-			content = this.extractTextFromProseMirror(
+			content = extractTextFromProseMirror(
 				this.document.last_viewed_panel.content as unknown as Record<string, unknown>
 			);
 			if (content) contentSource = 'last_viewed_panel.content';
@@ -415,7 +419,7 @@ export class ConflictResolutionModal extends Modal {
 		// Fallback to notes field
 		if (!content && this.document.notes) {
 			this.logger.debug('Fallback: trying notes.content for preview...');
-			content = this.extractTextFromProseMirror(
+			content = extractTextFromProseMirror(
 				this.document.notes as unknown as Record<string, unknown>
 			);
 			if (content) contentSource = 'notes.content';
@@ -445,7 +449,7 @@ export class ConflictResolutionModal extends Modal {
 		// Log final result
 		const preview = content
 			.trim()
-			.replace(/\.\.\.+$/, '')
+			.replace(/\.\.\.+/g, '')
 			.substring(0, 300);
 		this.logger.debug(
 			`Content preview generated from ${contentSource}: ${preview.length} characters (original: ${content.length})`
@@ -476,43 +480,11 @@ export class ConflictResolutionModal extends Modal {
 	 * Extracts plain text from ProseMirror document structure.
 	 * Similar to the logic in document-metadata.ts but simplified for preview.
 	 */
-	private extractTextFromProseMirror(proseMirrorDoc: Record<string, unknown>): string {
-		if (!proseMirrorDoc || !proseMirrorDoc.content) {
-			return '';
-		}
-
-		const extractText = (node: Record<string, unknown>): string => {
-			if (node && typeof node === 'object') {
-				// Direct text node
-				if (node.text && typeof node.text === 'string') {
-					return node.text;
-				}
-				// Node with children - recurse
-				if (node.content && Array.isArray(node.content)) {
-					return node.content.map(extractText).join(' ');
-				}
-			}
-			return '';
-		};
-
-		const content = proseMirrorDoc.content;
-		if (!Array.isArray(content)) {
-			return '';
-		}
-
-		const text = content
-			.map(node => extractText(node as Record<string, unknown>))
-			.join(' ')
-			.trim()
-			.replace(/\s+/g, ' ');
-
-		return text || '';
-	}
 
 	private clearExistingDialogs(): void {
 		// Remove any existing dialog elements to prevent UI conflicts
 		const existingDialogs = this.contentEl.querySelectorAll(
-			'.confirmation-dialog, .merge-dialog, .rename-dialog'
+			'[data-granola-dialog="true"]'
 		);
 		if (existingDialogs.length > 0) {
 			this.logger.debug(`Clearing ${existingDialogs.length} existing dialog(s)`);
