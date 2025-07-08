@@ -170,10 +170,14 @@ export class ProseMirrorConverter {
 		if (doc.last_viewed_panel?.content) {
 			// Check if content is HTML string (newer API format)
 			if (typeof doc.last_viewed_panel.content === 'string') {
-				this.logger.debug(`Attempting conversion from last_viewed_panel.content (HTML format)`);
+				this.logger.debug(
+					`Attempting conversion from last_viewed_panel.content (HTML format)`
+				);
 				markdown = this.convertHtmlToMarkdown(doc.last_viewed_panel.content);
 				contentSource = 'last_viewed_panel_html';
-				this.logger.debug(`Last viewed panel HTML conversion result - length: ${markdown.length}`);
+				this.logger.debug(
+					`Last viewed panel HTML conversion result - length: ${markdown.length}`
+				);
 				if (markdown.trim()) {
 					this.logger.debug(`Last viewed panel HTML conversion successful`);
 				} else {
@@ -182,10 +186,14 @@ export class ProseMirrorConverter {
 			}
 			// Check if content is ProseMirror JSON (legacy format)
 			else if (this.isValidProseMirrorDoc(doc.last_viewed_panel.content)) {
-				this.logger.debug(`Attempting conversion from last_viewed_panel.content (ProseMirror format)`);
+				this.logger.debug(
+					`Attempting conversion from last_viewed_panel.content (ProseMirror format)`
+				);
 				markdown = this.convertProseMirrorToMarkdown(doc.last_viewed_panel.content);
 				contentSource = 'last_viewed_panel_prosemirror';
-				this.logger.debug(`Last viewed panel ProseMirror conversion result - length: ${markdown.length}`);
+				this.logger.debug(
+					`Last viewed panel ProseMirror conversion result - length: ${markdown.length}`
+				);
 				if (markdown.trim()) {
 					this.logger.debug(`Last viewed panel ProseMirror conversion successful`);
 				} else {
