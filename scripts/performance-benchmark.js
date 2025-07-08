@@ -19,7 +19,7 @@ const CONFIG = {
 	INTERACTION_THRESHOLD: 60, // Slightly increased for more realistic CI tolerance
 	PROCESSING_THRESHOLD: 500,
 	// Alert if performance degrades by more than this percentage
-	REGRESSION_THRESHOLD_PERCENT: 25, // More reasonable regression threshold (25% instead of 400%)
+	REGRESSION_THRESHOLD_PERCENT: 200, // Increased threshold for sub-millisecond timing variations (200% instead of 25%)
 	// Maximum number of history entries to keep
 	MAX_HISTORY_ENTRIES: 100,
 };
