@@ -483,9 +483,7 @@ export class ConflictResolutionModal extends Modal {
 
 	private clearExistingDialogs(): void {
 		// Remove any existing dialog elements to prevent UI conflicts
-		const existingDialogs = this.contentEl.querySelectorAll(
-			'[data-granola-dialog="true"]'
-		);
+		const existingDialogs = this.contentEl.querySelectorAll('[data-granola-dialog="true"]');
 		if (existingDialogs.length > 0) {
 			this.logger.debug(`Clearing ${existingDialogs.length} existing dialog(s)`);
 		}

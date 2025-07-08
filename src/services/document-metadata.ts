@@ -407,15 +407,16 @@ export class DocumentMetadataService {
 		}
 
 		// Last resort: try to extract from ProseMirror structure
-		const text = extractTextFromProseMirror(document.notes as unknown as Record<string, unknown>);
+		const text = extractTextFromProseMirror(
+			document.notes as unknown as Record<string, unknown>
+		);
 		if (!text) {
 			return 'No content available';
 		}
-		
+
 		const truncated = text.substring(0, this.PREVIEW_LENGTH);
 		return truncated.length === this.PREVIEW_LENGTH ? truncated + '...' : truncated;
 	}
-
 
 	/**
 	 * Estimates word count from document content.
@@ -443,7 +444,9 @@ export class DocumentMetadataService {
 		}
 
 		// Last resort: estimate from ProseMirror
-		const text = extractTextFromProseMirror(document.notes as unknown as Record<string, unknown>);
+		const text = extractTextFromProseMirror(
+			document.notes as unknown as Record<string, unknown>
+		);
 		if (!text) {
 			// If no text can be extracted, count words in the fallback message used by preview
 			return 'No content available'.split(/\s+/).filter(word => word.length > 0).length;
