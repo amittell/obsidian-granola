@@ -1,39 +1,39 @@
 # CI Monitoring Report
 
-**Generated:** 7/2/2025, 8:07:03 PM
-**Git:** main@a77e71c2
-**Commit:** chore: update deployment scripts with personalized vault path and bundle metadata
+**Generated:** 7/5/2025, 1:00:37 PM
+**Git:** fix/conflict-resolution-ui@95a8c78a
+**Commit:** fix: apply prettier formatting to resolve CI failures
 
 ## Summary
 
-- ✅ **Passed:** 1/3
-- ❌ **Failed:** 2/3
-- **Status:** 🔴 Some checks failed
+- ✅ **Passed:** 3/3
+- ❌ **Failed:** 0/3
+- **Status:** 🟢 All checks passed
 
 ## 📦 Bundle Size
 
 ✅ **Status:** Passed
 
-- **Size:** 78185 bytes
-- **Files:** 12
-- **Compression:** 62.13%
-- **Change:** decreased by 5078 bytes (-6.10%)
+- **Size:** 663774 bytes
+- **Files:** 0
+- **Compression:** 0.00%
+- **Change:** decreased by 0 bytes (0.00%)
 
 ## 📊 Test Coverage
 
-❌ **Status:** failed
+✅ **Status:** Passed
 
-- **Issues:**
-    - branches: 40.00% (below minimum 70%)
-    - functions: 17.65% (below minimum 70%)
-    - lines: 37.39% (below minimum 70%)
-    - statements: 36.44% (below minimum 70%)
-    - functions: dropped by 31.99% (17.65% → 49.63%)
-    - lines: dropped by 14.86% (37.39% → 52.25%)
-    - statements: dropped by 15.14% (36.44% → 51.58%)
+- **Overall:** 84.45%
+- **Lines:** 87.31%
+- **Functions:** 88.47%
+- **Statements:** 87.25%
+- **Branches:** 74.75%
+- **Files:** 12
 
 ## ⚡ Performance
 
-❌ **Status:** error
+✅ **Status:** Passed
 
-- **Error:** Cannot read properties of undefined (reading 'totalModalLoadTime')
+- **Modal Loading:** 72.51ms
+- **Interactions:** 0.12ms
+- **Processing:** 7.51ms

@@ -1,95 +1,129 @@
 {
-	"timestamp": "2025-07-03T00:07:03.815Z",
+	"timestamp": "2025-07-05T17:00:37.647Z",
 	"git": {
-		"commit": "a77e71c2332313d41d1b3b54911dc19e63393690",
-		"branch": "main",
-		"message": "chore: update deployment scripts with personalized vault path and bundle metadata"
+		"commit": "95a8c78abfec6190f54d125d01a7c1470861e1d2",
+		"branch": "fix/conflict-resolution-ui",
+		"message": "fix: apply prettier formatting to resolve CI failures"
 	},
 	"checks": {
 		"bundle": {
 			"status": "passed",
 			"data": {
 				"stats": {
-					"timestamp": "2025-07-03T00:07:04.026Z",
-					"bundleSize": 78185,
-					"inputSize": 206440,
-					"fileCount": 12,
-					"compressionRatio": 0.6212701026932765,
+					"timestamp": "2025-07-05T17:00:37.814Z",
+					"bundleSize": 663774,
+					"inputSize": 0,
+					"fileCount": 0,
+					"compressionRatio": 0,
 					"git": {
-						"commit": "a77e71c2332313d41d1b3b54911dc19e63393690",
-						"branch": "main",
-						"message": "chore: update deployment scripts with personalized vault path and bundle metadata"
+						"commit": "95a8c78abfec6190f54d125d01a7c1470861e1d2",
+						"branch": "fix/conflict-resolution-ui",
+						"message": "fix: apply prettier formatting to resolve CI failures"
 					}
 				},
 				"regression": {
 					"hasRegression": false,
-					"message": "Bundle size: 78185 bytes (decreased by 5078 bytes, -6.10%)",
-					"sizeDiff": -5078,
-					"percentChange": -6.098747342757287
+					"message": "Bundle size: 663774 bytes",
+					"sizeDiff": 0,
+					"percentChange": 0
 				}
 			},
 			"error": null
 		},
 		"coverage": {
-			"status": "failed",
+			"status": "passed",
 			"data": {
 				"stats": {
-					"timestamp": "2025-07-03T00:07:04.206Z",
-					"lines": 37.391304347826086,
-					"functions": 17.647058823529413,
-					"statements": 36.440677966101696,
-					"branches": 40,
+					"timestamp": "2025-07-05T17:00:37.991Z",
+					"lines": 87.31428571428572,
+					"functions": 88.47262247838617,
+					"statements": 87.24944320712696,
+					"branches": 74.74518686296716,
 					"totals": {
 						"lines": {
-							"total": 115,
-							"covered": 43
+							"total": 1750,
+							"covered": 1528
 						},
 						"functions": {
-							"total": 51,
-							"covered": 9
+							"total": 347,
+							"covered": 307
 						},
 						"statements": {
-							"total": 118,
-							"covered": 43
+							"total": 1796,
+							"covered": 1567
 						},
 						"branches": {
-							"total": 10,
-							"covered": 4
+							"total": 883,
+							"covered": 660
 						}
 					},
-					"files": 1,
+					"files": 12,
 					"git": {
-						"commit": "a77e71c2332313d41d1b3b54911dc19e63393690",
-						"branch": "main",
-						"message": "chore: update deployment scripts with personalized vault path and bundle metadata"
+						"commit": "95a8c78abfec6190f54d125d01a7c1470861e1d2",
+						"branch": "fix/conflict-resolution-ui",
+						"message": "fix: apply prettier formatting to resolve CI failures"
 					},
-					"overall": 32.8697602843643
+					"overall": 84.4453845656915
 				},
 				"regression": {
-					"hasRegressions": true,
-					"issues": [
-						"branches: 40.00% (below minimum 70%)",
-						"functions: 17.65% (below minimum 70%)",
-						"lines: 37.39% (below minimum 70%)",
-						"statements: 36.44% (below minimum 70%)",
-						"functions: dropped by 31.99% (17.65% → 49.63%)",
-						"lines: dropped by 14.86% (37.39% → 52.25%)",
-						"statements: dropped by 15.14% (36.44% → 51.58%)"
-					],
-					"message": "🚨 COVERAGE REGRESSIONS DETECTED!\nbranches: 40.00% (below minimum 70%)\nfunctions: 17.65% (below minimum 70%)\nlines: 37.39% (below minimum 70%)\nstatements: 36.44% (below minimum 70%)\nfunctions: dropped by 31.99% (17.65% → 49.63%)\nlines: dropped by 14.86% (37.39% → 52.25%)\nstatements: dropped by 15.14% (36.44% → 51.58%)"
+					"hasRegressions": false,
+					"issues": [],
+					"message": "✅ Coverage checks passed: 84.45% overall coverage"
 				}
 			},
 			"error": null
 		},
 		"performance": {
-			"status": "error",
-			"data": null,
-			"error": "Cannot read properties of undefined (reading 'totalModalLoadTime')"
+			"status": "passed",
+			"data": {
+				"stats": {
+					"timestamp": "2025-07-05T17:00:38.154Z",
+					"git": {
+						"commit": "95a8c78abfec6190f54d125d01a7c1470861e1d2",
+						"branch": "fix/conflict-resolution-ui",
+						"message": "fix: apply prettier formatting to resolve CI failures"
+					},
+					"benchmarks": {
+						"modalLoading": {
+							"modalImportTime": 37.458333,
+							"modalInitTime": 34.507083,
+							"renderTime": 0.549042,
+							"totalLoadTime": 72.514458,
+							"documentCount": 100
+						},
+						"interactions": {
+							"searchTime": 0.064667,
+							"searchResults": 100,
+							"sortTime": 0.258,
+							"selectionTime": 0.037375,
+							"selectedCount": 10
+						},
+						"documentProcessing": {
+							"conversionTime": 0.215958,
+							"convertedCount": 10,
+							"duplicateDetectionTime": 0.992208,
+							"duplicatesFound": 5,
+							"fileOperationsTime": 6.304959
+						}
+					},
+					"summary": {
+						"totalModalLoadTime": 72.514458,
+						"averageInteractionTime": 0.12001400000000001,
+						"totalProcessingTime": 7.5131250000000005
+					}
+				},
+				"regression": {
+					"hasRegressions": false,
+					"issues": [],
+					"message": "✅ Performance checks passed - Modal: 72.51ms, Interactions: 0.12ms, Processing: 7.51ms"
+				}
+			},
+			"error": null
 		}
 	},
 	"summary": {
-		"passed": 1,
-		"failed": 2,
+		"passed": 3,
+		"failed": 0,
 		"total": 3
 	}
 }

@@ -1,5 +1,6 @@
-import { GranolaDocument, ProseMirrorDoc, ProseMirrorNode } from '../api';
+import { GranolaDocument } from '../api';
 import { DuplicateCheckResult } from './duplicate-detector';
+import { extractTextFromProseMirror } from '../utils/prosemirror';
 
 /**
  * Display metadata extracted from a Granola document for UI presentation.
@@ -406,51 +407,15 @@ export class DocumentMetadataService {
 		}
 
 		// Last resort: try to extract from ProseMirror structure
-		return this.extractTextFromProseMirror(document.notes);
-	}
-
-	/**
-	 * Extracts plain text from ProseMirror document structure.
-	 *
-	 * @private
-	 * @param {any} proseMirrorDoc - ProseMirror document
-	 * @returns {string} Extracted text
-	 */
-	private extractTextFromProseMirror(
-		proseMirrorDoc: ProseMirrorDoc | Record<string, unknown>
-	): string {
-		if (!proseMirrorDoc || !proseMirrorDoc.content) {
+		const text = extractTextFromProseMirror(
+			document.notes as unknown as Record<string, unknown>
+		);
+		if (!text) {
 			return 'No content available';
 		}
 
-		const extractText = (node: ProseMirrorNode | Record<string, unknown>): string => {
-			if (
-				typeof node === 'object' &&
-				node &&
-				'text' in node &&
-				typeof node.text === 'string'
-			) {
-				return node.text;
-			}
-			if (node.content && Array.isArray(node.content)) {
-				return node.content.map(extractText).join(' ');
-			}
-			return '';
-		};
-
-		const content = (proseMirrorDoc as { content?: unknown[] }).content;
-		if (!Array.isArray(content)) {
-			return 'No content available';
-		}
-
-		const text = content
-			.map(node => extractText(node as ProseMirrorNode | Record<string, unknown>))
-			.join(' ')
-			.trim()
-			.replace(/\s+/g, ' ')
-			.substring(0, this.PREVIEW_LENGTH);
-
-		return text.length === this.PREVIEW_LENGTH ? text + '...' : text || 'No content available';
+		const truncated = text.substring(0, this.PREVIEW_LENGTH);
+		return truncated.length === this.PREVIEW_LENGTH ? truncated + '...' : truncated;
 	}
 
 	/**
@@ -479,7 +444,13 @@ export class DocumentMetadataService {
 		}
 
 		// Last resort: estimate from ProseMirror
-		const text = this.extractTextFromProseMirror(document.notes);
+		const text = extractTextFromProseMirror(
+			document.notes as unknown as Record<string, unknown>
+		);
+		if (!text) {
+			// If no text can be extracted, count words in the fallback message used by preview
+			return 'No content available'.split(/\s+/).filter(word => word.length > 0).length;
+		}
 		return text.split(/\s+/).filter(word => word.length > 0).length;
 	}
 

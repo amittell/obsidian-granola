@@ -2,7 +2,9 @@ import type { App, TFile } from 'obsidian';
 import { Modal, ButtonComponent } from 'obsidian';
 import type { GranolaDocument } from '../api';
 import type { DocumentDisplayMetadata } from '../services/document-metadata';
+import type { Logger } from '../types';
 import { PerformanceMonitor, trackMemoryLeaks } from '../performance/performance-monitor';
+import { extractTextFromProseMirror } from '../utils/prosemirror';
 
 /**
  * User's choice for resolving a document conflict.
@@ -29,6 +31,7 @@ export class ConflictResolutionModal extends Modal {
 	private metadata: DocumentDisplayMetadata;
 	private existingFile: TFile | undefined;
 	private existingContent: string = '';
+	private logger: Logger;
 	private resolve!: (resolution: ConflictResolution) => void;
 	private reject!: (error: Error) => void;
 
@@ -46,15 +49,23 @@ export class ConflictResolutionModal extends Modal {
 		app: App,
 		document: GranolaDocument,
 		metadata: DocumentDisplayMetadata,
-		existingFile?: TFile
+		existingFile: TFile | undefined,
+		logger: Logger
 	) {
 		super(app);
 		this.document = document;
 		this.metadata = metadata;
 		this.existingFile = existingFile;
+		this.logger = logger;
 
 		// Initialize performance monitoring
 		this.performanceMonitor = PerformanceMonitor.getInstance();
+
+		// Debug: Modal initialization
+		this.logger.debug(
+			`ConflictResolutionModal initialized for document: ${document.title || 'Untitled'} (${document.id})`
+		);
+		this.logger.debug(`Conflict reason: ${metadata.importStatus.reason}`);
 	}
 
 	/**
@@ -71,11 +82,18 @@ export class ConflictResolutionModal extends Modal {
 	async onOpen(): Promise<void> {
 		// Load existing file content if available
 		if (this.existingFile) {
+			this.logger.debug(`Loading existing file content from: ${this.existingFile.path}`);
 			try {
 				this.existingContent = await this.app.vault.read(this.existingFile);
+				this.logger.debug(
+					`Existing file content loaded: ${this.existingContent.length} characters`
+				);
 			} catch (error) {
-				console.warn('Failed to read existing file:', error);
+				this.logger.debug('Failed to read existing file:', error);
+				this.logger.warn('Failed to read existing file:', error);
 			}
+		} else {
+			this.logger.debug('No existing file to load');
 		}
 
 		this.setupUI();
@@ -262,7 +280,12 @@ export class ConflictResolutionModal extends Modal {
 	}
 
 	private showOverwriteOptions(): void {
+		this.logger.debug('Showing overwrite confirmation dialog');
+		// Clear any existing dialogs first
+		this.clearExistingDialogs();
+
 		const confirmDiv = this.contentEl.createDiv('confirmation-dialog');
+		confirmDiv.setAttribute('data-granola-dialog', 'true');
 		confirmDiv.createEl('h4', { text: '⚠️ Confirm Replacement' });
 		confirmDiv.createEl('p', {
 			text: 'This will permanently replace the existing file. This action cannot be undone.',
@@ -293,10 +316,18 @@ export class ConflictResolutionModal extends Modal {
 					createBackup: backupCheckbox.checked,
 				});
 			});
+
+		// Scroll the dialog into view for better UX (if available)
+		confirmDiv.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
 	}
 
 	private showMergeOptions(): void {
+		this.logger.debug('Showing merge strategy dialog');
+		// Clear any existing dialogs first
+		this.clearExistingDialogs();
+
 		const mergeDiv = this.contentEl.createDiv('merge-dialog');
+		mergeDiv.setAttribute('data-granola-dialog', 'true');
 		mergeDiv.createEl('h4', { text: '🔗 Choose Merge Strategy' });
 
 		const appendOption = mergeDiv.createDiv('merge-option');
@@ -321,10 +352,18 @@ export class ConflictResolutionModal extends Modal {
 		new ButtonComponent(cancelButton).setButtonText('Cancel').onClick(() => {
 			mergeDiv.remove();
 		});
+
+		// Scroll the dialog into view for better UX (if available)
+		mergeDiv.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
 	}
 
 	private showRenameOptions(): void {
+		this.logger.debug('Showing rename options dialog');
+		// Clear any existing dialogs first
+		this.clearExistingDialogs();
+
 		const renameDiv = this.contentEl.createDiv('rename-dialog');
+		renameDiv.setAttribute('data-granola-dialog', 'true');
 		renameDiv.createEl('h4', { text: '📝 Enter New Filename' });
 
 		const inputContainer = renameDiv.createDiv('filename-input-container');
@@ -355,16 +394,68 @@ export class ConflictResolutionModal extends Modal {
 				}
 			});
 
+		// Scroll the dialog into view for better UX (if available)
+		renameDiv.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+
 		// Focus the input and select text for easy editing
 		input.focus();
 		input.select();
 	}
 
 	private getGranolaPreview(): string {
-		if (this.document.notes_plain) {
-			return this.document.notes_plain.substring(0, 300) + '...';
+		// Try to extract content from ProseMirror using same logic as converter
+		let content = '';
+		let contentSource = '';
+
+		// Try last_viewed_panel.content first (most reliable)
+		if (this.document.last_viewed_panel?.content) {
+			this.logger.debug('Trying last_viewed_panel.content for preview...');
+			content = extractTextFromProseMirror(
+				this.document.last_viewed_panel.content as unknown as Record<string, unknown>
+			);
+			if (content) contentSource = 'last_viewed_panel.content';
 		}
-		return this.metadata.preview || 'No preview available';
+
+		// Fallback to notes field
+		if (!content && this.document.notes) {
+			this.logger.debug('Fallback: trying notes.content for preview...');
+			content = extractTextFromProseMirror(
+				this.document.notes as unknown as Record<string, unknown>
+			);
+			if (content) contentSource = 'notes.content';
+		}
+
+		// Fallback to notes_plain
+		if (!content && this.document.notes_plain) {
+			this.logger.debug('Fallback: trying notes_plain for preview...');
+			content = this.document.notes_plain;
+			if (content) contentSource = 'notes_plain';
+		}
+
+		// Fallback to notes_markdown
+		if (!content && this.document.notes_markdown) {
+			this.logger.debug('Fallback: trying notes_markdown for preview...');
+			content = this.document.notes_markdown;
+			if (content) contentSource = 'notes_markdown';
+		}
+
+		// Final fallback to metadata preview
+		if (!content) {
+			this.logger.debug('Final fallback: using metadata.preview');
+			content = this.metadata.preview || 'No content available';
+			contentSource = content === 'No content available' ? 'none' : 'metadata.preview';
+		}
+
+		// Log final result
+		const preview = content
+			.trim()
+			.replace(/\.\.\.+/g, '')
+			.substring(0, 300);
+		this.logger.debug(
+			`Content preview generated from ${contentSource}: ${preview.length} characters (original: ${content.length})`
+		);
+
+		return preview.length === 300 ? preview + '...' : preview;
 	}
 
 	private getExistingPreview(): string {
@@ -385,7 +476,22 @@ export class ConflictResolutionModal extends Modal {
 		return `${sanitized} (Granola ${timestamp})`;
 	}
 
+	/**
+	 * Extracts plain text from ProseMirror document structure.
+	 * Similar to the logic in document-metadata.ts but simplified for preview.
+	 */
+
+	private clearExistingDialogs(): void {
+		// Remove any existing dialog elements to prevent UI conflicts
+		const existingDialogs = this.contentEl.querySelectorAll('[data-granola-dialog="true"]');
+		if (existingDialogs.length > 0) {
+			this.logger.debug(`Clearing ${existingDialogs.length} existing dialog(s)`);
+		}
+		existingDialogs.forEach(dialog => dialog.remove());
+	}
+
 	private resolveWith(resolution: ConflictResolution): void {
+		this.logger.debug(`User selected resolution: ${resolution.action}`, resolution);
 		this.resolve(resolution);
 		this.close();
 	}

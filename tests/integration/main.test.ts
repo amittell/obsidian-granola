@@ -83,7 +83,8 @@ describe('GranolaImporterPlugin Integration', () => {
 				callback: expect.any(Function),
 			});
 
-			// Debug command is only registered in development mode
+			// Debug command is only registered when __DEV__ is defined
+			// In Jest, __DEV__ is undefined, so only 1 command is registered
 			expect(addCommandSpy).toHaveBeenCalledTimes(1);
 		});
 

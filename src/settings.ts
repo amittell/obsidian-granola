@@ -88,13 +88,22 @@ export class GranolaSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('Enable debug mode')
 			.setDesc(
-				'Show detailed logging for troubleshooting. Disable this to reduce console noise.'
+				'Show detailed logging for troubleshooting. Automatically sets log level to "Debug" when enabled.'
 			)
 			.addToggle(toggle => {
 				toggle.setValue(this.plugin.settings.debug.enabled).onChange(async value => {
 					this.plugin.settings.debug.enabled = value;
+					// When enabling debug mode, automatically set log level to DEBUG
+					// When disabling, revert to WARN to reduce noise
+					if (value) {
+						this.plugin.settings.debug.logLevel = LogLevel.DEBUG;
+					} else {
+						this.plugin.settings.debug.logLevel = LogLevel.WARN;
+					}
 					this.plugin.logger.updateSettings(this.plugin.settings);
 					await this.plugin.saveSettings();
+					// Refresh the UI to show the updated log level
+					this.display();
 				});
 			});
 
@@ -107,7 +116,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 					.addOption(LogLevel.ERROR.toString(), 'Error only')
 					.addOption(LogLevel.WARN.toString(), 'Warning and above')
 					.addOption(LogLevel.INFO.toString(), 'Info and above')
-					.addOption(LogLevel.DEBUG.toString(), 'All messages')
+					.addOption(LogLevel.DEBUG.toString(), 'Debug and above')
 					.setValue(this.plugin.settings.debug.logLevel.toString())
 					.onChange(async value => {
 						this.plugin.settings.debug.logLevel = parseInt(value) as LogLevel;

@@ -84,23 +84,14 @@ const context = await esbuild.context({
 			},
 	// Advanced tree shaking
 	treeShaking: true,
-	// Optimize for size over speed in production
+	// Reasonable production optimizations that preserve user-controllable debug logging
 	...(prod && {
 		legalComments: 'none',
-		// Aggressive optimization settings
 		charset: 'utf8',
-		// Drop debug code
-		drop: ['debugger', 'console'],
-		// Drop labels for dead code elimination
-		dropLabels: ['DEV', 'DEBUG', 'TEST'],
-		// Ignore annotations for more aggressive optimization
-		ignoreAnnotations: true,
-		// Mangle properties for maximum compression (be careful with this)
-		mangleProps: /^_/,
-		// Reserved names to avoid mangling critical properties
-		reserveProps: /^(constructor|prototype|__proto__|length|name|toString|valueOf)$/,
-		// Pure call annotations for better tree shaking
-		pure: ['console.log', 'console.debug', 'console.warn', 'console.info'],
+		// Only drop debugger statements, PRESERVE console for user-controllable logging
+		drop: ['debugger'],
+		// Keep console methods available for runtime debug control via settings
+		// Users need to be able to enable debug logging in production!
 	}),
 	metafile: true,
 });
@@ -108,12 +99,10 @@ const context = await esbuild.context({
 if (prod) {
 	const result = await context.rebuild();
 
-	// Save metafile for analysis if requested
-	if (process.argv.includes('--metafile=meta.json')) {
-		const fs = await import('fs');
-		fs.writeFileSync('meta.json', JSON.stringify(result.metafile));
-		console.log('Metafile written to meta.json for bundle analysis');
-	}
+	// Always save metafile for bundle analysis and tracking
+	const fs = await import('fs');
+	fs.writeFileSync('meta.json', JSON.stringify(result.metafile));
+	console.log('Metafile written to meta.json for bundle analysis');
 
 	process.exit(0);
 } else {

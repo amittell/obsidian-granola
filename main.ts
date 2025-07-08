@@ -108,9 +108,14 @@ export default class GranolaImporterPlugin extends Plugin {
 	 * ```
 	 */
 	async onload(): Promise<void> {
-		// Load settings and initialize logger
-		await this.loadSettings();
-		this.logger = new Logger(this.settings);
+		try {
+			await this.loadSettings();
+			this.logger = new Logger(this.settings);
+			this.logger.debug('Settings loaded and logger initialized');
+		} catch (error) {
+			console.error('Fatal error during plugin initialization:', error);
+			throw error;
+		}
 
 		// Initialize core components
 		this.auth = new GranolaAuth();
@@ -120,7 +125,12 @@ export default class GranolaImporterPlugin extends Plugin {
 		// Initialize selective import services
 		this.duplicateDetector = new DuplicateDetector(this.app.vault);
 		this.metadataService = new DocumentMetadataService();
-		this.importManager = new SelectiveImportManager(this.app, this.app.vault, this.converter);
+		this.importManager = new SelectiveImportManager(
+			this.app,
+			this.app.vault,
+			this.converter,
+			this.logger
+		);
 
 		// Register settings tab
 		this.addSettingTab(new GranolaSettingTab(this.app, this));

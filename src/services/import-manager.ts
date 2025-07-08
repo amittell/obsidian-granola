@@ -3,6 +3,7 @@ import type { GranolaDocument } from '../api';
 import type { ProseMirrorConverter } from '../converter';
 import type { DocumentDisplayMetadata } from './document-metadata';
 import type { ConflictResolution } from '../ui/conflict-resolution-modal';
+import type { Logger } from '../types';
 import { PerformanceMonitor, measurePerformance } from '../performance/performance-monitor';
 import { batchProcessor, memoize } from '../performance/performance-utils';
 
@@ -135,6 +136,7 @@ export class SelectiveImportManager {
 	private app: App;
 	private vault: Vault;
 	private converter: ProseMirrorConverter;
+	private logger: Logger;
 	private isRunning: boolean = false;
 	private isCancelled: boolean = false;
 	private documentProgress: Map<string, DocumentProgress> = new Map();
@@ -158,11 +160,13 @@ export class SelectiveImportManager {
 	 * @param {App} app - The Obsidian app instance
 	 * @param {Vault} vault - The Obsidian vault to import into
 	 * @param {ProseMirrorConverter} converter - Document converter instance
+	 * @param {Logger} logger - Logger instance for debug output
 	 */
-	constructor(app: App, vault: Vault, converter: ProseMirrorConverter) {
+	constructor(app: App, vault: Vault, converter: ProseMirrorConverter, logger: Logger) {
 		this.app = app;
 		this.vault = vault;
 		this.converter = converter;
+		this.logger = logger;
 		this.overallProgress = this.createInitialProgress();
 
 		// Initialize performance monitoring
@@ -716,7 +720,7 @@ export class SelectiveImportManager {
 
 		// Dynamic import for code splitting - reduces main bundle size
 		const { ConflictResolutionModal } = await import('../ui/conflict-resolution-modal');
-		const modal = new ConflictResolutionModal(this.app, doc, meta, existingFile);
+		const modal = new ConflictResolutionModal(this.app, doc, meta, existingFile, this.logger);
 
 		return await modal.showConflictResolution();
 	}
