@@ -1,194 +1,194 @@
 [
-  {
-    "timestamp": "2025-07-02T21:30:47.440Z",
-    "git": {
-      "commit": "a77e71c2332313d41d1b3b54911dc19e63393690",
-      "branch": "main",
-      "message": "chore: update deployment scripts with personalized vault path and bundle metadata"
-    },
-    "benchmarks": {
-      "modalLoading": {
-        "modalImportTime": 45.389166,
-        "modalInitTime": 43.182583,
-        "renderTime": 1.124,
-        "totalLoadTime": 89.695749,
-        "documentCount": 100
-      },
-      "interactions": {
-        "searchTime": 0.105958,
-        "searchResults": 100,
-        "sortTime": 0.147958,
-        "selectionTime": 0.039375,
-        "selectedCount": 10
-      },
-      "documentProcessing": {
-        "conversionTime": 0.165417,
-        "convertedCount": 10,
-        "duplicateDetectionTime": 0.27825,
-        "duplicatesFound": 5,
-        "fileOperationsTime": 6.369709
-      }
-    },
-    "summary": {
-      "totalModalLoadTime": 89.695749,
-      "averageInteractionTime": 0.09776366666666668,
-      "totalProcessingTime": 6.813376
-    }
-  },
-  {
-    "timestamp": "2025-07-02T23:48:31.336Z",
-    "git": {
-      "commit": "a77e71c2332313d41d1b3b54911dc19e63393690",
-      "branch": "main",
-      "message": "chore: update deployment scripts with personalized vault path and bundle metadata"
-    },
-    "benchmarks": {
-      "modalLoading": {
-        "modalImportTime": 41.661083,
-        "modalInitTime": 36.774584,
-        "renderTime": 0.975541,
-        "totalLoadTime": 79.411208,
-        "documentCount": 100
-      },
-      "interactions": {
-        "searchTime": 0.074292,
-        "searchResults": 100,
-        "sortTime": 0.133667,
-        "selectionTime": 0.036875,
-        "selectedCount": 10
-      },
-      "documentProcessing": {
-        "conversionTime": 0.1135,
-        "convertedCount": 10,
-        "duplicateDetectionTime": 0.251333,
-        "duplicatesFound": 5,
-        "fileOperationsTime": 5.586792
-      }
-    },
-    "summary": {
-      "totalModalLoadTime": 79.411208,
-      "averageInteractionTime": 0.08161133333333333,
-      "totalProcessingTime": 5.951625
-    }
-  },
-  {
-    "timestamp": "2025-07-02T17:35:53.719Z",
-    "score": 65,
-    "version": "Phase 3 Optimizations",
-    "improvements": [
-      "Memory leak detection implemented",
-      "Startup time reduced by 84.4%",
-      "Import performance improved by 37.8%",
-      "UI responsiveness optimized",
-      "Enterprise-grade monitoring added"
-    ]
-  },
-  {
-    "timestamp": "2025-07-03T19:29:03.979Z",
-    "git": {
-      "commit": "44ce843b85fe10adef48826cf1dc1df4a6dc79b9",
-      "branch": "main",
-      "message": "fix: apply prettier formatting to performance benchmark script"
-    },
-    "benchmarks": {
-      "modalLoading": {
-        "modalImportTime": 54.848041,
-        "modalInitTime": 43.83725,
-        "renderTime": 1.268459,
-        "totalLoadTime": 99.95375000000001,
-        "documentCount": 100
-      },
-      "interactions": {
-        "searchTime": 0.108834,
-        "searchResults": 100,
-        "sortTime": 0.149917,
-        "selectionTime": 0.04575,
-        "selectedCount": 10
-      },
-      "documentProcessing": {
-        "conversionTime": 0.720125,
-        "convertedCount": 10,
-        "duplicateDetectionTime": 0.278666,
-        "duplicatesFound": 5,
-        "fileOperationsTime": 5.882208
-      }
-    },
-    "summary": {
-      "totalModalLoadTime": 99.95375000000001,
-      "averageInteractionTime": 0.10150033333333335,
-      "totalProcessingTime": 6.880999
-    }
-  },
-  {
-    "timestamp": "2025-07-05T17:00:31.929Z",
-    "git": {
-      "commit": "95a8c78abfec6190f54d125d01a7c1470861e1d2",
-      "branch": "fix/conflict-resolution-ui",
-      "message": "fix: apply prettier formatting to resolve CI failures"
-    },
-    "benchmarks": {
-      "modalLoading": {
-        "modalImportTime": 41.621292,
-        "modalInitTime": 53.889292,
-        "renderTime": 0.972917,
-        "totalLoadTime": 96.48350099999999,
-        "documentCount": 100
-      },
-      "interactions": {
-        "searchTime": 0.09275,
-        "searchResults": 100,
-        "sortTime": 0.223166,
-        "selectionTime": 0.067125,
-        "selectedCount": 10
-      },
-      "documentProcessing": {
-        "conversionTime": 0.136375,
-        "convertedCount": 10,
-        "duplicateDetectionTime": 0.286,
-        "duplicatesFound": 5,
-        "fileOperationsTime": 6.929709
-      }
-    },
-    "summary": {
-      "totalModalLoadTime": 96.48350099999999,
-      "averageInteractionTime": 0.1276803333333333,
-      "totalProcessingTime": 7.352084
-    }
-  },
-  {
-    "timestamp": "2025-07-08T00:41:00.095Z",
-    "git": {
-      "commit": "e2bc5cf6e7a846a64af66bf1efdce22b846235a7",
-      "branch": "fix/conflict-resolution-ui",
-      "message": "Address CodeRabbit and Copilot review feedback"
-    },
-    "benchmarks": {
-      "modalLoading": {
-        "modalImportTime": 56.618041,
-        "modalInitTime": 54.280291,
-        "renderTime": 1.133417,
-        "totalLoadTime": 112.03174899999999,
-        "documentCount": 100
-      },
-      "interactions": {
-        "searchTime": 0.055584,
-        "searchResults": 100,
-        "sortTime": 0.561791,
-        "selectionTime": 0.031208,
-        "selectedCount": 10
-      },
-      "documentProcessing": {
-        "conversionTime": 0.143584,
-        "convertedCount": 10,
-        "duplicateDetectionTime": 0.272625,
-        "duplicatesFound": 5,
-        "fileOperationsTime": 4.997375
-      }
-    },
-    "summary": {
-      "totalModalLoadTime": 112.03174899999999,
-      "averageInteractionTime": 0.21619433333333335,
-      "totalProcessingTime": 5.413584
-    }
-  }
+	{
+		"timestamp": "2025-07-02T21:30:47.440Z",
+		"git": {
+			"commit": "a77e71c2332313d41d1b3b54911dc19e63393690",
+			"branch": "main",
+			"message": "chore: update deployment scripts with personalized vault path and bundle metadata"
+		},
+		"benchmarks": {
+			"modalLoading": {
+				"modalImportTime": 45.389166,
+				"modalInitTime": 43.182583,
+				"renderTime": 1.124,
+				"totalLoadTime": 89.695749,
+				"documentCount": 100
+			},
+			"interactions": {
+				"searchTime": 0.105958,
+				"searchResults": 100,
+				"sortTime": 0.147958,
+				"selectionTime": 0.039375,
+				"selectedCount": 10
+			},
+			"documentProcessing": {
+				"conversionTime": 0.165417,
+				"convertedCount": 10,
+				"duplicateDetectionTime": 0.27825,
+				"duplicatesFound": 5,
+				"fileOperationsTime": 6.369709
+			}
+		},
+		"summary": {
+			"totalModalLoadTime": 89.695749,
+			"averageInteractionTime": 0.09776366666666668,
+			"totalProcessingTime": 6.813376
+		}
+	},
+	{
+		"timestamp": "2025-07-02T23:48:31.336Z",
+		"git": {
+			"commit": "a77e71c2332313d41d1b3b54911dc19e63393690",
+			"branch": "main",
+			"message": "chore: update deployment scripts with personalized vault path and bundle metadata"
+		},
+		"benchmarks": {
+			"modalLoading": {
+				"modalImportTime": 41.661083,
+				"modalInitTime": 36.774584,
+				"renderTime": 0.975541,
+				"totalLoadTime": 79.411208,
+				"documentCount": 100
+			},
+			"interactions": {
+				"searchTime": 0.074292,
+				"searchResults": 100,
+				"sortTime": 0.133667,
+				"selectionTime": 0.036875,
+				"selectedCount": 10
+			},
+			"documentProcessing": {
+				"conversionTime": 0.1135,
+				"convertedCount": 10,
+				"duplicateDetectionTime": 0.251333,
+				"duplicatesFound": 5,
+				"fileOperationsTime": 5.586792
+			}
+		},
+		"summary": {
+			"totalModalLoadTime": 79.411208,
+			"averageInteractionTime": 0.08161133333333333,
+			"totalProcessingTime": 5.951625
+		}
+	},
+	{
+		"timestamp": "2025-07-02T17:35:53.719Z",
+		"score": 65,
+		"version": "Phase 3 Optimizations",
+		"improvements": [
+			"Memory leak detection implemented",
+			"Startup time reduced by 84.4%",
+			"Import performance improved by 37.8%",
+			"UI responsiveness optimized",
+			"Enterprise-grade monitoring added"
+		]
+	},
+	{
+		"timestamp": "2025-07-03T19:29:03.979Z",
+		"git": {
+			"commit": "44ce843b85fe10adef48826cf1dc1df4a6dc79b9",
+			"branch": "main",
+			"message": "fix: apply prettier formatting to performance benchmark script"
+		},
+		"benchmarks": {
+			"modalLoading": {
+				"modalImportTime": 54.848041,
+				"modalInitTime": 43.83725,
+				"renderTime": 1.268459,
+				"totalLoadTime": 99.95375000000001,
+				"documentCount": 100
+			},
+			"interactions": {
+				"searchTime": 0.108834,
+				"searchResults": 100,
+				"sortTime": 0.149917,
+				"selectionTime": 0.04575,
+				"selectedCount": 10
+			},
+			"documentProcessing": {
+				"conversionTime": 0.720125,
+				"convertedCount": 10,
+				"duplicateDetectionTime": 0.278666,
+				"duplicatesFound": 5,
+				"fileOperationsTime": 5.882208
+			}
+		},
+		"summary": {
+			"totalModalLoadTime": 99.95375000000001,
+			"averageInteractionTime": 0.10150033333333335,
+			"totalProcessingTime": 6.880999
+		}
+	},
+	{
+		"timestamp": "2025-07-05T17:00:31.929Z",
+		"git": {
+			"commit": "95a8c78abfec6190f54d125d01a7c1470861e1d2",
+			"branch": "fix/conflict-resolution-ui",
+			"message": "fix: apply prettier formatting to resolve CI failures"
+		},
+		"benchmarks": {
+			"modalLoading": {
+				"modalImportTime": 41.621292,
+				"modalInitTime": 53.889292,
+				"renderTime": 0.972917,
+				"totalLoadTime": 96.48350099999999,
+				"documentCount": 100
+			},
+			"interactions": {
+				"searchTime": 0.09275,
+				"searchResults": 100,
+				"sortTime": 0.223166,
+				"selectionTime": 0.067125,
+				"selectedCount": 10
+			},
+			"documentProcessing": {
+				"conversionTime": 0.136375,
+				"convertedCount": 10,
+				"duplicateDetectionTime": 0.286,
+				"duplicatesFound": 5,
+				"fileOperationsTime": 6.929709
+			}
+		},
+		"summary": {
+			"totalModalLoadTime": 96.48350099999999,
+			"averageInteractionTime": 0.1276803333333333,
+			"totalProcessingTime": 7.352084
+		}
+	},
+	{
+		"timestamp": "2025-07-08T00:41:00.095Z",
+		"git": {
+			"commit": "e2bc5cf6e7a846a64af66bf1efdce22b846235a7",
+			"branch": "fix/conflict-resolution-ui",
+			"message": "Address CodeRabbit and Copilot review feedback"
+		},
+		"benchmarks": {
+			"modalLoading": {
+				"modalImportTime": 56.618041,
+				"modalInitTime": 54.280291,
+				"renderTime": 1.133417,
+				"totalLoadTime": 112.03174899999999,
+				"documentCount": 100
+			},
+			"interactions": {
+				"searchTime": 0.055584,
+				"searchResults": 100,
+				"sortTime": 0.561791,
+				"selectionTime": 0.031208,
+				"selectedCount": 10
+			},
+			"documentProcessing": {
+				"conversionTime": 0.143584,
+				"convertedCount": 10,
+				"duplicateDetectionTime": 0.272625,
+				"duplicatesFound": 5,
+				"fileOperationsTime": 4.997375
+			}
+		},
+		"summary": {
+			"totalModalLoadTime": 112.03174899999999,
+			"averageInteractionTime": 0.21619433333333335,
+			"totalProcessingTime": 5.413584
+		}
+	}
 ]
