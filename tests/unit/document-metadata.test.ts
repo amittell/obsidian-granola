@@ -5,15 +5,19 @@ import {
 } from '../../src/services/document-metadata';
 import { GranolaDocument } from '../../src/api';
 import { DuplicateCheckResult } from '../../src/services/duplicate-detector';
+import { GranolaSettings, DEFAULT_SETTINGS } from '../../src/types';
 
 describe('DocumentMetadataService', () => {
 	let service: DocumentMetadataService;
 	let mockDocument: GranolaDocument;
 	let mockImportStatus: DuplicateCheckResult;
 	let mockFile: any;
+	let mockSettings: GranolaSettings;
 
 	beforeEach(() => {
-		service = new DocumentMetadataService();
+		// Create mock settings with skipEmptyDocuments enabled by default
+		mockSettings = { ...DEFAULT_SETTINGS };
+		service = new DocumentMetadataService(mockSettings);
 
 		mockFile = {
 			name: 'test-file.md',
@@ -202,6 +206,96 @@ describe('DocumentMetadataService', () => {
 
 			expect(metadata).toHaveLength(1);
 			expect(metadata[0].importStatus.status).toBe('NEW');
+		});
+
+		it('should filter out empty documents when skipEmptyDocuments is enabled', () => {
+			// Create an empty document (created_at === updated_at)
+			const emptyDocument: GranolaDocument = {
+				...mockDocument,
+				id: 'empty-doc',
+				title: 'Empty Document',
+				created_at: '2023-01-01T10:00:00Z',
+				updated_at: '2023-01-01T10:00:00Z', // Same as created_at
+				notes_plain: '',
+				notes_markdown: '',
+				notes: { type: 'doc', content: [] },
+				last_viewed_panel: null,
+			};
+
+			const documents = [mockDocument, emptyDocument];
+			const statusMap = new Map([
+				['test-doc-1', mockImportStatus],
+				['empty-doc', { status: 'NEW' as const, reason: 'New', requiresUserChoice: false }],
+			]);
+
+			// With skipEmptyDocuments enabled (default)
+			const metadata = service.extractBulkMetadata(documents, statusMap);
+
+			expect(metadata).toHaveLength(1); // Only the non-empty document
+			expect(metadata[0].id).toBe('test-doc-1');
+		});
+
+		it('should include empty documents when skipEmptyDocuments is disabled', () => {
+			// Create an empty document (created_at === updated_at)
+			const emptyDocument: GranolaDocument = {
+				...mockDocument,
+				id: 'empty-doc',
+				title: 'Empty Document',
+				created_at: '2023-01-01T10:00:00Z',
+				updated_at: '2023-01-01T10:00:00Z', // Same as created_at
+				notes_plain: '',
+				notes_markdown: '',
+				notes: { type: 'doc', content: [] },
+				last_viewed_panel: null,
+			};
+
+			const documents = [mockDocument, emptyDocument];
+			const statusMap = new Map([
+				['test-doc-1', mockImportStatus],
+				['empty-doc', { status: 'NEW' as const, reason: 'New', requiresUserChoice: false }],
+			]);
+
+			// Disable skipEmptyDocuments
+			mockSettings.import.skipEmptyDocuments = false;
+			service.updateSettings(mockSettings);
+
+			const metadata = service.extractBulkMetadata(documents, statusMap);
+
+			expect(metadata).toHaveLength(2); // Both documents included
+			expect(metadata[0].id).toBe('test-doc-1');
+			expect(metadata[1].id).toBe('empty-doc');
+		});
+
+		it('should not filter documents with content even if dates match', () => {
+			// Create a document with same created/updated dates but with content
+			const documentWithContent: GranolaDocument = {
+				...mockDocument,
+				id: 'doc-with-content',
+				title: 'Document With Content',
+				created_at: '2023-01-01T10:00:00Z',
+				updated_at: '2023-01-01T10:00:00Z', // Same as created_at
+				notes_plain: 'This document has content',
+				notes_markdown: '# This document has content',
+				notes: {
+					type: 'doc',
+					content: [
+						{
+							type: 'paragraph',
+							content: [{ type: 'text', text: 'This document has content' }],
+						},
+					],
+				},
+			};
+
+			const documents = [documentWithContent];
+			const statusMap = new Map([
+				['doc-with-content', { status: 'NEW' as const, reason: 'New', requiresUserChoice: false }],
+			]);
+
+			const metadata = service.extractBulkMetadata(documents, statusMap);
+
+			expect(metadata).toHaveLength(1); // Document should be included because it has content
+			expect(metadata[0].id).toBe('doc-with-content');
 		});
 	});
 
@@ -395,6 +489,38 @@ describe('DocumentMetadataService', () => {
 		});
 	});
 
+	describe('updateSettings', () => {
+		it('should update the settings used by the service', () => {
+			const newSettings = { ...DEFAULT_SETTINGS };
+			newSettings.import.skipEmptyDocuments = false;
+
+			service.updateSettings(newSettings);
+
+			// Create an empty document to test filtering
+			const emptyDocument: GranolaDocument = {
+				...mockDocument,
+				id: 'empty-doc',
+				created_at: '2023-01-01T10:00:00Z',
+				updated_at: '2023-01-01T10:00:00Z', // Same as created_at
+				notes_plain: '',
+				notes_markdown: '',
+				notes: { type: 'doc', content: [] },
+				last_viewed_panel: null,
+			};
+
+			const documents = [emptyDocument];
+			const statusMap = new Map([
+				['empty-doc', { status: 'NEW' as const, reason: 'New', requiresUserChoice: false }],
+			]);
+
+			const metadata = service.extractBulkMetadata(documents, statusMap);
+
+			// Should include the empty document now that skipEmptyDocuments is disabled
+			expect(metadata).toHaveLength(1);
+			expect(metadata[0].id).toBe('empty-doc');
+		});
+	});
+
 	describe('edge cases', () => {
 		it('should handle document with no content', () => {
 			const emptyDoc: GranolaDocument = {
@@ -402,13 +528,14 @@ describe('DocumentMetadataService', () => {
 				notes_plain: '',
 				notes_markdown: '',
 				notes: { type: 'doc', content: [] },
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(emptyDoc, mockImportStatus);
 
 			expect(metadata.preview).toBe('No content available');
 			// When no content is available, it falls back to counting words in "No content available" = 3 words
-			expect(metadata.wordCount).toBe(3);
+			expect(metadata.wordCount).toBe(0);
 			expect(metadata.readingTime).toBe(1); // Minimum reading time
 		});
 
@@ -442,6 +569,7 @@ describe('DocumentMetadataService', () => {
 						},
 					],
 				},
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(proseMirrorDoc, mockImportStatus);
@@ -456,6 +584,7 @@ describe('DocumentMetadataService', () => {
 				notes_plain: '',
 				notes_markdown: '',
 				notes: { type: 'doc' }, // Missing content
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(malformedDoc, mockImportStatus);
@@ -474,6 +603,7 @@ describe('DocumentMetadataService', () => {
 				notes: null as any,
 				created_at: null as any,
 				updated_at: null as any,
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(nullDoc, mockImportStatus);
@@ -489,6 +619,7 @@ describe('DocumentMetadataService', () => {
 			const longDoc: GranolaDocument = {
 				...mockDocument,
 				notes_plain: longContent,
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(longDoc, mockImportStatus);
@@ -504,6 +635,7 @@ describe('DocumentMetadataService', () => {
 				...mockDocument,
 				title: '📝 Special Title with émojis & characters',
 				notes_plain: 'Content with 🎉 émojis and spéciál characters: 中文 العربية русский',
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(unicodeDoc, mockImportStatus);
@@ -521,19 +653,21 @@ describe('DocumentMetadataService', () => {
 				notes_plain: '',
 				notes_markdown: '',
 				notes: undefined as any,
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(emptyStringDoc, mockImportStatus);
 
 			expect(metadata.title).toBe('Untitled Document');
 			expect(metadata.preview).toBe('No content available');
-			expect(metadata.wordCount).toBe(3); // "No content available"
+			expect(metadata.wordCount).toBe(0);
 		});
 
 		it('should handle mixed line endings and whitespace', () => {
 			const mixedDoc: GranolaDocument = {
 				...mockDocument,
 				notes_plain: '  \r\n  Line with mixed endings\r\n\n\r\n  Another line  \t\n  ',
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(mixedDoc, mockImportStatus);
@@ -549,13 +683,13 @@ describe('DocumentMetadataService', () => {
 				notes_plain: '   \t\n\r\n   \t  ',
 				notes_markdown: '\n\n\t\t\n',
 				notes: null as any,
-				last_viewed_panel: null as any,
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(whitespaceDoc, mockImportStatus);
 
 			expect(metadata.preview).toBe('No content available');
-			expect(metadata.wordCount).toBe(3); // Falls back to "No content available"
+			expect(metadata.wordCount).toBe(0);
 		});
 
 		it('should handle future dates', () => {
@@ -631,6 +765,7 @@ describe('DocumentMetadataService', () => {
 						},
 					],
 				},
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(nestedDoc, mockImportStatus);
@@ -649,21 +784,20 @@ describe('DocumentMetadataService', () => {
 					type: 'invalid',
 					content: 'not an array',
 				} as any,
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(malformedDoc, mockImportStatus);
 
 			expect(metadata.preview).toBe('No content available');
-			expect(metadata.wordCount).toBe(3);
+			expect(metadata.wordCount).toBe(0);
 		});
 
 		it('should handle different import status scenarios', () => {
-			const conflictStatus: DocumentImportStatus = {
+			const conflictStatus: DuplicateCheckResult = {
 				status: 'CONFLICT',
 				requiresUserChoice: true,
-				existingFile: mockFile,
-				localModifications: true,
-				isNewer: false,
+				reason: 'Document conflict detected',
 			};
 
 			const metadata = service.extractMetadata(mockDocument, conflictStatus);
@@ -731,6 +865,7 @@ describe('DocumentMetadataService', () => {
 						},
 					],
 				},
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(unknownNodeDoc, mockImportStatus);
@@ -756,6 +891,7 @@ describe('DocumentMetadataService', () => {
 					type: 'doc',
 					content: [circularContent],
 				},
+				last_viewed_panel: null,
 			};
 
 			// Should not get stuck in infinite loop
@@ -772,6 +908,7 @@ describe('DocumentMetadataService', () => {
 				notes_plain: 'Fallback plain text content',
 				notes_markdown: '',
 				notes: null as any,
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(fallbackDoc, mockImportStatus);
@@ -784,6 +921,7 @@ describe('DocumentMetadataService', () => {
 			const shortDoc: GranolaDocument = {
 				...mockDocument,
 				notes_plain: 'Hi',
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(shortDoc, mockImportStatus);
@@ -797,6 +935,7 @@ describe('DocumentMetadataService', () => {
 			const punctuationDoc: GranolaDocument = {
 				...mockDocument,
 				notes_plain: '!@#$%^&*()_+ 123 456.789',
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(punctuationDoc, mockImportStatus);
@@ -838,13 +977,13 @@ describe('DocumentMetadataService', () => {
 					type: 'doc',
 					content: [],
 				},
-				last_viewed_panel: null as any,
+				last_viewed_panel: null,
 			};
 
 			const metadata = service.extractMetadata(emptyArrayDoc, mockImportStatus);
 
 			expect(metadata.preview).toBe('No content available');
-			expect(metadata.wordCount).toBe(3);
+			expect(metadata.wordCount).toBe(0);
 		});
 
 		it('should maintain consistent behavior with same input', () => {

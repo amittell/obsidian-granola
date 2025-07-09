@@ -124,7 +124,7 @@ export default class GranolaImporterPlugin extends Plugin {
 
 		// Initialize selective import services
 		this.duplicateDetector = new DuplicateDetector(this.app.vault);
-		this.metadataService = new DocumentMetadataService();
+		this.metadataService = new DocumentMetadataService(this.settings);
 		this.importManager = new SelectiveImportManager(
 			this.app,
 			this.app.vault,
@@ -424,6 +424,11 @@ export default class GranolaImporterPlugin extends Plugin {
 		// Update converter settings if it exists
 		if (this.converter) {
 			this.converter.updateSettings(this.settings);
+		}
+
+		// Update metadata service settings if it exists
+		if (this.metadataService) {
+			this.metadataService.updateSettings(this.settings);
 		}
 	}
 }

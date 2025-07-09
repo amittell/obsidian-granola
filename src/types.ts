@@ -36,22 +36,9 @@ export enum DatePrefixFormat {
 	NONE = 'none',
 }
 
-/**
- * Content source priority for extraction.
- */
-export enum ContentPriority {
-	/** Try last_viewed_panel first, then notes, then fallbacks */
-	PANEL_FIRST = 'panel_first',
-	/** Try notes first, then last_viewed_panel, then fallbacks */
-	NOTES_FIRST = 'notes_first',
-	/** Only use last_viewed_panel (most reliable) */
-	PANEL_ONLY = 'panel_only',
-	/** Only use notes field */
-	NOTES_ONLY = 'notes_only',
-}
 
 /**
- * Plugin settings interface with all configuration options.
+ * Plugin settings interface with simplified configuration options.
  */
 export interface GranolaSettings {
 	/** Debug and logging settings */
@@ -60,8 +47,6 @@ export interface GranolaSettings {
 		enabled: boolean;
 		/** Log level threshold */
 		logLevel: LogLevel;
-		/** Save debug logs to file */
-		saveToFile: boolean;
 	};
 
 	/** Import behavior settings */
@@ -70,37 +55,25 @@ export interface GranolaSettings {
 		strategy: ImportStrategy;
 		/** Default vault folder for imports */
 		defaultFolder: string;
-		/** Create folders if they don't exist */
-		createFolders: boolean;
-		/** Maximum filename length */
-		maxFilenameLength: number;
+		/** Skip empty documents during import */
+		skipEmptyDocuments: boolean;
 	};
 
 	/** Filename and content settings */
 	content: {
 		/** Date prefix format for filenames */
 		datePrefixFormat: DatePrefixFormat;
-		/** Content source priority */
-		contentPriority: ContentPriority;
-		/** Include document metadata in frontmatter */
-		includeMetadata: boolean;
 		/** Include enhanced frontmatter fields (id, title, updated) */
 		includeEnhancedFrontmatter: boolean;
-		/** Custom frontmatter fields */
-		customFrontmatter: string[];
 	};
 
-	/** UI and experience settings */
+	/** UI settings */
 	ui: {
-		/** Auto-close import modal after successful import */
-		autoCloseModal: boolean;
 		/** Show import progress notifications */
 		showProgressNotifications: boolean;
-		/** Default to select all documents for import */
-		selectAllByDefault: boolean;
 	};
 
-	/** Connection and API settings */
+	/** Internal connection state (not user-facing) */
 	connection: {
 		/** Last successful connection test timestamp */
 		lastValidated: number;
@@ -118,25 +91,18 @@ export const DEFAULT_SETTINGS: GranolaSettings = {
 	debug: {
 		enabled: false,
 		logLevel: LogLevel.WARN,
-		saveToFile: false,
 	},
 	import: {
 		strategy: ImportStrategy.ALWAYS_PROMPT,
 		defaultFolder: '',
-		createFolders: true,
-		maxFilenameLength: 100,
+		skipEmptyDocuments: true,
 	},
 	content: {
 		datePrefixFormat: DatePrefixFormat.ISO_DATE,
-		contentPriority: ContentPriority.PANEL_FIRST,
-		includeMetadata: true,
 		includeEnhancedFrontmatter: false,
-		customFrontmatter: [],
 	},
 	ui: {
-		autoCloseModal: false,
 		showProgressNotifications: true,
-		selectAllByDefault: false,
 	},
 	connection: {
 		lastValidated: 0,

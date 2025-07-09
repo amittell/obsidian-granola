@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
 import type GranolaImporterPlugin from '../main';
-import { LogLevel, ImportStrategy, DatePrefixFormat, ContentPriority } from './types';
+import { LogLevel, ImportStrategy, DatePrefixFormat } from './types';
 
 /**
  * Settings tab for configuring the Granola importer plugin.
@@ -60,20 +60,6 @@ export class GranolaSettingTab extends PluginSettingTab {
 					});
 			});
 
-		// API timeout setting
-		new Setting(containerEl)
-			.setName('API timeout')
-			.setDesc('How long to wait for API responses (in seconds)')
-			.addSlider(slider => {
-				slider
-					.setLimits(5, 120, 5)
-					.setValue(this.plugin.settings.connection.timeoutMs / 1000)
-					.setDynamicTooltip()
-					.onChange(async value => {
-						this.plugin.settings.connection.timeoutMs = value * 1000;
-						await this.plugin.saveSettings();
-					});
-			});
 	}
 
 	/**
@@ -165,15 +151,19 @@ export class GranolaSettingTab extends PluginSettingTab {
 					});
 			});
 
-		// Create folders toggle
+		// Skip empty documents
 		new Setting(containerEl)
-			.setName('Create folders')
-			.setDesc("Automatically create folders if they don't exist")
+			.setName('Skip empty documents')
+			.setDesc(
+				'Filter out empty placeholder documents that have no meaningful content or were never modified after creation'
+			)
 			.addToggle(toggle => {
-				toggle.setValue(this.plugin.settings.import.createFolders).onChange(async value => {
-					this.plugin.settings.import.createFolders = value;
-					await this.plugin.saveSettings();
-				});
+				toggle
+					.setValue(this.plugin.settings.import.skipEmptyDocuments)
+					.onChange(async value => {
+						this.plugin.settings.import.skipEmptyDocuments = value;
+						await this.plugin.saveSettings();
+					});
 			});
 	}
 
@@ -205,23 +195,6 @@ export class GranolaSettingTab extends PluginSettingTab {
 					});
 			});
 
-		// Content priority
-		new Setting(containerEl)
-			.setName('Content source priority')
-			.setDesc('Which content field to try first when extracting note content')
-			.addDropdown(dropdown => {
-				dropdown
-					.addOption(ContentPriority.PANEL_FIRST, 'Panel first (recommended)')
-					.addOption(ContentPriority.NOTES_FIRST, 'Notes first')
-					.addOption(ContentPriority.PANEL_ONLY, 'Panel only')
-					.addOption(ContentPriority.NOTES_ONLY, 'Notes only')
-					.setValue(this.plugin.settings.content.contentPriority)
-					.onChange(async value => {
-						this.plugin.settings.content.contentPriority = value as ContentPriority;
-						await this.plugin.saveSettings();
-					});
-			});
-
 		// Enhanced frontmatter toggle
 		new Setting(containerEl)
 			.setName('Enhanced frontmatter')
@@ -236,21 +209,6 @@ export class GranolaSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					});
 			});
-
-		// Maximum filename length
-		new Setting(containerEl)
-			.setName('Maximum filename length')
-			.setDesc('Limit filename length to prevent filesystem issues')
-			.addSlider(slider => {
-				slider
-					.setLimits(50, 200, 10)
-					.setValue(this.plugin.settings.import.maxFilenameLength)
-					.setDynamicTooltip()
-					.onChange(async value => {
-						this.plugin.settings.import.maxFilenameLength = value;
-						await this.plugin.saveSettings();
-					});
-			});
 	}
 
 	/**
@@ -261,17 +219,6 @@ export class GranolaSettingTab extends PluginSettingTab {
 
 		containerEl.createEl('h3', { text: 'User Interface' });
 
-		// Auto-close modal
-		new Setting(containerEl)
-			.setName('Auto-close import modal')
-			.setDesc('Automatically close the import dialog after successful import')
-			.addToggle(toggle => {
-				toggle.setValue(this.plugin.settings.ui.autoCloseModal).onChange(async value => {
-					this.plugin.settings.ui.autoCloseModal = value;
-					await this.plugin.saveSettings();
-				});
-			});
-
 		// Progress notifications
 		new Setting(containerEl)
 			.setName('Show progress notifications')
@@ -281,19 +228,6 @@ export class GranolaSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.ui.showProgressNotifications)
 					.onChange(async value => {
 						this.plugin.settings.ui.showProgressNotifications = value;
-						await this.plugin.saveSettings();
-					});
-			});
-
-		// Select all by default
-		new Setting(containerEl)
-			.setName('Select all documents by default')
-			.setDesc('Automatically select all documents when opening the import dialog')
-			.addToggle(toggle => {
-				toggle
-					.setValue(this.plugin.settings.ui.selectAllByDefault)
-					.onChange(async value => {
-						this.plugin.settings.ui.selectAllByDefault = value;
 						await this.plugin.saveSettings();
 					});
 			});

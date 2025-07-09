@@ -1,6 +1,7 @@
 import { GranolaDocument } from '../api';
 import { DuplicateCheckResult } from './duplicate-detector';
-import { extractTextFromProseMirror } from '../utils/prosemirror';
+import { extractTextFromContent, isEmptyDocument } from '../utils/prosemirror';
+import { GranolaSettings } from '../types';
 
 /**
  * Display metadata extracted from a Granola document for UI presentation.
@@ -92,6 +93,16 @@ export class DocumentMetadataService {
 	private metadataCache: Map<string, DocumentDisplayMetadata> = new Map();
 	private readonly PREVIEW_LENGTH = 150;
 	private readonly WORDS_PER_MINUTE = 200; // Average reading speed
+	private settings: GranolaSettings;
+
+	/**
+	 * Creates a new DocumentMetadataService.
+	 * 
+	 * @param settings - Plugin settings for configuring document processing
+	 */
+	constructor(settings: GranolaSettings) {
+		this.settings = settings;
+	}
 
 	/**
 	 * Extracts display metadata from a Granola document.
@@ -148,7 +159,12 @@ export class DocumentMetadataService {
 		documents: GranolaDocument[],
 		statusMap: Map<string, DuplicateCheckResult>
 	): DocumentDisplayMetadata[] {
-		return documents.map(doc => {
+		// Filter out empty documents if the setting is enabled
+		const filteredDocuments = this.settings.import.skipEmptyDocuments
+			? documents.filter(doc => !isEmptyDocument(doc))
+			: documents;
+
+		return filteredDocuments.map(doc => {
 			const status = statusMap.get(doc.id) || {
 				status: 'NEW' as const,
 				reason: 'Status not determined',
@@ -282,6 +298,15 @@ export class DocumentMetadataService {
 	}
 
 	/**
+	 * Updates the settings used by the service.
+	 * 
+	 * @param settings - Updated plugin settings
+	 */
+	updateSettings(settings: GranolaSettings): void {
+		this.settings = settings;
+	}
+
+	/**
 	 * Sanitizes and formats a document title for display.
 	 *
 	 * @private
@@ -385,7 +410,17 @@ export class DocumentMetadataService {
 	 * @returns {string} Preview text
 	 */
 	private generatePreview(document: GranolaDocument): string {
-		// Try to get plain text preview first
+		// Try to extract from last_viewed_panel.content first (primary content location)
+		// This handles ProseMirror JSON, HTML strings, and plain text automatically
+		if (document.last_viewed_panel?.content) {
+			const text = extractTextFromContent(document.last_viewed_panel.content);
+			if (text?.trim()) {
+				const truncated = text.substring(0, this.PREVIEW_LENGTH);
+				return truncated.length === this.PREVIEW_LENGTH ? truncated + '...' : truncated;
+			}
+		}
+
+		// Fallback 1: Use plain text if available
 		if (document.notes_plain?.trim()) {
 			const preview = document.notes_plain
 				.trim()
@@ -395,7 +430,7 @@ export class DocumentMetadataService {
 			return preview.length === this.PREVIEW_LENGTH ? preview + '...' : preview;
 		}
 
-		// Fallback to markdown if available
+		// Fallback 2: Use markdown if available
 		if (document.notes_markdown?.trim()) {
 			const preview = document.notes_markdown
 				.replace(/[#*`]/g, '') // Remove basic markdown formatting
@@ -406,16 +441,16 @@ export class DocumentMetadataService {
 			return preview.length === this.PREVIEW_LENGTH ? preview + '...' : preview;
 		}
 
-		// Last resort: try to extract from ProseMirror structure
-		const text = extractTextFromProseMirror(
-			document.notes as unknown as Record<string, unknown>
-		);
-		if (!text) {
-			return 'No content available';
+		// Fallback 3: Try to extract from notes field (legacy ProseMirror)
+		if (document.notes) {
+			const text = extractTextFromContent(document.notes);
+			if (text?.trim()) {
+				const truncated = text.substring(0, this.PREVIEW_LENGTH);
+				return truncated.length === this.PREVIEW_LENGTH ? truncated + '...' : truncated;
+			}
 		}
 
-		const truncated = text.substring(0, this.PREVIEW_LENGTH);
-		return truncated.length === this.PREVIEW_LENGTH ? truncated + '...' : truncated;
+		return 'No content available';
 	}
 
 	/**
@@ -426,7 +461,16 @@ export class DocumentMetadataService {
 	 * @returns {number} Estimated word count
 	 */
 	private estimateWordCount(document: GranolaDocument): number {
-		// Use plain text if available (most accurate)
+		// Try to extract from last_viewed_panel.content first (primary content location)
+		// This handles ProseMirror JSON, HTML strings, and plain text automatically
+		if (document.last_viewed_panel?.content) {
+			const text = extractTextFromContent(document.last_viewed_panel.content);
+			if (text?.trim()) {
+				return text.split(/\s+/).filter(word => word.length > 0).length;
+			}
+		}
+
+		// Fallback 1: Use plain text if available (most accurate)
 		if (document.notes_plain?.trim()) {
 			return document.notes_plain
 				.trim()
@@ -434,7 +478,7 @@ export class DocumentMetadataService {
 				.filter(word => word.length > 0).length;
 		}
 
-		// Fallback to markdown
+		// Fallback 2: Use markdown
 		if (document.notes_markdown && document.notes_markdown.trim()) {
 			return document.notes_markdown
 				.replace(/[#*`[\]()]/g, '') // Remove basic markdown
@@ -443,15 +487,16 @@ export class DocumentMetadataService {
 				.filter(word => word.length > 0).length;
 		}
 
-		// Last resort: estimate from ProseMirror
-		const text = extractTextFromProseMirror(
-			document.notes as unknown as Record<string, unknown>
-		);
-		if (!text) {
-			// If no text can be extracted, count words in the fallback message used by preview
-			return 'No content available'.split(/\s+/).filter(word => word.length > 0).length;
+		// Fallback 3: Extract from notes field (legacy ProseMirror)
+		if (document.notes) {
+			const text = extractTextFromContent(document.notes);
+			if (text?.trim()) {
+				return text.split(/\s+/).filter(word => word.length > 0).length;
+			}
 		}
-		return text.split(/\s+/).filter(word => word.length > 0).length;
+
+		// If no text can be extracted, return 0 instead of counting fallback message
+		return 0;
 	}
 
 	/**
