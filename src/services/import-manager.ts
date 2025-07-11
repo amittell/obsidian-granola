@@ -9,7 +9,13 @@ import { isEmptyDocument } from '../utils/prosemirror';
 /**
  * Status of an individual document import.
  */
-export type DocumentImportStatus = 'pending' | 'importing' | 'completed' | 'failed' | 'skipped' | 'empty';
+export type DocumentImportStatus =
+	| 'pending'
+	| 'importing'
+	| 'completed'
+	| 'failed'
+	| 'skipped'
+	| 'empty';
 
 /**
  * Import strategy for handling existing documents.
@@ -19,13 +25,13 @@ export type ImportStrategy = 'skip' | 'update' | 'create_new';
 /**
  * Categories of import errors for better user feedback.
  */
-export type ImportErrorCategory = 
-	| 'validation'    // Document structure validation failed
-	| 'conversion'    // Content conversion failed
-	| 'filesystem'    // File creation/writing failed
-	| 'network'       // Network/API related error
-	| 'permission'    // Permission denied error
-	| 'unknown';      // Uncategorized error
+export type ImportErrorCategory =
+	| 'validation' // Document structure validation failed
+	| 'conversion' // Content conversion failed
+	| 'filesystem' // File creation/writing failed
+	| 'network' // Network/API related error
+	| 'permission' // Permission denied error
+	| 'unknown'; // Uncategorized error
 
 /**
  * Progress information for a single document.
@@ -152,7 +158,13 @@ export class SelectiveImportManager {
 	 * @param {Logger} logger - Logger instance for debug output
 	 * @param {GranolaSettings} settings - Plugin settings including import preferences
 	 */
-	constructor(app: App, vault: Vault, converter: ProseMirrorConverter, logger: Logger, settings: GranolaSettings) {
+	constructor(
+		app: App,
+		vault: Vault,
+		converter: ProseMirrorConverter,
+		logger: Logger,
+		settings: GranolaSettings
+	) {
 		this.app = app;
 		this.vault = vault;
 		this.converter = converter;
@@ -614,7 +626,6 @@ export class SelectiveImportManager {
 		};
 	}
 
-
 	/**
 	 * Generates a unique filename by adding a suffix.
 	 *
@@ -821,44 +832,54 @@ export class SelectiveImportManager {
 		const message = error.message.toLowerCase();
 
 		// Document validation errors
-		if (message.includes('validation failed') || 
+		if (
+			message.includes('validation failed') ||
 			message.includes('document is null') ||
 			message.includes('missing required') ||
-			message.includes('invalid document structure')) {
+			message.includes('invalid document structure')
+		) {
 			return 'validation';
 		}
 
 		// Content conversion errors
-		if (message.includes('conversion failed') ||
+		if (
+			message.includes('conversion failed') ||
 			message.includes('prosemirror') ||
 			message.includes('markdown') ||
-			message.includes('cannot convert')) {
+			message.includes('cannot convert')
+		) {
 			return 'conversion';
 		}
 
 		// File system errors
-		if (message.includes('eacces') ||
+		if (
+			message.includes('eacces') ||
 			message.includes('permission denied') ||
 			message.includes('access denied') ||
-			message.includes('eperm')) {
+			message.includes('eperm')
+		) {
 			return 'permission';
 		}
 
-		if (message.includes('enoent') ||
+		if (
+			message.includes('enoent') ||
 			message.includes('file not found') ||
 			message.includes('directory not found') ||
 			message.includes('path') ||
 			message.includes('vault error') ||
-			message.includes('file system')) {
+			message.includes('file system')
+		) {
 			return 'filesystem';
 		}
 
 		// Network errors
-		if (message.includes('network') ||
+		if (
+			message.includes('network') ||
 			message.includes('fetch') ||
 			message.includes('connection') ||
 			message.includes('timeout') ||
-			message.includes('api')) {
+			message.includes('api')
+		) {
 			return 'network';
 		}
 
@@ -895,6 +916,4 @@ export class SelectiveImportManager {
 				return `Import failed: ${originalMessage}`;
 		}
 	}
-
 }
-

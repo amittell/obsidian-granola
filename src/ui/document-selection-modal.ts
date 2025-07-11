@@ -696,32 +696,36 @@ export class DocumentSelectionModal extends Modal {
 			stats.createEl('p', { text: `⏭️ ${result.skipped} documents skipped` });
 		}
 		if (result.empty > 0) {
-			stats.createEl('p', { text: `📄 ${result.empty} documents were empty (never modified)` });
+			stats.createEl('p', {
+				text: `📄 ${result.empty} documents were empty (never modified)`,
+			});
 		}
 
 		// Get all document progress for detailed reporting
 		const allDocProgress = this.importManager.getAllDocumentProgress();
-		
+
 		// Show detailed failure list if there are any failures
 		const failedDocs = allDocProgress.filter(progress => progress.status === 'failed');
 		if (failedDocs.length > 0) {
 			const failureSection = summary.createDiv('import-failures');
 			failureSection.createEl('h4', { text: 'Failed Documents:' });
 			const failureList = failureSection.createEl('ul', { cls: 'failed-documents-list' });
-			
+
 			failedDocs.forEach(doc => {
 				const listItem = failureList.createEl('li');
 				// Find the document metadata to get the title
-				const docMeta = this.documentMetadata.find((d: DocumentDisplayMetadata) => d.id === doc.id);
+				const docMeta = this.documentMetadata.find(
+					(d: DocumentDisplayMetadata) => d.id === doc.id
+				);
 				const title = docMeta?.title || 'Unknown Document';
 				const errorMsg = doc.error || 'Unknown error';
-				listItem.createEl('span', { 
-					text: `${title}`, 
-					cls: 'failed-doc-title' 
+				listItem.createEl('span', {
+					text: `${title}`,
+					cls: 'failed-doc-title',
 				});
-				listItem.createEl('span', { 
-					text: ` - ${errorMsg}`, 
-					cls: 'failed-doc-error' 
+				listItem.createEl('span', {
+					text: ` - ${errorMsg}`,
+					cls: 'failed-doc-error',
 				});
 			});
 		}
@@ -732,15 +736,17 @@ export class DocumentSelectionModal extends Modal {
 			const emptySection = summary.createDiv('empty-documents-section');
 			emptySection.createEl('h4', { text: 'Empty Documents (not imported):' });
 			const emptyList = emptySection.createEl('ul', { cls: 'empty-documents-list' });
-			
+
 			emptyDocs.forEach(doc => {
 				const listItem = emptyList.createEl('li');
 				// Find the document metadata to get the title
-				const docMeta = this.documentMetadata.find((d: DocumentDisplayMetadata) => d.id === doc.id);
+				const docMeta = this.documentMetadata.find(
+					(d: DocumentDisplayMetadata) => d.id === doc.id
+				);
 				const title = docMeta?.title || 'Unknown Document';
-				listItem.createEl('span', { 
-					text: title, 
-					cls: 'empty-doc-title' 
+				listItem.createEl('span', {
+					text: title,
+					cls: 'empty-doc-title',
 				});
 			});
 		}
@@ -891,7 +897,6 @@ export class DocumentSelectionModal extends Modal {
 			console.debug('Auto-scroll failed (non-critical):', error);
 		}
 	}
-
 
 	/**
 	 * Applies status filter.
@@ -1334,7 +1339,6 @@ export class DocumentSelectionModal extends Modal {
 
 		return timerId as ReturnType<typeof setTimeout>;
 	}
-
 
 	/**
 	 * Cleans up resources when modal is closed.

@@ -57,7 +57,7 @@ export interface NoteFrontmatter {
 
 /**
  * Result of document structure validation.
- * 
+ *
  * @interface DocumentValidationResult
  * @since 1.1.0
  */
@@ -69,7 +69,13 @@ export interface DocumentValidationResult {
 	reason?: string;
 
 	/** Detected content sources available for conversion */
-	availableContentSources: Array<'last_viewed_panel_html' | 'last_viewed_panel_prosemirror' | 'notes_prosemirror' | 'notes_markdown' | 'notes_plain'>;
+	availableContentSources: Array<
+		| 'last_viewed_panel_html'
+		| 'last_viewed_panel_prosemirror'
+		| 'notes_prosemirror'
+		| 'notes_markdown'
+		| 'notes_plain'
+	>;
 
 	/** Whether the document appears to be empty */
 	isEmpty: boolean;
@@ -163,19 +169,23 @@ export class ProseMirrorConverter {
 		this.logger.debug(`Notes markdown exists: ${!!doc.notes_markdown}`);
 		this.logger.debug(`Last viewed panel exists: ${!!doc.last_viewed_panel}`);
 		this.logger.debug(`Last viewed panel content exists: ${!!doc.last_viewed_panel?.content}`);
-		
+
 		// Enhanced debugging for empty document detection
 		if (doc.notes_plain) {
 			this.logger.debug(`Notes plain length: ${doc.notes_plain.length}`);
 			this.logger.debug(`Notes plain trimmed length: ${doc.notes_plain.trim().length}`);
-			this.logger.debug(`Notes plain preview (first 100 chars): ${doc.notes_plain.substring(0, 100)}`);
+			this.logger.debug(
+				`Notes plain preview (first 100 chars): ${doc.notes_plain.substring(0, 100)}`
+			);
 		}
 		if (doc.notes_markdown) {
 			this.logger.debug(`Notes markdown length: ${doc.notes_markdown.length}`);
 			this.logger.debug(`Notes markdown trimmed length: ${doc.notes_markdown.trim().length}`);
-			this.logger.debug(`Notes markdown preview (first 100 chars): ${doc.notes_markdown.substring(0, 100)}`);
+			this.logger.debug(
+				`Notes markdown preview (first 100 chars): ${doc.notes_markdown.substring(0, 100)}`
+			);
 		}
-		
+
 		// Log all available fields in the document for investigation
 		this.logger.debug(`All document fields: ${Object.keys(doc).join(', ')}`);
 
@@ -253,12 +263,19 @@ export class ProseMirrorConverter {
 						`Last viewed panel ProseMirror conversion produced empty content despite valid structure`
 					);
 					// Additional debugging for failed conversions
-					this.logger.debug(`Panel content structure that failed conversion:`, JSON.stringify(panelContent, null, 2));
+					this.logger.debug(
+						`Panel content structure that failed conversion:`,
+						JSON.stringify(panelContent, null, 2)
+					);
 					// Try text extraction directly to see what we can get
 					const extractedText = this.extractTextFromNodes(panelContent.content || []);
-					this.logger.debug(`Direct text extraction from panel content: "${extractedText}"`);
+					this.logger.debug(
+						`Direct text extraction from panel content: "${extractedText}"`
+					);
 					if (extractedText.trim()) {
-						this.logger.warn(`Text extraction found content that conversion missed: "${extractedText}"`);
+						this.logger.warn(
+							`Text extraction found content that conversion missed: "${extractedText}"`
+						);
 						markdown = extractedText; // Use extracted text as fallback
 						contentSource = 'panel_text_extraction';
 					}
@@ -279,12 +296,17 @@ export class ProseMirrorConverter {
 					`Notes field conversion produced empty content despite valid structure`
 				);
 				// Additional debugging for failed conversions
-				this.logger.debug(`Notes field structure that failed conversion:`, JSON.stringify(doc.notes, null, 2));
+				this.logger.debug(
+					`Notes field structure that failed conversion:`,
+					JSON.stringify(doc.notes, null, 2)
+				);
 				// Try text extraction directly to see what we can get
 				const extractedText = this.extractTextFromNodes(doc.notes.content || []);
 				this.logger.debug(`Direct text extraction from notes field: "${extractedText}"`);
 				if (extractedText.trim()) {
-					this.logger.warn(`Text extraction found content that conversion missed: "${extractedText}"`);
+					this.logger.warn(
+						`Text extraction found content that conversion missed: "${extractedText}"`
+					);
 					markdown = extractedText; // Use extracted text as fallback
 					contentSource = 'notes_text_extraction';
 				}
@@ -312,7 +334,7 @@ export class ProseMirrorConverter {
 
 		// Track if document is truly empty
 		let isTrulyEmpty = false;
-		
+
 		// Handle documents that appear empty but might have content in Granola
 		if (!markdown.trim()) {
 			// Enhanced empty document analysis
@@ -325,25 +347,28 @@ export class ProseMirrorConverter {
 				hasLastViewedPanelContent: !!doc.last_viewed_panel?.content,
 				createdEqualsUpdated: doc.created_at === doc.updated_at,
 				timeSinceCreation: new Date().getTime() - new Date(doc.created_at).getTime(),
-				timeSinceUpdate: new Date().getTime() - new Date(doc.updated_at).getTime()
+				timeSinceUpdate: new Date().getTime() - new Date(doc.updated_at).getTime(),
 			};
-			
+
 			this.logger.warn(
 				`WARNING: No content extracted for document ${doc.id} - "${doc.title}"`
 			);
 			this.logger.warn(`Empty document analysis:`, JSON.stringify(emptyAnalysis, null, 2));
-			
+
 			// Determine if this is truly empty or a conversion failure
-			isTrulyEmpty = emptyAnalysis.createdEqualsUpdated && 
-				!emptyAnalysis.hasNotesPlain && 
+			isTrulyEmpty =
+				emptyAnalysis.createdEqualsUpdated &&
+				!emptyAnalysis.hasNotesPlain &&
 				!emptyAnalysis.hasNotesMarkdown;
-			
+
 			if (isTrulyEmpty) {
-				this.logger.info(`Document appears to be truly empty (never modified after creation)`);
+				this.logger.info(
+					`Document appears to be truly empty (never modified after creation)`
+				);
 			} else {
 				this.logger.warn(`Document may have content that failed to convert`);
 			}
-			
+
 			this.logger.warn(
 				`Creating placeholder document - content may need to be manually synced from Granola`
 			);
@@ -391,7 +416,7 @@ export class ProseMirrorConverter {
 
 	/**
 	 * Validates document structure before attempting conversion.
-	 * 
+	 *
 	 * Performs comprehensive validation of the document structure to identify
 	 * potential issues early and provide clear error messages. This helps
 	 * prevent conversion failures and gives better user feedback.
@@ -405,7 +430,7 @@ export class ProseMirrorConverter {
 			isValid: true,
 			availableContentSources: [],
 			isEmpty: true,
-			warnings: []
+			warnings: [],
 		};
 
 		// Critical validation: Document must exist and have basic structure
@@ -692,7 +717,13 @@ export class ProseMirrorConverter {
 				// Check for text content in various properties that might contain actual content
 				if (!node.text && (!node.content || node.content.length === 0)) {
 					// Check for alternative text fields that might exist in Granola's format
-					const altTextFields = ['textContent', 'innerHTML', 'innerText', 'value', 'data'];
+					const altTextFields = [
+						'textContent',
+						'innerHTML',
+						'innerText',
+						'value',
+						'data',
+					];
 					for (const field of altTextFields) {
 						const altText = (node as unknown as Record<string, unknown>)[field];
 						if (typeof altText === 'string' && altText.trim().length > 0) {
@@ -705,8 +736,12 @@ export class ProseMirrorConverter {
 					// Check attrs for text content
 					if (node.attrs && typeof node.attrs === 'object') {
 						for (const [key, value] of Object.entries(node.attrs)) {
-							if (typeof value === 'string' && value.trim().length > 0 && 
-								(key.toLowerCase().includes('text') || key.toLowerCase().includes('content'))) {
+							if (
+								typeof value === 'string' &&
+								value.trim().length > 0 &&
+								(key.toLowerCase().includes('text') ||
+									key.toLowerCase().includes('content'))
+							) {
 								this.logger.debug(`Found text in attrs.${key}: "${value}"`);
 								text += value;
 							}
@@ -1374,7 +1409,7 @@ export class ProseMirrorConverter {
 	 */
 	private sanitizeFilename(filename: string): string {
 		// Remove or replace invalid filename characters
-		// Include more characters that can cause issues: & , ; 
+		// Include more characters that can cause issues: & , ;
 		return filename
 			.replace(/[<>:"/\\|?*&,;]/g, '-')
 			.replace(/\s+/g, ' ')

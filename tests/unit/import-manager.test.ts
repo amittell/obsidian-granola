@@ -67,7 +67,13 @@ describe('SelectiveImportManager', () => {
 
 	beforeEach(() => {
 		const mockSettings = { import: { skipEmptyDocuments: true } } as any;
-		importManager = new SelectiveImportManager(mockApp, mockVault, mockConverter, mockLogger, mockSettings);
+		importManager = new SelectiveImportManager(
+			mockApp,
+			mockVault,
+			mockConverter,
+			mockLogger,
+			mockSettings
+		);
 
 		mockDocumentMetadata = [
 			{
@@ -899,10 +905,10 @@ describe('SelectiveImportManager', () => {
 			// Create import manager with skipEmptyDocuments disabled
 			const settingsWithoutFiltering = { import: { skipEmptyDocuments: false } } as any;
 			const importManagerNoFiltering = new SelectiveImportManager(
-				mockApp, 
-				mockVault, 
-				mockConverter, 
-				mockLogger, 
+				mockApp,
+				mockVault,
+				mockConverter,
+				mockLogger,
 				settingsWithoutFiltering
 			);
 

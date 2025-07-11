@@ -362,7 +362,7 @@ export default class GranolaImporterPlugin extends Plugin {
 			// Load credentials and fetch documents
 			await this.api.loadCredentials();
 			const documents = await this.api.getAllDocuments();
-			
+
 			notice.hide();
 
 			if (documents.length === 0) {
@@ -371,7 +371,7 @@ export default class GranolaImporterPlugin extends Plugin {
 			}
 
 			// Analyze documents for empty content patterns
-			let totalDocs = documents.length;
+			const totalDocs = documents.length;
 			let emptyDocs = 0;
 			let trulyEmptyDocs = 0;
 			let conversionFailures = 0;
@@ -387,15 +387,20 @@ export default class GranolaImporterPlugin extends Plugin {
 				// Try to convert the document
 				try {
 					const converted = this.converter.convertDocument(doc);
-					
+
 					// Check if it resulted in placeholder content
-					if (converted.content.includes('This document appears to have no extractable content')) {
+					if (
+						converted.content.includes(
+							'This document appears to have no extractable content'
+						)
+					) {
 						emptyDocs++;
-						
+
 						// Analyze why it's empty
-						const hasAnyTextContent = doc.notes_plain?.trim() || doc.notes_markdown?.trim();
+						const hasAnyTextContent =
+							doc.notes_plain?.trim() || doc.notes_markdown?.trim();
 						const neverModified = doc.created_at === doc.updated_at;
-						
+
 						let reason = 'Unknown';
 						if (neverModified && !hasAnyTextContent) {
 							trulyEmptyDocs++;
@@ -406,13 +411,13 @@ export default class GranolaImporterPlugin extends Plugin {
 						} else {
 							reason = 'Modified but no text content found';
 						}
-						
+
 						emptyDocDetails.push({
 							title: doc.title,
 							id: doc.id,
 							created: new Date(doc.created_at).toLocaleDateString(),
 							updated: new Date(doc.updated_at).toLocaleDateString(),
-							reason
+							reason,
 						});
 					}
 				} catch (error) {
@@ -424,7 +429,7 @@ export default class GranolaImporterPlugin extends Plugin {
 						id: doc.id,
 						created: new Date(doc.created_at).toLocaleDateString(),
 						updated: new Date(doc.updated_at).toLocaleDateString(),
-						reason: `Conversion error: ${error instanceof Error ? error.message : 'Unknown'}`
+						reason: `Conversion error: ${error instanceof Error ? error.message : 'Unknown'}`,
 					});
 				}
 			}
@@ -432,19 +437,19 @@ export default class GranolaImporterPlugin extends Plugin {
 			// Create diagnostic report
 			let report = `# Granola Empty Document Diagnosis\n\n`;
 			report += `**Total Documents:** ${totalDocs}\n`;
-			report += `**Empty Documents:** ${emptyDocs} (${Math.round(emptyDocs/totalDocs * 100)}%)\n`;
+			report += `**Empty Documents:** ${emptyDocs} (${Math.round((emptyDocs / totalDocs) * 100)}%)\n`;
 			report += `**Truly Empty:** ${trulyEmptyDocs}\n`;
 			report += `**Conversion Failures:** ${conversionFailures}\n\n`;
-			
+
 			if (emptyDocs > 0) {
 				report += `## Empty Document Details\n\n`;
 				report += `| Document | Created | Updated | Reason |\n`;
 				report += `|----------|---------|---------|--------|\n`;
-				
+
 				for (const doc of emptyDocDetails) {
 					report += `| ${doc.title} | ${doc.created} | ${doc.updated} | ${doc.reason} |\n`;
 				}
-				
+
 				report += `\n## Recommendations\n\n`;
 				if (trulyEmptyDocs > 0) {
 					report += `- **${trulyEmptyDocs} documents** were created but never edited. These can be safely skipped during import.\n`;
@@ -460,17 +465,16 @@ export default class GranolaImporterPlugin extends Plugin {
 			// Save report to clipboard and show in new note
 			await navigator.clipboard.writeText(report);
 			new Notice('Diagnosis complete! Report copied to clipboard.', 5000);
-			
+
 			// Create a new note with the report
 			const reportFile = await this.app.vault.create(
 				`Granola Empty Document Diagnosis ${new Date().toISOString().split('T')[0]}.md`,
 				report
 			);
-			
+
 			// Open the report
 			const leaf = this.app.workspace.getLeaf('tab');
 			await leaf.openFile(reportFile);
-			
 		} catch (error) {
 			notice.hide();
 			this.logger.error('Failed to diagnose empty documents:', error);
