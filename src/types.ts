@@ -84,6 +84,16 @@ export interface GranolaSettings {
 		contentPriority: ContentPriority;
 	};
 
+	/** Action items conversion settings */
+	actionItems: {
+		/** Convert action items bullet points to markdown task format */
+		convertToTasks: boolean;
+		/** Add a tag to notes containing converted tasks */
+		addTaskTag: boolean;
+		/** Tag name to add (including #) */
+		taskTagName: string;
+	};
+
 	/** UI settings */
 	ui: {
 		/** Show import progress notifications */
@@ -119,6 +129,11 @@ export const DEFAULT_SETTINGS: GranolaSettings = {
 		datePrefixFormat: DatePrefixFormat.ISO_DATE,
 		includeEnhancedFrontmatter: false,
 		contentPriority: ContentPriority.PANEL_FIRST,
+	},
+	actionItems: {
+		convertToTasks: false,
+		addTaskTag: false,
+		taskTagName: '#tasks',
 	},
 	ui: {
 		showProgressNotifications: true,
