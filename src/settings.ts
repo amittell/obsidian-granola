@@ -59,7 +59,6 @@ export class GranolaSettingTab extends PluginSettingTab {
 						await this.validateConnection(statusEl);
 					});
 			});
-
 	}
 
 	/**

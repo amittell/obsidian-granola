@@ -289,7 +289,10 @@ describe('DocumentMetadataService', () => {
 
 			const documents = [documentWithContent];
 			const statusMap = new Map([
-				['doc-with-content', { status: 'NEW' as const, reason: 'New', requiresUserChoice: false }],
+				[
+					'doc-with-content',
+					{ status: 'NEW' as const, reason: 'New', requiresUserChoice: false },
+				],
 			]);
 
 			const metadata = service.extractBulkMetadata(documents, statusMap);

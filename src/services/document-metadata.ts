@@ -97,7 +97,7 @@ export class DocumentMetadataService {
 
 	/**
 	 * Creates a new DocumentMetadataService.
-	 * 
+	 *
 	 * @param settings - Plugin settings for configuring document processing
 	 */
 	constructor(settings: GranolaSettings) {
@@ -299,7 +299,7 @@ export class DocumentMetadataService {
 
 	/**
 	 * Updates the settings used by the service.
-	 * 
+	 *
 	 * @param settings - Updated plugin settings
 	 */
 	updateSettings(settings: GranolaSettings): void {
