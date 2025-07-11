@@ -39,3 +39,6 @@ docs/
 
 # Test coverage output
 coverage/
+
+# Monitoring data
+monitoring/
