@@ -208,6 +208,62 @@ export class GranolaSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					});
 			});
+
+		// Action items section header
+		containerEl.createEl('h4', { text: 'Action Items Processing' });
+
+		// Convert action items to tasks
+		new Setting(containerEl)
+			.setName('Convert action items to tasks')
+			.setDesc(
+				'Automatically convert bullet points under "Action Items" headers to markdown task format (- [ ]). Recognizes headers like "Action Items", "Actions", "TODO", "Tasks".'
+			)
+			.addToggle(toggle => {
+				toggle
+					.setValue(this.plugin.settings.actionItems.convertToTasks)
+					.onChange(async value => {
+						this.plugin.settings.actionItems.convertToTasks = value;
+						await this.plugin.saveSettings();
+						// Refresh the entire settings display to update dependencies
+						this.display();
+					});
+			});
+
+		// Add task tag (dependent on convert to tasks)
+		if (this.plugin.settings.actionItems.convertToTasks) {
+			new Setting(containerEl)
+				.setName('Add task tag')
+				.setDesc('Add a tag below converted tasks for easy filtering and task management')
+				.addToggle(toggle => {
+					toggle
+						.setValue(this.plugin.settings.actionItems.addTaskTag)
+						.onChange(async value => {
+							this.plugin.settings.actionItems.addTaskTag = value;
+							await this.plugin.saveSettings();
+							// Refresh the entire settings display to update dependencies
+							this.display();
+						});
+				});
+
+			// Task tag name (dependent on add task tag)
+			if (this.plugin.settings.actionItems.addTaskTag) {
+				new Setting(containerEl)
+					.setName('Task tag name')
+					.setDesc('Tag to add to notes containing converted tasks (include # symbol)')
+					.addText(text => {
+						text.setPlaceholder('#tasks')
+							.setValue(this.plugin.settings.actionItems.taskTagName)
+							.onChange(async value => {
+								// Ensure tag starts with #
+								if (value && !value.startsWith('#')) {
+									value = '#' + value;
+								}
+								this.plugin.settings.actionItems.taskTagName = value || '#tasks';
+								await this.plugin.saveSettings();
+							});
+					});
+			}
+		}
 	}
 
 	/**

@@ -377,6 +377,11 @@ export class ProseMirrorConverter {
 			markdown = `# ${doc.title}\n\n*This document appears to have no extractable content from the Granola API.*\n\n*Possible causes:*\n- Content exists in Granola but wasn't included in the API response\n- Document was created but never had content added\n- Sync issue between Granola desktop app and API\n\n*To fix: Check the original document in Granola and manually copy content if needed.*\n\n---\n*Document ID: ${doc.id}*\n*Created: ${doc.created_at}*\n*Updated: ${doc.updated_at}*`;
 		}
 
+		// Process action items if enabled
+		if (this.settings.actionItems.convertToTasks) {
+			markdown = this.processActionItems(markdown);
+		}
+
 		const frontmatter = this.generateFrontmatter(doc);
 		const filename = this.generateFilename(doc);
 
@@ -1383,6 +1388,115 @@ export class ProseMirrorConverter {
 		yamlLines.push('---', '');
 
 		return yamlLines.join('\n') + markdown;
+	}
+
+	/**
+	 * Processes action items in markdown content by converting bullet points to tasks.
+	 *
+	 * Detects headers that indicate action items sections (both markdown headers with #
+	 * and plain-text headers) and converts bullet points under those headers to markdown
+	 * task format (- [ ]). Optionally adds tags after converted tasks if the setting is enabled.
+	 *
+	 * @private
+	 * @param {string} markdown - The markdown content to process
+	 * @returns {string} Processed markdown with converted tasks
+	 */
+	/** Regex patterns for detecting action items headers */
+	private static readonly ACTION_ITEMS_HEADER_PATTERNS = [
+		/^#{1,6}\s*(action\s+items?|actions?|todo|to\s+do|tasks?)\s*$/i,
+		/^(action\s+items?|actions?|todo|to\s+do|tasks?)\s*$/i, // Plain text headers
+	];
+
+	protected processActionItems(markdown: string): string {
+		if (!markdown.trim()) {
+			return markdown;
+		}
+
+		const lines = markdown.split('\n');
+		const processedLines: string[] = [];
+		let inActionItemsSection = false;
+		let actionItemsConverted = false;
+
+		this.logger.debug('Processing action items in markdown content');
+
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i];
+			const trimmedLine = line.trim();
+
+			// Check if this line is an action items header
+			const isActionItemsHeader = ProseMirrorConverter.ACTION_ITEMS_HEADER_PATTERNS.some(
+				pattern => pattern.test(trimmedLine)
+			);
+
+			if (isActionItemsHeader) {
+				this.logger.debug(`Found action items header at line ${i + 1}: "${trimmedLine}"`);
+				inActionItemsSection = true;
+				actionItemsConverted = false;
+				processedLines.push(line);
+				continue;
+			}
+
+			// Check if we're leaving the action items section
+			if (inActionItemsSection) {
+				// We leave the section if we hit another header or significant content
+				const isAnyHeader = /^#{1,6}\s/.test(trimmedLine);
+				const isSignificantContent =
+					trimmedLine.length > 0 &&
+					!trimmedLine.startsWith('-') &&
+					!trimmedLine.startsWith('*');
+
+				if (isAnyHeader || (isSignificantContent && !trimmedLine.match(/^[•\-*]\s/))) {
+					// Before leaving the section, add tag if we converted any tasks
+					if (actionItemsConverted && this.settings.actionItems.addTaskTag) {
+						// Insert the tag after the last task
+						const tagLine = this.settings.actionItems.taskTagName;
+						processedLines.push(tagLine);
+						this.logger.debug(`Added task tag: ${tagLine}`);
+					}
+					inActionItemsSection = false;
+					actionItemsConverted = false;
+				}
+			}
+
+			// Process bullet points in action items sections
+			if (
+				inActionItemsSection &&
+				(trimmedLine.startsWith('- ') || trimmedLine.startsWith('* '))
+			) {
+				// Convert bullet point to task
+				const indent = line.match(/^(\s*)/)?.[1] || '';
+				const bulletContent = trimmedLine.substring(2); // Remove '- ' or '* '
+				const taskLine = `${indent}- [ ] ${bulletContent}`;
+
+				processedLines.push(taskLine);
+				actionItemsConverted = true;
+
+				this.logger.debug(`Converted bullet to task: "${trimmedLine}" → "${taskLine}"`);
+				continue;
+			}
+
+			// Add the line as-is
+			processedLines.push(line);
+		}
+
+		// Handle case where document ends while still in action items section
+		if (inActionItemsSection && actionItemsConverted && this.settings.actionItems.addTaskTag) {
+			const tagLine = this.settings.actionItems.taskTagName;
+			processedLines.push(tagLine);
+			this.logger.debug(`Added task tag at end of document: ${tagLine}`);
+		}
+
+		const result = processedLines.join('\n');
+
+		if (actionItemsConverted) {
+			this.logger.info(
+				'Action items processing completed - converted bullet points to tasks'
+			);
+		} else {
+			this.logger.debug('No action items found to convert');
+		}
+
+		return result;
 	}
 
 	/**
