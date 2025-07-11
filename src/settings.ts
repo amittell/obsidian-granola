@@ -336,5 +336,4 @@ export class GranolaSettingTab extends PluginSettingTab {
 			statusEl.innerHTML = '<span style="color: gray;">⚪ Connection not tested</span>';
 		}
 	}
-
 }

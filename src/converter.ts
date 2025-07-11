@@ -1441,15 +1441,20 @@ export class ProseMirrorConverter {
 			if (inActionItemsSection) {
 				// We leave the section if we hit another header or significant content
 				const isAnyHeader = /^#{1,6}\s/.test(trimmedLine);
-				const isSignificantContent = trimmedLine.length > 0 && 
-					!trimmedLine.startsWith('-') && 
+				const isSignificantContent =
+					trimmedLine.length > 0 &&
+					!trimmedLine.startsWith('-') &&
 					!trimmedLine.startsWith('*') &&
 					!trimmedLine.startsWith(' ') &&
 					!trimmedLine.startsWith('\t');
 
 				if (isAnyHeader || (isSignificantContent && !trimmedLine.match(/^[•\-*]\s/))) {
 					// Before leaving the section, add tag if we converted any tasks
-					if (actionItemsConverted && this.settings.actionItems.addTaskTag && lastTaskLineIndex >= 0) {
+					if (
+						actionItemsConverted &&
+						this.settings.actionItems.addTaskTag &&
+						lastTaskLineIndex >= 0
+					) {
 						// Insert the tag after the last task
 						const tagLine = this.settings.actionItems.taskTagName;
 						processedLines.push(tagLine);
@@ -1462,16 +1467,19 @@ export class ProseMirrorConverter {
 			}
 
 			// Process bullet points in action items sections
-			if (inActionItemsSection && (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* '))) {
+			if (
+				inActionItemsSection &&
+				(trimmedLine.startsWith('- ') || trimmedLine.startsWith('* '))
+			) {
 				// Convert bullet point to task
 				const indent = line.match(/^(\s*)/)?.[1] || '';
 				const bulletContent = trimmedLine.substring(2); // Remove '- ' or '* '
 				const taskLine = `${indent}- [ ] ${bulletContent}`;
-				
+
 				processedLines.push(taskLine);
 				actionItemsConverted = true;
 				lastTaskLineIndex = processedLines.length - 1;
-				
+
 				this.logger.debug(`Converted bullet to task: "${trimmedLine}" → "${taskLine}"`);
 				continue;
 			}
@@ -1481,16 +1489,23 @@ export class ProseMirrorConverter {
 		}
 
 		// Handle case where document ends while still in action items section
-		if (inActionItemsSection && actionItemsConverted && this.settings.actionItems.addTaskTag && lastTaskLineIndex >= 0) {
+		if (
+			inActionItemsSection &&
+			actionItemsConverted &&
+			this.settings.actionItems.addTaskTag &&
+			lastTaskLineIndex >= 0
+		) {
 			const tagLine = this.settings.actionItems.taskTagName;
 			processedLines.push(tagLine);
 			this.logger.debug(`Added task tag at end of document: ${tagLine}`);
 		}
 
 		const result = processedLines.join('\n');
-		
+
 		if (actionItemsConverted) {
-			this.logger.info('Action items processing completed - converted bullet points to tasks');
+			this.logger.info(
+				'Action items processing completed - converted bullet points to tasks'
+			);
 		} else {
 			this.logger.debug('No action items found to convert');
 		}
