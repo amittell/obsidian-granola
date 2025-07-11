@@ -36,7 +36,6 @@ export enum DatePrefixFormat {
 	NONE = 'none',
 }
 
-
 /**
  * Plugin settings interface with simplified configuration options.
  */

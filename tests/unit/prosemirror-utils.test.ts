@@ -18,9 +18,7 @@ describe('ProseMirror Utils - isEmptyDocument', () => {
 				content: [
 					{
 						type: 'paragraph',
-						content: [
-							{ type: 'text', text: 'This is a test document with content.' },
-						],
+						content: [{ type: 'text', text: 'This is a test document with content.' }],
 					},
 				],
 			},

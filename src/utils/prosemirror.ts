@@ -95,44 +95,38 @@ export function extractTextFromContent(content: unknown): string {
 
 /**
  * Detects if a Granola document is empty based on the improvement proposal criteria.
- * 
+ *
  * A document is considered empty if it has no meaningful content in any of the content fields.
  * Additionally, documents that were never modified after creation are considered empty placeholders.
- * 
+ *
  * @param document - The Granola document to check
  * @returns true if the document is empty, false otherwise
  */
 export function isEmptyDocument(document: GranolaDocument): boolean {
 	// Check if there's meaningful content in any content field
-	const hasContent = 
+	const hasContent =
 		// Check last_viewed_panel.content (primary content location)
-		(document.last_viewed_panel?.content && 
+		(document.last_viewed_panel?.content &&
 			extractTextFromContent(document.last_viewed_panel.content).trim().length > 0) ||
-		
 		// Check notes_plain
-		(document.notes_plain && 
-			document.notes_plain.trim().length > 0) ||
-		
+		(document.notes_plain && document.notes_plain.trim().length > 0) ||
 		// Check notes_markdown
-		(document.notes_markdown && 
-			document.notes_markdown.trim().length > 0) ||
-		
+		(document.notes_markdown && document.notes_markdown.trim().length > 0) ||
 		// Check notes.content (legacy ProseMirror)
-		(document.notes?.content && 
-			Array.isArray(document.notes.content) && 
+		(document.notes?.content &&
+			Array.isArray(document.notes.content) &&
 			document.notes.content.length > 1) ||
-		
 		// Check if notes.content has any actual content
-		(document.notes?.content && 
-			Array.isArray(document.notes.content) && 
+		(document.notes?.content &&
+			Array.isArray(document.notes.content) &&
 			document.notes.content.length > 0 &&
 			extractTextFromContent(document.notes).trim().length > 0);
-	
+
 	// If document has content, it's not empty regardless of dates
 	if (hasContent) {
 		return false;
 	}
-	
+
 	// If document has no content, it's empty
 	return true;
 }
