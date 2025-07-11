@@ -86,7 +86,7 @@ describe('GranolaImporterPlugin Integration', () => {
 			// Debug command is only registered when __DEV__ is defined
 			// In Jest environment, __DEV__ is true, so both commands are registered
 			expect(addCommandSpy).toHaveBeenCalledTimes(2);
-			
+
 			expect(addCommandSpy).toHaveBeenNthCalledWith(2, {
 				id: 'diagnose-empty-granola-documents',
 				name: 'Diagnose Empty Granola Documents',
