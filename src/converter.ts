@@ -1393,15 +1393,21 @@ export class ProseMirrorConverter {
 	/**
 	 * Processes action items in markdown content by converting bullet points to tasks.
 	 *
-	 * Detects headers that indicate action items sections and converts bullet points
-	 * under those headers to markdown task format (- [ ]). Optionally adds tags
-	 * after converted tasks if the setting is enabled.
+	 * Detects headers that indicate action items sections (both markdown headers with #
+	 * and plain-text headers) and converts bullet points under those headers to markdown
+	 * task format (- [ ]). Optionally adds tags after converted tasks if the setting is enabled.
 	 *
 	 * @private
 	 * @param {string} markdown - The markdown content to process
 	 * @returns {string} Processed markdown with converted tasks
 	 */
-	private processActionItems(markdown: string): string {
+	/** Regex patterns for detecting action items headers */
+	private static readonly ACTION_ITEMS_HEADER_PATTERNS = [
+		/^#{1,6}\s*(action\s+items?|actions?|todo|to\s+do|tasks?)\s*$/i,
+		/^(action\s+items?|actions?|todo|to\s+do|tasks?)\s*$/i, // Plain text headers
+	];
+
+	protected processActionItems(markdown: string): string {
 		if (!markdown.trim()) {
 			return markdown;
 		}
@@ -1410,13 +1416,6 @@ export class ProseMirrorConverter {
 		const processedLines: string[] = [];
 		let inActionItemsSection = false;
 		let actionItemsConverted = false;
-		let lastTaskLineIndex = -1;
-
-		// Regex patterns for detecting action items headers
-		const actionItemsHeaderPatterns = [
-			/^#{1,6}\s*(action\s+items?|actions?|todo|to\s+do|tasks?)\s*$/i,
-			/^(action\s+items?|actions?|todo|to\s+do|tasks?)\s*$/i, // Plain text headers
-		];
 
 		this.logger.debug('Processing action items in markdown content');
 
@@ -1425,8 +1424,8 @@ export class ProseMirrorConverter {
 			const trimmedLine = line.trim();
 
 			// Check if this line is an action items header
-			const isActionItemsHeader = actionItemsHeaderPatterns.some(pattern =>
-				pattern.test(trimmedLine)
+			const isActionItemsHeader = ProseMirrorConverter.ACTION_ITEMS_HEADER_PATTERNS.some(
+				pattern => pattern.test(trimmedLine)
 			);
 
 			if (isActionItemsHeader) {
@@ -1444,17 +1443,11 @@ export class ProseMirrorConverter {
 				const isSignificantContent =
 					trimmedLine.length > 0 &&
 					!trimmedLine.startsWith('-') &&
-					!trimmedLine.startsWith('*') &&
-					!trimmedLine.startsWith(' ') &&
-					!trimmedLine.startsWith('\t');
+					!trimmedLine.startsWith('*');
 
 				if (isAnyHeader || (isSignificantContent && !trimmedLine.match(/^[•\-*]\s/))) {
 					// Before leaving the section, add tag if we converted any tasks
-					if (
-						actionItemsConverted &&
-						this.settings.actionItems.addTaskTag &&
-						lastTaskLineIndex >= 0
-					) {
+					if (actionItemsConverted && this.settings.actionItems.addTaskTag) {
 						// Insert the tag after the last task
 						const tagLine = this.settings.actionItems.taskTagName;
 						processedLines.push(tagLine);
@@ -1462,7 +1455,6 @@ export class ProseMirrorConverter {
 					}
 					inActionItemsSection = false;
 					actionItemsConverted = false;
-					lastTaskLineIndex = -1;
 				}
 			}
 
@@ -1478,7 +1470,6 @@ export class ProseMirrorConverter {
 
 				processedLines.push(taskLine);
 				actionItemsConverted = true;
-				lastTaskLineIndex = processedLines.length - 1;
 
 				this.logger.debug(`Converted bullet to task: "${trimmedLine}" → "${taskLine}"`);
 				continue;
@@ -1489,12 +1480,7 @@ export class ProseMirrorConverter {
 		}
 
 		// Handle case where document ends while still in action items section
-		if (
-			inActionItemsSection &&
-			actionItemsConverted &&
-			this.settings.actionItems.addTaskTag &&
-			lastTaskLineIndex >= 0
-		) {
+		if (inActionItemsSection && actionItemsConverted && this.settings.actionItems.addTaskTag) {
 			const tagLine = this.settings.actionItems.taskTagName;
 			processedLines.push(tagLine);
 			this.logger.debug(`Added task tag at end of document: ${tagLine}`);

@@ -42,7 +42,7 @@ describe('Action Items Conversion', () => {
 ## Next Steps
 - Continue with implementation`;
 
-			// Use reflection to access private method
+			// Access protected method for testing
 			const result = (converter as any).processActionItems(markdown);
 
 			expect(result).toContain('- [ ] Follow up with engineering team');
