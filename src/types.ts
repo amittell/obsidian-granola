@@ -37,6 +37,20 @@ export enum DatePrefixFormat {
 }
 
 /**
+ * Content priority for document extraction.
+ */
+export enum ContentPriority {
+	/** Try panel content first, fallback to notes */
+	PANEL_FIRST = 'panel_first',
+	/** Try notes first, fallback to panel */
+	NOTES_FIRST = 'notes_first',
+	/** Only use panel content */
+	PANEL_ONLY = 'panel_only',
+	/** Only use notes content */
+	NOTES_ONLY = 'notes_only',
+}
+
+/**
  * Plugin settings interface with simplified configuration options.
  */
 export interface GranolaSettings {
@@ -56,6 +70,8 @@ export interface GranolaSettings {
 		defaultFolder: string;
 		/** Skip empty documents during import */
 		skipEmptyDocuments: boolean;
+		/** Maximum filename length */
+		maxFilenameLength: number;
 	};
 
 	/** Filename and content settings */
@@ -64,6 +80,8 @@ export interface GranolaSettings {
 		datePrefixFormat: DatePrefixFormat;
 		/** Include enhanced frontmatter fields (id, title, updated) */
 		includeEnhancedFrontmatter: boolean;
+		/** Content extraction priority */
+		contentPriority: ContentPriority;
 	};
 
 	/** UI settings */
@@ -95,10 +113,12 @@ export const DEFAULT_SETTINGS: GranolaSettings = {
 		strategy: ImportStrategy.ALWAYS_PROMPT,
 		defaultFolder: '',
 		skipEmptyDocuments: true,
+		maxFilenameLength: 100,
 	},
 	content: {
 		datePrefixFormat: DatePrefixFormat.ISO_DATE,
 		includeEnhancedFrontmatter: false,
+		contentPriority: ContentPriority.PANEL_FIRST,
 	},
 	ui: {
 		showProgressNotifications: true,
