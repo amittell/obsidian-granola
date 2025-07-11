@@ -127,7 +127,6 @@ export function createMockLogger(): Logger {
 		debug: {
 			enabled: false,
 			logLevel: 0, // Error only
-			saveToFile: false,
 		},
 	});
 }

@@ -3,19 +3,29 @@ import type { GranolaDocument } from '../api';
 import type { ProseMirrorConverter } from '../converter';
 import type { DocumentDisplayMetadata } from './document-metadata';
 import type { ConflictResolution } from '../ui/conflict-resolution-modal';
-import type { Logger } from '../types';
-import { PerformanceMonitor, measurePerformance } from '../performance/performance-monitor';
-import { batchProcessor, memoize } from '../performance/performance-utils';
+import type { Logger, GranolaSettings } from '../types';
+import { isEmptyDocument } from '../utils/prosemirror';
 
 /**
  * Status of an individual document import.
  */
-export type DocumentImportStatus = 'pending' | 'importing' | 'completed' | 'failed' | 'skipped';
+export type DocumentImportStatus = 'pending' | 'importing' | 'completed' | 'failed' | 'skipped' | 'empty';
 
 /**
  * Import strategy for handling existing documents.
  */
 export type ImportStrategy = 'skip' | 'update' | 'create_new';
+
+/**
+ * Categories of import errors for better user feedback.
+ */
+export type ImportErrorCategory = 
+	| 'validation'    // Document structure validation failed
+	| 'conversion'    // Content conversion failed
+	| 'filesystem'    // File creation/writing failed
+	| 'network'       // Network/API related error
+	| 'permission'    // Permission denied error
+	| 'unknown';      // Uncategorized error
 
 /**
  * Progress information for a single document.
@@ -35,6 +45,9 @@ export interface DocumentProgress {
 
 	/** Error information if failed */
 	error?: string;
+
+	/** Error category for better user feedback */
+	errorCategory?: ImportErrorCategory;
 
 	/** Created file reference if successful */
 	file?: TFile;
@@ -62,6 +75,9 @@ export interface ImportProgress {
 	/** Number of skipped documents */
 	skipped: number;
 
+	/** Number of empty documents */
+	empty: number;
+
 	/** Overall progress percentage (0-100) */
 	percentage: number;
 
@@ -76,12 +92,6 @@ export interface ImportProgress {
 
 	/** Start time of import batch */
 	startTime: number;
-
-	/** Estimated completion time */
-	estimatedCompletion?: number;
-
-	/** Documents per second processing rate */
-	processingRate: number;
 }
 
 /**
@@ -90,15 +100,6 @@ export interface ImportProgress {
 export interface ImportOptions {
 	/** Strategy for handling existing documents */
 	strategy: ImportStrategy;
-
-	/** Whether to create backup of existing files before updating */
-	createBackups: boolean;
-
-	/** Maximum number of concurrent imports */
-	maxConcurrency: number;
-
-	/** Delay between imports in milliseconds */
-	delayBetweenImports: number;
 
 	/** Whether to stop on first error */
 	stopOnError: boolean;
@@ -115,9 +116,6 @@ export interface ImportOptions {
  */
 const DEFAULT_OPTIONS: ImportOptions = {
 	strategy: 'skip',
-	createBackups: false,
-	maxConcurrency: 3,
-	delayBetweenImports: 100,
 	stopOnError: false,
 };
 
@@ -137,22 +135,13 @@ export class SelectiveImportManager {
 	private vault: Vault;
 	private converter: ProseMirrorConverter;
 	private logger: Logger;
+	private settings: GranolaSettings;
 	private isRunning: boolean = false;
 	private isCancelled: boolean = false;
 	private documentProgress: Map<string, DocumentProgress> = new Map();
 	private overallProgress: ImportProgress;
 	private progressCallback?: (progress: ImportProgress) => void;
 	private documentProgressCallback?: (docProgress: DocumentProgress) => void;
-
-	// Performance monitoring
-	private performanceMonitor: PerformanceMonitor;
-	private runtimeProfileId: string = '';
-
-	// Optimized batch processing - initialized in constructor
-	private batchFileWriter: any;
-
-	// Memoized conversion for duplicate documents - initialized in constructor
-	private memoizedConverter: any;
 
 	/**
 	 * Creates a new selective import manager.
@@ -161,28 +150,15 @@ export class SelectiveImportManager {
 	 * @param {Vault} vault - The Obsidian vault to import into
 	 * @param {ProseMirrorConverter} converter - Document converter instance
 	 * @param {Logger} logger - Logger instance for debug output
+	 * @param {GranolaSettings} settings - Plugin settings including import preferences
 	 */
-	constructor(app: App, vault: Vault, converter: ProseMirrorConverter, logger: Logger) {
+	constructor(app: App, vault: Vault, converter: ProseMirrorConverter, logger: Logger, settings: GranolaSettings) {
 		this.app = app;
 		this.vault = vault;
 		this.converter = converter;
 		this.logger = logger;
+		this.settings = settings;
 		this.overallProgress = this.createInitialProgress();
-
-		// Initialize performance monitoring
-		this.performanceMonitor = PerformanceMonitor.getInstance();
-
-		// Initialize batch processor and memoized converter after converter is set
-		this.batchFileWriter = batchProcessor(this.writeBatchOfFiles.bind(this), 5, 50);
-		this.memoizedConverter = memoize(
-			this.converter.convertDocument.bind(this.converter),
-			(doc: unknown) => {
-				const granolaDoc = doc as GranolaDocument;
-				return `${granolaDoc.id}-${granolaDoc.updated_at}`;
-			},
-			50, // Cache up to 50 conversions
-			300000 // TTL: 5 minutes
-		);
 	}
 
 	/**
@@ -195,7 +171,6 @@ export class SelectiveImportManager {
 	 * @returns {Promise<ImportProgress>} Final import results
 	 * @throws {Error} If import is already running or other critical error
 	 */
-	@measurePerformance('ImportManager.importDocuments')
 	async importDocuments(
 		selectedDocuments: DocumentDisplayMetadata[],
 		granolaDocuments: GranolaDocument[],
@@ -205,14 +180,10 @@ export class SelectiveImportManager {
 			throw new Error('Import already in progress');
 		}
 
-		// Start runtime profiling
-		this.runtimeProfileId = this.performanceMonitor.startRuntimeProfiling('document-import');
-
 		try {
 			this.startImport(selectedDocuments, options);
 
-			// Phase 1: Data preparation
-			const phase1Start = performance.now();
+			// Data preparation
 			const documentMap = new Map(granolaDocuments.map(doc => [doc.id, doc]));
 			const importQueue = selectedDocuments
 				.filter(meta => meta.selected && documentMap.has(meta.id))
@@ -221,40 +192,10 @@ export class SelectiveImportManager {
 			// Update total count based on actual documents to be processed
 			this.overallProgress.total = importQueue.length;
 
-			const phase1End = performance.now();
-
-			this.performanceMonitor.recordRuntimePhase(
-				this.runtimeProfileId,
-				'data-preparation',
-				phase1Start,
-				phase1End
-			);
-
-			// Phase 2: Document processing
-			const phase2Start = performance.now();
+			// Document processing
 			await this.processDocumentQueue(importQueue, options);
-			const phase2End = performance.now();
-
-			this.performanceMonitor.recordRuntimePhase(
-				this.runtimeProfileId,
-				'document-processing',
-				phase2Start,
-				phase2End
-			);
 
 			this.completeImport();
-
-			// Complete profiling and analyze bottlenecks
-			const runtimeProfile = this.performanceMonitor?.completeRuntimeProfiling?.(
-				this.runtimeProfileId
-			);
-			if (
-				runtimeProfile &&
-				runtimeProfile.bottlenecks &&
-				runtimeProfile.bottlenecks.length > 0
-			) {
-				console.log('Import performance bottlenecks:', runtimeProfile.bottlenecks);
-			}
 
 			return this.overallProgress;
 		} catch (error) {
@@ -339,12 +280,12 @@ export class SelectiveImportManager {
 			completed: 0,
 			failed: 0,
 			skipped: 0,
+			empty: 0,
 			percentage: 0,
 			message: 'Starting import...',
 			isRunning: true,
 			isCancelled: false,
 			startTime: Date.now(),
-			processingRate: 0,
 		};
 
 		// Initialize document progress
@@ -374,32 +315,13 @@ export class SelectiveImportManager {
 		importQueue: Array<{ meta: DocumentDisplayMetadata; doc: GranolaDocument }>,
 		options: ImportOptions
 	): Promise<void> {
-		const semaphore = new Semaphore(options.maxConcurrency);
-		const promises: Promise<void>[] = [];
-
 		for (const item of importQueue) {
 			if (this.isCancelled) {
 				break;
 			}
 
-			const promise = semaphore.acquire().then(async release => {
-				try {
-					await this.importSingleDocument(item.meta, item.doc, options);
-				} finally {
-					release();
-				}
-			});
-
-			promises.push(promise);
-
-			// Add delay between starting new imports
-			if (options.delayBetweenImports > 0) {
-				await this.sleep(options.delayBetweenImports);
-			}
+			await this.importSingleDocument(item.meta, item.doc, options);
 		}
-
-		// Wait for all imports to complete
-		await Promise.all(promises);
 	}
 
 	/**
@@ -411,7 +333,6 @@ export class SelectiveImportManager {
 	 * @param {GranolaDocument} doc - Full document data
 	 * @param {ImportOptions} options - Import options
 	 */
-	@measurePerformance('ImportManager.importSingleDocument')
 	private async importSingleDocument(
 		meta: DocumentDisplayMetadata,
 		doc: GranolaDocument,
@@ -444,6 +365,19 @@ export class SelectiveImportManager {
 		});
 
 		try {
+			// Check if empty document filtering is enabled and document is empty
+			if (this.settings.import.skipEmptyDocuments && isEmptyDocument(doc)) {
+				this.logger.info(`Skipping empty document: ${doc.id} - "${doc.title}"`);
+				this.updateDocumentProgress(doc.id, {
+					status: 'skipped',
+					progress: 100,
+					message: 'Skipped empty document',
+					endTime: Date.now(),
+				});
+				this.overallProgress.skipped++;
+				this.updateOverallProgress();
+				return;
+			}
 			// Check standard import strategy for non-conflicted documents first
 			if (meta.importStatus.status === 'EXISTS' && options.strategy === 'skip') {
 				this.updateDocumentProgress(doc.id, {
@@ -465,6 +399,19 @@ export class SelectiveImportManager {
 			});
 
 			const convertedNote = this.converter.convertDocument(doc);
+
+			// Check if document is truly empty and should be marked as such
+			if (convertedNote.isTrulyEmpty && this.settings.import.skipEmptyDocuments) {
+				this.updateDocumentProgress(doc.id, {
+					status: 'empty',
+					progress: 100,
+					message: 'Document is empty (never modified)',
+					endTime: Date.now(),
+				});
+				this.overallProgress.empty++;
+				this.updateOverallProgress();
+				return;
+			}
 
 			// Check if document needs conflict resolution
 			if (meta.importStatus.requiresUserChoice || meta.importStatus.status === 'CONFLICT') {
@@ -504,11 +451,18 @@ export class SelectiveImportManager {
 			const existingFile = this.vault.getAbstractFileByPath(convertedNote.filename);
 
 			if (existingFile && existingFile instanceof TFile) {
-				if (options.strategy === 'update') {
-					// Create backup if requested
-					if (options.createBackups) {
-						await this.createBackup(existingFile);
-					}
+				if (options.strategy === 'skip') {
+					// Skip if file already exists and strategy is skip
+					this.updateDocumentProgress(doc.id, {
+						status: 'skipped',
+						progress: 100,
+						message: 'File already exists (filename collision)',
+						endTime: Date.now(),
+					});
+					this.overallProgress.skipped++;
+					this.updateOverallProgress();
+					return;
+				} else if (options.strategy === 'update') {
 					await this.vault.modify(existingFile, convertedNote.content);
 					file = existingFile;
 				} else if (options.strategy === 'create_new') {
@@ -533,12 +487,14 @@ export class SelectiveImportManager {
 			this.overallProgress.completed++;
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+			const errorCategory = this.categorizeError(error);
 
 			this.updateDocumentProgress(doc.id, {
 				status: 'failed',
 				progress: 100,
-				message: 'Import failed',
+				message: this.getErrorMessage(errorCategory, errorMessage),
 				error: errorMessage,
+				errorCategory,
 				endTime: Date.now(),
 			});
 
@@ -584,22 +540,12 @@ export class SelectiveImportManager {
 		const processed =
 			this.overallProgress.completed +
 			this.overallProgress.failed +
-			this.overallProgress.skipped;
+			this.overallProgress.skipped +
+			this.overallProgress.empty;
 		this.overallProgress.percentage =
 			this.overallProgress.total > 0
 				? Math.round((processed / this.overallProgress.total) * 100)
 				: 100;
-
-		// Calculate processing rate
-		const elapsed = Date.now() - this.overallProgress.startTime;
-		this.overallProgress.processingRate = processed / (elapsed / 1000);
-
-		// Estimate completion time
-		if (this.overallProgress.processingRate > 0 && processed < this.overallProgress.total) {
-			const remaining = this.overallProgress.total - processed;
-			this.overallProgress.estimatedCompletion =
-				Date.now() + (remaining / this.overallProgress.processingRate) * 1000;
-		}
 
 		// Update message
 		this.overallProgress.message = `Importing ${processed}/${this.overallProgress.total} documents...`;
@@ -618,7 +564,7 @@ export class SelectiveImportManager {
 		this.overallProgress.isCancelled = this.isCancelled; // Preserve cancellation state
 		this.overallProgress.message = this.isCancelled
 			? 'Import cancelled'
-			: `Import completed: ${this.overallProgress.completed} successful, ${this.overallProgress.failed} failed, ${this.overallProgress.skipped} skipped`;
+			: `Import completed: ${this.overallProgress.completed} successful, ${this.overallProgress.failed} failed, ${this.overallProgress.skipped} skipped${this.overallProgress.empty > 0 ? `, ${this.overallProgress.empty} empty` : ''}`;
 
 		this.emitProgress();
 	}
@@ -659,28 +605,15 @@ export class SelectiveImportManager {
 			completed: 0,
 			failed: 0,
 			skipped: 0,
+			empty: 0,
 			percentage: 0,
 			message: 'Ready to import',
 			isRunning: false,
 			isCancelled: false,
 			startTime: 0,
-			processingRate: 0,
 		};
 	}
 
-	/**
-	 * Creates a backup of an existing file.
-	 *
-	 * @private
-	 * @async
-	 * @param {TFile} file - File to backup
-	 */
-	private async createBackup(file: TFile): Promise<void> {
-		const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-		const backupName = `${file.basename}.backup-${timestamp}.md`;
-		const content = await this.vault.read(file);
-		await this.vault.create(backupName, content);
-	}
 
 	/**
 	 * Generates a unique filename by adding a suffix.
@@ -791,7 +724,11 @@ export class SelectiveImportManager {
 
 		if (existingFile && existingFile instanceof TFile) {
 			if (createBackup) {
-				await this.createBackup(existingFile);
+				// Create backup
+				const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+				const backupName = `${existingFile.basename}.backup-${timestamp}.md`;
+				const content = await this.vault.read(existingFile);
+				await this.vault.create(backupName, content);
 			}
 			await this.vault.modify(existingFile, convertedNote.content);
 		} else {
@@ -870,79 +807,94 @@ export class SelectiveImportManager {
 	}
 
 	/**
-	 * Utility method to pause execution.
+	 * Categorizes errors for better user feedback.
 	 *
 	 * @private
-	 * @param {number} ms - Milliseconds to sleep
-	 * @returns {Promise<void>}
+	 * @param {unknown} error - Error to categorize
+	 * @returns {ImportErrorCategory} Error category
 	 */
-	private sleep(ms: number): Promise<void> {
-		return new Promise(resolve => setTimeout(resolve, ms));
+	private categorizeError(error: unknown): ImportErrorCategory {
+		if (!(error instanceof Error)) {
+			return 'unknown';
+		}
+
+		const message = error.message.toLowerCase();
+
+		// Document validation errors
+		if (message.includes('validation failed') || 
+			message.includes('document is null') ||
+			message.includes('missing required') ||
+			message.includes('invalid document structure')) {
+			return 'validation';
+		}
+
+		// Content conversion errors
+		if (message.includes('conversion failed') ||
+			message.includes('prosemirror') ||
+			message.includes('markdown') ||
+			message.includes('cannot convert')) {
+			return 'conversion';
+		}
+
+		// File system errors
+		if (message.includes('eacces') ||
+			message.includes('permission denied') ||
+			message.includes('access denied') ||
+			message.includes('eperm')) {
+			return 'permission';
+		}
+
+		if (message.includes('enoent') ||
+			message.includes('file not found') ||
+			message.includes('directory not found') ||
+			message.includes('path') ||
+			message.includes('vault error') ||
+			message.includes('file system')) {
+			return 'filesystem';
+		}
+
+		// Network errors
+		if (message.includes('network') ||
+			message.includes('fetch') ||
+			message.includes('connection') ||
+			message.includes('timeout') ||
+			message.includes('api')) {
+			return 'network';
+		}
+
+		return 'unknown';
 	}
 
 	/**
-	 * Optimized batch file writer for improved performance.
-	 * Writes multiple files in a single batch operation to reduce I/O overhead.
+	 * Gets user-friendly error message based on error category.
 	 *
 	 * @private
-	 * @param files - Array of file data to write
-	 * @returns Promise resolving to array of created files
+	 * @param {ImportErrorCategory} category - Error category
+	 * @param {string} originalMessage - Original error message
+	 * @returns {string} User-friendly error message
 	 */
-	private async writeBatchOfFiles(
-		files: Array<{ filename: string; content: string }>
-	): Promise<TFile[]> {
-		const createdFiles: TFile[] = [];
+	private getErrorMessage(category: ImportErrorCategory, originalMessage: string): string {
+		switch (category) {
+			case 'validation':
+				return 'Document structure validation failed - document may be corrupted';
 
-		// Use Promise.all for parallel file creation (up to batch size limit)
-		const filePromises = files.map(async fileData => {
-			try {
-				const file = await this.vault.create(fileData.filename, fileData.content);
-				createdFiles.push(file);
-				return file;
-			} catch (error) {
-				// If file exists, generate unique name and retry
-				const uniqueFilename = this.generateUniqueFilename(fileData.filename);
-				const file = await this.vault.create(uniqueFilename, fileData.content);
-				createdFiles.push(file);
-				return file;
-			}
-		});
+			case 'conversion':
+				return 'Content conversion failed - document format may be unsupported';
 
-		await Promise.all(filePromises);
-		return createdFiles;
-	}
-}
+			case 'filesystem':
+				return 'File creation failed - check vault permissions and disk space';
 
-/**
- * Simple semaphore implementation for controlling concurrency.
- */
-class Semaphore {
-	private permits: number;
-	private queue: Array<() => void> = [];
+			case 'permission':
+				return 'Permission denied - check vault write permissions';
 
-	constructor(permits: number) {
-		this.permits = permits;
-	}
+			case 'network':
+				return 'Network error during import - check connection and try again';
 
-	async acquire(): Promise<() => void> {
-		return new Promise(resolve => {
-			if (this.permits > 0) {
-				this.permits--;
-				resolve(() => this.release());
-			} else {
-				this.queue.push(() => {
-					this.permits--;
-					resolve(() => this.release());
-				});
-			}
-		});
-	}
-
-	private release(): void {
-		this.permits++;
-		if (this.queue.length > 0) {
-			const next = this.queue.shift()!;
-			next();
+			case 'unknown':
+			default:
+				return `Import failed: ${originalMessage}`;
 		}
 	}
+
 }
+

@@ -28,8 +28,8 @@ export interface GranolaDocument {
 
 	/** Last viewed panel containing the actual content */
 	last_viewed_panel?: {
-		/** Panel content in ProseMirror JSON format */
-		content?: ProseMirrorDoc;
+		/** Panel content in ProseMirror JSON format or HTML string */
+		content?: ProseMirrorDoc | string;
 		/** Additional panel metadata */
 		[key: string]: unknown;
 	};

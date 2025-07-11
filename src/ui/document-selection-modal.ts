@@ -24,12 +24,6 @@ import {
 	ImportOptions,
 } from '../services/import-manager';
 import { ProseMirrorConverter } from '../converter';
-import {
-	PerformanceMonitor,
-	trackMemoryLeaks,
-	measurePerformance,
-} from '../performance/performance-monitor';
-import { debounce, throttle } from '../performance/performance-utils';
 
 /**
  * Modal for selecting and importing Granola documents.
@@ -39,13 +33,10 @@ import { debounce, throttle } from '../performance/performance-utils';
  * It integrates all the selective import services to provide real-time
  * status updates, progress tracking, and user control over the import process.
  *
- * Enhanced with memory leak detection and performance optimization.
- *
  * @class DocumentSelectionModal
  * @extends Modal
  * @since 1.1.0
  */
-@trackMemoryLeaks('DocumentSelectionModal')
 export class DocumentSelectionModal extends Modal {
 	private api: GranolaAPI;
 	private duplicateDetector: DuplicateDetector;
@@ -80,23 +71,12 @@ export class DocumentSelectionModal extends Modal {
 	private importButton!: ButtonComponent;
 	private cancelButton!: ButtonComponent;
 
-	// Performance monitoring
-	private performanceMonitor: PerformanceMonitor;
-	private memoryTrackingId: string = '';
 	private eventListenersToCleanup: Array<{
 		element: HTMLElement;
 		type: string;
 		handler: EventListener;
 	}> = [];
 	private timersToCleanup: Set<ReturnType<typeof setTimeout>> = new Set();
-	private debouncedSearchHandler: ((value: string) => void) & {
-		cancel: () => void;
-		flush: () => void;
-	};
-	private throttledScrollHandler: ((event: Event) => void) & {
-		cancel: () => void;
-		flush: () => void;
-	};
 
 	/**
 	 * Creates a new document selection modal.
@@ -122,28 +102,15 @@ export class DocumentSelectionModal extends Modal {
 		this.metadataService = metadataService;
 		this.importManager = importManager;
 		this.converter = converter;
-
-		// Initialize performance monitoring
-		this.performanceMonitor = PerformanceMonitor.getInstance();
-
-		// Initialize optimized event handlers
-		this.debouncedSearchHandler = debounce(this.handleSearch.bind(this), 300);
-		this.throttledScrollHandler = throttle(this.handleScroll.bind(this), 16);
 	}
 
 	/**
 	 * Called when the modal is opened.
 	 * Initializes the UI and loads documents.
-	 * Enhanced with performance monitoring and memory leak detection.
 	 *
 	 * @returns {Promise<void>} Resolves when modal initialization is complete
 	 */
-	@measurePerformance('DocumentSelectionModal.onOpen')
 	async onOpen(): Promise<void> {
-		// Start memory tracking
-		this.memoryTrackingId =
-			this.performanceMonitor.startMemoryTracking('DocumentSelectionModal');
-
 		this.modalContentEl = this.contentEl;
 		this.setupUI();
 		await this.loadDocuments();
@@ -152,16 +119,11 @@ export class DocumentSelectionModal extends Modal {
 	/**
 	 * Called when the modal is closed.
 	 * Cleans up resources and cancels any running imports.
-	 * Enhanced with comprehensive memory leak prevention.
 	 */
 	onClose(): void {
 		if (this.isImporting) {
 			this.importManager.cancel();
 		}
-
-		// Cancel debounced/throttled handlers
-		this.debouncedSearchHandler?.cancel();
-		this.throttledScrollHandler?.cancel();
 
 		// Clean up all event listeners
 		this.eventListenersToCleanup.forEach(({ element, type, handler }) => {
@@ -177,17 +139,6 @@ export class DocumentSelectionModal extends Modal {
 		this.timersToCleanup.clear();
 
 		this.cleanup();
-
-		// End memory tracking and check for leaks
-		if (this.memoryTrackingId) {
-			const leakDetection = this.performanceMonitor.endMemoryTracking(this.memoryTrackingId);
-			if (leakDetection?.isLeaked) {
-				console.warn(
-					'Memory leak detected in DocumentSelectionModal:',
-					leakDetection.leakDetails
-				);
-			}
-		}
 	}
 
 	/**
@@ -277,7 +228,10 @@ export class DocumentSelectionModal extends Modal {
 
 		this.searchInput = new TextComponent(searchContainer)
 			.setPlaceholder('Search titles and content...')
-			.onChange(value => this.applyTextFilter(value));
+			.onChange(value => {
+				this.currentFilter.searchText = value;
+				this.renderDocumentList();
+			});
 	}
 
 	/**
@@ -516,9 +470,6 @@ export class DocumentSelectionModal extends Modal {
 
 			const importOptions: ImportOptions = {
 				strategy: 'skip', // Default strategy: skip existing files to prevent accidental overwrites
-				createBackups: false,
-				maxConcurrency: 3,
-				delayBetweenImports: 100,
 				stopOnError: false,
 				onProgress: progress => this.updateProgress(progress),
 				onDocumentProgress: docProgress => this.updateDocumentProgress(docProgress),
@@ -744,9 +695,57 @@ export class DocumentSelectionModal extends Modal {
 		if (result.skipped > 0) {
 			stats.createEl('p', { text: `⏭️ ${result.skipped} documents skipped` });
 		}
+		if (result.empty > 0) {
+			stats.createEl('p', { text: `📄 ${result.empty} documents were empty (never modified)` });
+		}
+
+		// Get all document progress for detailed reporting
+		const allDocProgress = this.importManager.getAllDocumentProgress();
+		
+		// Show detailed failure list if there are any failures
+		const failedDocs = allDocProgress.filter(progress => progress.status === 'failed');
+		if (failedDocs.length > 0) {
+			const failureSection = summary.createDiv('import-failures');
+			failureSection.createEl('h4', { text: 'Failed Documents:' });
+			const failureList = failureSection.createEl('ul', { cls: 'failed-documents-list' });
+			
+			failedDocs.forEach(doc => {
+				const listItem = failureList.createEl('li');
+				// Find the document metadata to get the title
+				const docMeta = this.documentMetadata.find((d: DocumentDisplayMetadata) => d.id === doc.id);
+				const title = docMeta?.title || 'Unknown Document';
+				const errorMsg = doc.error || 'Unknown error';
+				listItem.createEl('span', { 
+					text: `${title}`, 
+					cls: 'failed-doc-title' 
+				});
+				listItem.createEl('span', { 
+					text: ` - ${errorMsg}`, 
+					cls: 'failed-doc-error' 
+				});
+			});
+		}
+
+		// Show empty documents list if there are any
+		const emptyDocs = allDocProgress.filter(progress => progress.status === 'empty');
+		if (emptyDocs.length > 0) {
+			const emptySection = summary.createDiv('empty-documents-section');
+			emptySection.createEl('h4', { text: 'Empty Documents (not imported):' });
+			const emptyList = emptySection.createEl('ul', { cls: 'empty-documents-list' });
+			
+			emptyDocs.forEach(doc => {
+				const listItem = emptyList.createEl('li');
+				// Find the document metadata to get the title
+				const docMeta = this.documentMetadata.find((d: DocumentDisplayMetadata) => d.id === doc.id);
+				const title = docMeta?.title || 'Unknown Document';
+				listItem.createEl('span', { 
+					text: title, 
+					cls: 'empty-doc-title' 
+				});
+			});
+		}
 
 		// Get successfully imported files for opening
-		const allDocProgress = this.importManager.getAllDocumentProgress();
 		const importedFiles = allDocProgress
 			.filter(progress => progress.status === 'completed' && progress.file)
 			.map(progress => progress.file!)
@@ -789,14 +788,8 @@ export class DocumentSelectionModal extends Modal {
 				const leaf = this.app.workspace.getLeaf('tab');
 				await leaf.openFile(file);
 
-				// Auto-scroll to top of the document for better UX (development only)
-				// @ts-ignore - esbuild will replace this constant
-				if (
-					typeof ENABLE_PERFORMANCE_MONITORING !== 'undefined' &&
-					ENABLE_PERFORMANCE_MONITORING
-				) {
-					await this.autoScrollToTop(leaf);
-				}
+				// Auto-scroll to top of the document for better UX
+				await this.autoScrollToTop(leaf);
 			}
 
 			// Focus the first opened file if available
@@ -806,14 +799,8 @@ export class DocumentSelectionModal extends Modal {
 					.find(leaf => (leaf.view as MarkdownView)?.file === files[0]);
 				if (firstFileLeaf) {
 					this.app.workspace.setActiveLeaf(firstFileLeaf);
-					// Ensure the focused file is also scrolled to top (development only)
-					// @ts-ignore - esbuild will replace this constant
-					if (
-						typeof ENABLE_PERFORMANCE_MONITORING !== 'undefined' &&
-						ENABLE_PERFORMANCE_MONITORING
-					) {
-						await this.autoScrollToTop(firstFileLeaf);
-					}
+					// Ensure the focused file is also scrolled to top
+					await this.autoScrollToTop(firstFileLeaf);
 				}
 			}
 		} catch (error) {
@@ -835,14 +822,6 @@ export class DocumentSelectionModal extends Modal {
 	 * @returns {Promise<void>} Resolves after auto-scroll attempts complete
 	 */
 	private async autoScrollToTop(leaf: WorkspaceLeaf): Promise<void> {
-		// @ts-ignore - esbuild will replace this constant
-		if (
-			typeof ENABLE_PERFORMANCE_MONITORING === 'undefined' ||
-			!ENABLE_PERFORMANCE_MONITORING
-		) {
-			return; // Strip auto-scroll in production
-		}
-
 		try {
 			// Small delay to ensure the view is fully loaded
 			await new Promise(resolve => setTimeout(resolve, 100));
@@ -913,16 +892,6 @@ export class DocumentSelectionModal extends Modal {
 		}
 	}
 
-	/**
-	 * Applies text search filter.
-	 *
-	 * @private
-	 * @param {string} searchText - Text to search for
-	 */
-	private applyTextFilter(searchText: string): void {
-		this.currentFilter.searchText = searchText;
-		this.renderDocumentList();
-	}
 
 	/**
 	 * Applies status filter.
@@ -1274,6 +1243,57 @@ export class DocumentSelectionModal extends Modal {
 			.granola-import-modal .error-message {
 				color: var(--color-red);
 			}
+			.granola-import-modal .import-failures {
+				margin-top: 1rem;
+				padding: 1rem;
+				background: var(--background-secondary);
+				border-radius: 8px;
+				border-left: 4px solid var(--color-red);
+			}
+			.granola-import-modal .import-failures h4 {
+				margin-top: 0;
+				margin-bottom: 0.5rem;
+				color: var(--color-red);
+			}
+			.granola-import-modal .failed-documents-list {
+				margin: 0;
+				padding-left: 1.5rem;
+				max-height: 200px;
+				overflow-y: auto;
+			}
+			.granola-import-modal .failed-documents-list li {
+				margin-bottom: 0.5rem;
+				line-height: 1.5;
+			}
+			.granola-import-modal .failed-doc-title {
+				font-weight: 500;
+			}
+			.granola-import-modal .failed-doc-error {
+				color: var(--text-muted);
+				font-size: 0.9em;
+			}
+			.granola-import-modal .empty-documents-section {
+				margin-top: 1rem;
+				padding: 1rem;
+				background: var(--background-secondary);
+				border-radius: 8px;
+				border-left: 4px solid var(--text-muted);
+			}
+			.granola-import-modal .empty-documents-section h4 {
+				margin-top: 0;
+				margin-bottom: 0.5rem;
+				color: var(--text-muted);
+			}
+			.granola-import-modal .empty-documents-list {
+				margin: 0;
+				padding-left: 1.5rem;
+				max-height: 150px;
+				overflow-y: auto;
+			}
+			.granola-import-modal .empty-documents-list li {
+				margin-bottom: 0.25rem;
+				color: var(--text-muted);
+			}
 		`;
 		document.head.appendChild(style);
 	}
@@ -1293,11 +1313,6 @@ export class DocumentSelectionModal extends Modal {
 	): void {
 		element.addEventListener(type, handler);
 		this.eventListenersToCleanup.push({ element, type, handler });
-
-		// Track in performance monitor
-		if (this.memoryTrackingId) {
-			this.performanceMonitor.trackEventListener(this.memoryTrackingId, type);
-		}
 	}
 
 	/**
@@ -1317,82 +1332,9 @@ export class DocumentSelectionModal extends Modal {
 		const timerId = isInterval ? setInterval(callback, delay) : setTimeout(callback, delay);
 		this.timersToCleanup.add(timerId as ReturnType<typeof setTimeout>);
 
-		// Track in performance monitor
-		if (this.memoryTrackingId) {
-			this.performanceMonitor.trackTimer(this.memoryTrackingId, Number(timerId));
-		}
-
 		return timerId as ReturnType<typeof setTimeout>;
 	}
 
-	/**
-	 * Optimized search handler with debouncing.
-	 *
-	 * @private
-	 * @param searchTerm - The search term to filter by
-	 */
-	private handleSearch(searchTerm: string): void {
-		this.currentFilter.searchText = searchTerm;
-		this.filterAndRenderDocuments();
-	}
-
-	/**
-	 * Filter and render documents based on current filter criteria.
-	 *
-	 * @private
-	 */
-	private filterAndRenderDocuments(): void {
-		// For now, apply basic filtering - will be enhanced later
-		const filteredMetadata = this.documentMetadata.filter(doc => {
-			if (this.currentFilter.searchText) {
-				const searchTerm = this.currentFilter.searchText.toLowerCase();
-				return (
-					doc.title.toLowerCase().includes(searchTerm) ||
-					doc.preview.toLowerCase().includes(searchTerm)
-				);
-			}
-			return true;
-		});
-
-		// Apply basic sorting
-		const sortedMetadata = [...filteredMetadata].sort((a, b) => {
-			switch (this.currentSort.field) {
-				case 'title':
-					return this.currentSort.direction === 'asc'
-						? a.title.localeCompare(b.title)
-						: b.title.localeCompare(a.title);
-				case 'updated':
-					return this.currentSort.direction === 'asc'
-						? a.updatedDate.localeCompare(b.updatedDate)
-						: b.updatedDate.localeCompare(a.updatedDate);
-				default:
-					return 0;
-			}
-		});
-
-		// Update the displayed metadata and re-render
-		const oldMetadata = this.documentMetadata;
-		this.documentMetadata = sortedMetadata;
-		this.renderDocumentList();
-		this.documentMetadata = oldMetadata; // Restore original for next filter
-	}
-
-	/**
-	 * Optimized scroll handler with throttling for large document lists.
-	 *
-	 * @private
-	 * @param event - The scroll event
-	 */
-	private handleScroll(event: Event): void {
-		// Virtual scrolling or lazy loading can be implemented here
-		const target = event.target as HTMLElement;
-		const { scrollTop, scrollHeight, clientHeight } = target;
-
-		// Load more documents if scrolled near bottom
-		if (scrollTop + clientHeight > scrollHeight - 100) {
-			// Implement lazy loading if needed
-		}
-	}
 
 	/**
 	 * Cleans up resources when modal is closed.

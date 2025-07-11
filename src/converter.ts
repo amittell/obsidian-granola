@@ -23,6 +23,9 @@ export interface ConvertedNote {
 
 	/** Extracted metadata from the original Granola document */
 	frontmatter: NoteFrontmatter;
+
+	/** Whether this document is truly empty (never modified after creation) */
+	isTrulyEmpty?: boolean;
 }
 
 /**
@@ -50,6 +53,29 @@ export interface NoteFrontmatter {
 
 	/** Optional: ISO timestamp when the document was last updated (when enhanced frontmatter enabled) */
 	updated?: string;
+}
+
+/**
+ * Result of document structure validation.
+ * 
+ * @interface DocumentValidationResult
+ * @since 1.1.0
+ */
+export interface DocumentValidationResult {
+	/** Whether the document passed validation */
+	isValid: boolean;
+
+	/** Reason for validation failure, if any */
+	reason?: string;
+
+	/** Detected content sources available for conversion */
+	availableContentSources: Array<'last_viewed_panel_html' | 'last_viewed_panel_prosemirror' | 'notes_prosemirror' | 'notes_markdown' | 'notes_plain'>;
+
+	/** Whether the document appears to be empty */
+	isEmpty: boolean;
+
+	/** Validation warnings that don't prevent conversion */
+	warnings: string[];
 }
 
 /**
@@ -106,6 +132,7 @@ export class ProseMirrorConverter {
 	 *
 	 * @param {GranolaDocument} doc - The source document from Granola API
 	 * @returns {ConvertedNote} Complete converted document with metadata
+	 * @throws {Error} When document is invalid or conversion fails critically
 	 *
 	 * @example
 	 * ```typescript
@@ -122,6 +149,11 @@ export class ProseMirrorConverter {
 	 * ```
 	 */
 	convertDocument(doc: GranolaDocument): ConvertedNote {
+		// Enhanced content validation before conversion
+		const validationResult = this.validateDocumentStructure(doc);
+		if (!validationResult.isValid) {
+			throw new Error(`Document validation failed: ${validationResult.reason}`);
+		}
 		// Debug logging for content analysis
 		this.logger.debug(`========== Processing document: ${doc.id} - "${doc.title}" ==========`);
 		this.logger.debug(`Document created_at: ${doc.created_at}`);
@@ -131,17 +163,36 @@ export class ProseMirrorConverter {
 		this.logger.debug(`Notes markdown exists: ${!!doc.notes_markdown}`);
 		this.logger.debug(`Last viewed panel exists: ${!!doc.last_viewed_panel}`);
 		this.logger.debug(`Last viewed panel content exists: ${!!doc.last_viewed_panel?.content}`);
+		
+		// Enhanced debugging for empty document detection
+		if (doc.notes_plain) {
+			this.logger.debug(`Notes plain length: ${doc.notes_plain.length}`);
+			this.logger.debug(`Notes plain trimmed length: ${doc.notes_plain.trim().length}`);
+			this.logger.debug(`Notes plain preview (first 100 chars): ${doc.notes_plain.substring(0, 100)}`);
+		}
+		if (doc.notes_markdown) {
+			this.logger.debug(`Notes markdown length: ${doc.notes_markdown.length}`);
+			this.logger.debug(`Notes markdown trimmed length: ${doc.notes_markdown.trim().length}`);
+			this.logger.debug(`Notes markdown preview (first 100 chars): ${doc.notes_markdown.substring(0, 100)}`);
+		}
+		
+		// Log all available fields in the document for investigation
+		this.logger.debug(`All document fields: ${Object.keys(doc).join(', ')}`);
 
 		if (doc.last_viewed_panel?.content) {
-			this.logger.debug(
-				`Last viewed panel content type: ${doc.last_viewed_panel.content.type}`
-			);
-			this.logger.debug(
-				`Last viewed panel content array length: ${doc.last_viewed_panel.content.content ? doc.last_viewed_panel.content.content.length : 'NO CONTENT ARRAY'}`
-			);
+			const panelContent = doc.last_viewed_panel.content;
+			if (typeof panelContent === 'string') {
+				this.logger.debug(`Last viewed panel content type: HTML string`);
+				this.logger.debug(`Last viewed panel content length: ${panelContent.length}`);
+			} else {
+				this.logger.debug(`Last viewed panel content type: ${panelContent.type}`);
+				this.logger.debug(
+					`Last viewed panel content array length: ${panelContent.content ? panelContent.content.length : 'NO CONTENT ARRAY'}`
+				);
+			}
 			this.logger.debug(
 				`Last viewed panel full structure:`,
-				JSON.stringify(doc.last_viewed_panel.content, null, 2)
+				JSON.stringify(panelContent, null, 2)
 			);
 		}
 
@@ -168,12 +219,13 @@ export class ProseMirrorConverter {
 
 		// Try last_viewed_panel.content first (the correct location per reverse engineering)
 		if (doc.last_viewed_panel?.content) {
+			const panelContent = doc.last_viewed_panel.content;
 			// Check if content is HTML string (newer API format)
-			if (typeof doc.last_viewed_panel.content === 'string') {
+			if (typeof panelContent === 'string') {
 				this.logger.debug(
 					`Attempting conversion from last_viewed_panel.content (HTML format)`
 				);
-				markdown = this.convertHtmlToMarkdown(doc.last_viewed_panel.content);
+				markdown = this.convertHtmlToMarkdown(panelContent);
 				contentSource = 'last_viewed_panel_html';
 				this.logger.debug(
 					`Last viewed panel HTML conversion result - length: ${markdown.length}`
@@ -185,11 +237,11 @@ export class ProseMirrorConverter {
 				}
 			}
 			// Check if content is ProseMirror JSON (legacy format)
-			else if (this.isValidProseMirrorDoc(doc.last_viewed_panel.content)) {
+			else if (this.isValidProseMirrorDoc(panelContent)) {
 				this.logger.debug(
 					`Attempting conversion from last_viewed_panel.content (ProseMirror format)`
 				);
-				markdown = this.convertProseMirrorToMarkdown(doc.last_viewed_panel.content);
+				markdown = this.convertProseMirrorToMarkdown(panelContent);
 				contentSource = 'last_viewed_panel_prosemirror';
 				this.logger.debug(
 					`Last viewed panel ProseMirror conversion result - length: ${markdown.length}`
@@ -200,6 +252,16 @@ export class ProseMirrorConverter {
 					this.logger.warn(
 						`Last viewed panel ProseMirror conversion produced empty content despite valid structure`
 					);
+					// Additional debugging for failed conversions
+					this.logger.debug(`Panel content structure that failed conversion:`, JSON.stringify(panelContent, null, 2));
+					// Try text extraction directly to see what we can get
+					const extractedText = this.extractTextFromNodes(panelContent.content || []);
+					this.logger.debug(`Direct text extraction from panel content: "${extractedText}"`);
+					if (extractedText.trim()) {
+						this.logger.warn(`Text extraction found content that conversion missed: "${extractedText}"`);
+						markdown = extractedText; // Use extracted text as fallback
+						contentSource = 'panel_text_extraction';
+					}
 				}
 			}
 		}
@@ -216,6 +278,16 @@ export class ProseMirrorConverter {
 				this.logger.warn(
 					`Notes field conversion produced empty content despite valid structure`
 				);
+				// Additional debugging for failed conversions
+				this.logger.debug(`Notes field structure that failed conversion:`, JSON.stringify(doc.notes, null, 2));
+				// Try text extraction directly to see what we can get
+				const extractedText = this.extractTextFromNodes(doc.notes.content || []);
+				this.logger.debug(`Direct text extraction from notes field: "${extractedText}"`);
+				if (extractedText.trim()) {
+					this.logger.warn(`Text extraction found content that conversion missed: "${extractedText}"`);
+					markdown = extractedText; // Use extracted text as fallback
+					contentSource = 'notes_text_extraction';
+				}
 			}
 		}
 
@@ -238,11 +310,40 @@ export class ProseMirrorConverter {
 		this.logger.info(`Final markdown length: ${markdown.length}`);
 		this.logger.debug(`Content preview: ${markdown.substring(0, 200)}...`);
 
+		// Track if document is truly empty
+		let isTrulyEmpty = false;
+		
 		// Handle documents that appear empty but might have content in Granola
 		if (!markdown.trim()) {
+			// Enhanced empty document analysis
+			const emptyAnalysis = {
+				hasNotes: !!doc.notes,
+				hasNotesContent: (doc.notes?.content?.length ?? 0) > 0,
+				hasNotesPlain: !!doc.notes_plain?.trim(),
+				hasNotesMarkdown: !!doc.notes_markdown?.trim(),
+				hasLastViewedPanel: !!doc.last_viewed_panel,
+				hasLastViewedPanelContent: !!doc.last_viewed_panel?.content,
+				createdEqualsUpdated: doc.created_at === doc.updated_at,
+				timeSinceCreation: new Date().getTime() - new Date(doc.created_at).getTime(),
+				timeSinceUpdate: new Date().getTime() - new Date(doc.updated_at).getTime()
+			};
+			
 			this.logger.warn(
 				`WARNING: No content extracted for document ${doc.id} - "${doc.title}"`
 			);
+			this.logger.warn(`Empty document analysis:`, JSON.stringify(emptyAnalysis, null, 2));
+			
+			// Determine if this is truly empty or a conversion failure
+			isTrulyEmpty = emptyAnalysis.createdEqualsUpdated && 
+				!emptyAnalysis.hasNotesPlain && 
+				!emptyAnalysis.hasNotesMarkdown;
+			
+			if (isTrulyEmpty) {
+				this.logger.info(`Document appears to be truly empty (never modified after creation)`);
+			} else {
+				this.logger.warn(`Document may have content that failed to convert`);
+			}
+			
 			this.logger.warn(
 				`Creating placeholder document - content may need to be manually synced from Granola`
 			);
@@ -260,6 +361,7 @@ export class ProseMirrorConverter {
 			filename: `${filename}.md`,
 			content,
 			frontmatter,
+			isTrulyEmpty: isTrulyEmpty,
 		};
 	}
 
@@ -285,6 +387,100 @@ export class ProseMirrorConverter {
 
 		// Generate date prefix using existing method
 		return this.generateDatePrefixedFilename(doc);
+	}
+
+	/**
+	 * Validates document structure before attempting conversion.
+	 * 
+	 * Performs comprehensive validation of the document structure to identify
+	 * potential issues early and provide clear error messages. This helps
+	 * prevent conversion failures and gives better user feedback.
+	 *
+	 * @private
+	 * @param {GranolaDocument} doc - Document to validate
+	 * @returns {DocumentValidationResult} Validation result with details
+	 */
+	private validateDocumentStructure(doc: GranolaDocument): DocumentValidationResult {
+		const result: DocumentValidationResult = {
+			isValid: true,
+			availableContentSources: [],
+			isEmpty: true,
+			warnings: []
+		};
+
+		// Critical validation: Document must exist and have basic structure
+		if (!doc) {
+			result.isValid = false;
+			result.reason = 'Document is null or undefined';
+			return result;
+		}
+
+		if (!doc.id) {
+			result.isValid = false;
+			result.reason = 'Document missing required ID field';
+			return result;
+		}
+
+		if (!doc.created_at) {
+			result.warnings.push('Document missing created_at timestamp');
+		} else {
+			// Validate date format
+			const createdDate = new Date(doc.created_at);
+			if (isNaN(createdDate.getTime())) {
+				result.warnings.push(`Invalid created_at date format: ${doc.created_at}`);
+			}
+		}
+
+		// Check available content sources
+		if (doc.last_viewed_panel?.content) {
+			const content = doc.last_viewed_panel.content;
+			if (typeof content === 'string') {
+				result.availableContentSources.push('last_viewed_panel_html');
+				if (content.trim().length > 0) {
+					result.isEmpty = false;
+				}
+			} else if (this.isValidProseMirrorDoc(content as ProseMirrorDoc)) {
+				result.availableContentSources.push('last_viewed_panel_prosemirror');
+				// Check if ProseMirror has extractable content
+				const proseMirrorContent = content as ProseMirrorDoc;
+				const extractedText = this.extractTextFromNodes(proseMirrorContent.content || []);
+				if (extractedText.trim().length > 0) {
+					result.isEmpty = false;
+				}
+			}
+		}
+
+		if (doc.notes && this.isValidProseMirrorDoc(doc.notes)) {
+			result.availableContentSources.push('notes_prosemirror');
+			const extractedText = this.extractTextFromNodes(doc.notes.content || []);
+			if (extractedText.trim().length > 0) {
+				result.isEmpty = false;
+			}
+		}
+
+		if (doc.notes_markdown && doc.notes_markdown.trim().length > 0) {
+			result.availableContentSources.push('notes_markdown');
+			result.isEmpty = false;
+		}
+
+		if (doc.notes_plain && doc.notes_plain.trim().length > 0) {
+			result.availableContentSources.push('notes_plain');
+			result.isEmpty = false;
+		}
+
+		// Warn if no content sources are available
+		if (result.availableContentSources.length === 0) {
+			result.warnings.push('No valid content sources detected in document');
+		}
+
+		// Log validation results
+		this.logger.debug(`Document validation for ${doc.id}:`);
+		this.logger.debug(`- Valid: ${result.isValid}`);
+		this.logger.debug(`- Empty: ${result.isEmpty}`);
+		this.logger.debug(`- Content sources: ${result.availableContentSources.join(', ')}`);
+		this.logger.debug(`- Warnings: ${result.warnings.join('; ')}`);
+
+		return result;
 	}
 
 	/**
@@ -491,12 +687,39 @@ export class ProseMirrorConverter {
 				if (node.type === 'paragraph' && !node.content?.length) {
 					this.logger.debug(`Empty paragraph node, checking attrs:`, node.attrs);
 				}
+
+				// Method 4: Some Granola documents may have text content in unexpected places
+				// Check for text content in various properties that might contain actual content
+				if (!node.text && (!node.content || node.content.length === 0)) {
+					// Check for alternative text fields that might exist in Granola's format
+					const altTextFields = ['textContent', 'innerHTML', 'innerText', 'value', 'data'];
+					for (const field of altTextFields) {
+						const altText = (node as unknown as Record<string, unknown>)[field];
+						if (typeof altText === 'string' && altText.trim().length > 0) {
+							this.logger.debug(`Found alternative text in ${field}: "${altText}"`);
+							text += altText;
+							break;
+						}
+					}
+
+					// Check attrs for text content
+					if (node.attrs && typeof node.attrs === 'object') {
+						for (const [key, value] of Object.entries(node.attrs)) {
+							if (typeof value === 'string' && value.trim().length > 0 && 
+								(key.toLowerCase().includes('text') || key.toLowerCase().includes('content'))) {
+								this.logger.debug(`Found text in attrs.${key}: "${value}"`);
+								text += value;
+							}
+						}
+					}
+				}
 			} catch (error) {
 				this.logger.warn(`Error extracting text from node:`, error, node);
 				// Continue with other nodes even if one fails
 			}
 		}
 
+		this.logger.debug(`extractTextFromNodes returning: "${text}"`);
 		return text;
 	}
 
@@ -1151,10 +1374,13 @@ export class ProseMirrorConverter {
 	 */
 	private sanitizeFilename(filename: string): string {
 		// Remove or replace invalid filename characters
+		// Include more characters that can cause issues: & , ; 
 		return filename
-			.replace(/[<>:"/\\|?*]/g, '-')
+			.replace(/[<>:"/\\|?*&,;]/g, '-')
 			.replace(/\s+/g, ' ')
+			.replace(/-+/g, '-') // Collapse multiple dashes
+			.replace(/\s-\s/g, ' - ') // Ensure spaces around dashes
 			.trim()
-			.substring(0, this.settings.import.maxFilenameLength); // Limit length
+			.substring(0, 100); // Limit length to prevent filesystem issues
 	}
 }

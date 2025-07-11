@@ -66,7 +66,8 @@ describe('SelectiveImportManager', () => {
 	let defaultOptions: ImportOptions;
 
 	beforeEach(() => {
-		importManager = new SelectiveImportManager(mockApp, mockVault, mockConverter, mockLogger);
+		const mockSettings = { import: { skipEmptyDocuments: true } } as any;
+		importManager = new SelectiveImportManager(mockApp, mockVault, mockConverter, mockLogger, mockSettings);
 
 		mockDocumentMetadata = [
 			{
@@ -155,9 +156,6 @@ describe('SelectiveImportManager', () => {
 
 		defaultOptions = {
 			strategy: 'skip',
-			createBackups: false,
-			maxConcurrency: 3,
-			delayBetweenImports: 100,
 			stopOnError: false,
 		};
 
@@ -342,42 +340,44 @@ describe('SelectiveImportManager', () => {
 	});
 
 	describe('cancel', () => {
-		it('should cancel running import', done => {
+		it('should cancel running import', async () => {
 			// Mock slow conversion to allow cancellation
+			let conversionResolver: (value: any) => void;
 			(mockConverter.convertDocument as jest.Mock).mockImplementation(
 				() =>
-					new Promise(resolve =>
-						setTimeout(
-							() =>
-								resolve({
-									filename: 'test-document.md',
-									content: 'content',
-									frontmatter: { granola_id: 'test-id', title: 'Test Document' },
-								}),
-							1000
-						)
-					)
+					new Promise(resolve => {
+						conversionResolver = resolve;
+					})
 			);
 
+			// Start import
 			const importPromise = importManager.importDocuments(
 				mockDocumentMetadata,
 				mockGranolaDocuments,
 				defaultOptions
 			);
 
-			// Cancel after short delay
-			setTimeout(() => {
-				importManager.cancel();
+			// Cancel immediately
+			importManager.cancel();
 
-				const progress = importManager.getProgress();
-				expect(progress.isCancelled).toBe(true);
-				expect(progress.message).toContain('Cancelling');
-				done();
-			}, 50);
+			// Check that cancellation is recorded
+			const progress = importManager.getProgress();
+			expect(progress.isCancelled).toBe(true);
 
-			importPromise.catch(() => {
-				// Import may fail due to cancellation
+			// Complete the conversion to allow the promise to resolve
+			conversionResolver!({
+				filename: 'test-document.md',
+				content: 'content',
+				frontmatter: { granola_id: 'test-id', title: 'Test Document' },
 			});
+
+			// Wait for import to complete
+			await importPromise;
+
+			// Verify final state
+			const finalProgress = importManager.getProgress();
+			expect(finalProgress.isCancelled).toBe(true);
+			expect(finalProgress.message).toContain('cancelled');
 		});
 
 		it('should do nothing if no import is running', () => {
@@ -445,16 +445,7 @@ describe('SelectiveImportManager', () => {
 			expect(finalProgress.percentage).toBe(100);
 		});
 
-		it('should track processing rate', async () => {
-			await importManager.importDocuments(
-				mockDocumentMetadata,
-				mockGranolaDocuments,
-				defaultOptions
-			);
-
-			const progress = importManager.getProgress();
-			expect(progress.processingRate).toBeGreaterThan(0);
-		});
+		// Removed test for processing rate as it's no longer tracked
 	});
 
 	describe('reset', () => {
@@ -515,33 +506,7 @@ describe('SelectiveImportManager', () => {
 		});
 	});
 
-	describe('concurrency control', () => {
-		it('should respect maxConcurrency setting', async () => {
-			const options = { ...defaultOptions, maxConcurrency: 1 };
-
-			const result = await importManager.importDocuments(
-				mockDocumentMetadata,
-				mockGranolaDocuments,
-				options
-			);
-
-			// Concurrency control behavior depends on implementation
-			expect(result.total).toBe(2);
-		});
-
-		it('should handle delay between imports', async () => {
-			const options = { ...defaultOptions, delayBetweenImports: 100 };
-
-			const result = await importManager.importDocuments(
-				mockDocumentMetadata,
-				mockGranolaDocuments,
-				options
-			);
-
-			// Delay behavior depends on implementation
-			expect(result.total).toBe(2);
-		});
-	});
+	// Removed concurrency control tests as maxConcurrency and delayBetweenImports were removed
 
 	describe('error handling', () => {
 		it('should handle vault creation errors', async () => {
@@ -593,20 +558,7 @@ describe('SelectiveImportManager', () => {
 		});
 	});
 
-	describe('backup creation', () => {
-		it('should create backups when enabled', async () => {
-			const options = { ...defaultOptions, createBackups: true };
-
-			const result = await importManager.importDocuments(
-				mockDocumentMetadata,
-				mockGranolaDocuments,
-				options
-			);
-
-			// Import should still work even if backup functionality is not yet implemented
-			expect(result.total).toBe(2);
-		});
-	});
+	// Removed backup creation tests as createBackups option was removed
 
 	describe('edge cases and error recovery', () => {
 		it('should handle errors in handleImportError method', async () => {
@@ -717,24 +669,7 @@ describe('SelectiveImportManager', () => {
 			expect(mockFileExists).toHaveBeenCalledTimes(3);
 		});
 
-		it('should handle backup creation with timestamp', async () => {
-			const mockFile = createMockFile('existing.md');
-			const mockContent = '# Existing content';
-
-			(mockVault.read as jest.Mock).mockResolvedValue(mockContent);
-			(mockVault.create as jest.Mock).mockResolvedValue(undefined);
-
-			// Access private method via reflection
-			await (importManager as any).createBackup(mockFile);
-
-			expect(mockVault.read).toHaveBeenCalledWith(mockFile);
-			expect(mockVault.create).toHaveBeenCalledWith(
-				expect.stringMatching(
-					/existing\.backup-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.md/
-				),
-				mockContent
-			);
-		});
+		// Removed test for backup creation as createBackup method was removed
 
 		it('should handle various import strategies for existing documents', async () => {
 			const existingMetadata = [
@@ -910,6 +845,103 @@ describe('SelectiveImportManager', () => {
 			expect(result.total).toBe(1);
 			// The document should either be completed (if conflict resolution succeeds) or skipped
 			expect(result.completed + result.skipped).toBe(1);
+			expect(result.failed).toBe(0);
+		});
+	});
+
+	describe('empty document filtering', () => {
+		it('should skip empty documents when setting is enabled', async () => {
+			const emptyDocument: GranolaDocument = {
+				id: 'empty-doc',
+				title: 'Empty Document',
+				created_at: '2023-01-01T10:00:00Z',
+				updated_at: '2023-01-01T10:00:00Z',
+				user_id: 'user-123',
+				notes_plain: '',
+				notes_markdown: '',
+				notes: { type: 'doc', content: [] },
+				last_viewed_panel: { content: { type: 'doc', content: [] } },
+			};
+
+			const emptyMetadata: DocumentDisplayMetadata = {
+				id: 'empty-doc',
+				title: 'Empty Document',
+				createdDate: '2023-01-01',
+				updatedDate: '2023-01-01',
+				createdAgo: '1 day ago',
+				updatedAgo: '1 day ago',
+				preview: 'No content available',
+				wordCount: 0,
+				readingTime: 1,
+				importStatus: { status: 'NEW', reason: 'New document', requiresUserChoice: false },
+				visible: true,
+				selected: true,
+			};
+
+			const result = await importManager.importDocuments(
+				[emptyMetadata],
+				[emptyDocument],
+				defaultOptions
+			);
+
+			expect(result.total).toBe(1);
+			expect(result.skipped).toBe(1);
+			expect(result.completed).toBe(0);
+			expect(result.failed).toBe(0);
+
+			// Verify the document progress shows it was skipped for being empty
+			const docProgress = importManager.getDocumentProgress('empty-doc');
+			expect(docProgress?.status).toBe('skipped');
+			expect(docProgress?.message).toContain('empty document');
+		});
+
+		it('should import empty documents when setting is disabled', async () => {
+			// Create import manager with skipEmptyDocuments disabled
+			const settingsWithoutFiltering = { import: { skipEmptyDocuments: false } } as any;
+			const importManagerNoFiltering = new SelectiveImportManager(
+				mockApp, 
+				mockVault, 
+				mockConverter, 
+				mockLogger, 
+				settingsWithoutFiltering
+			);
+
+			const emptyDocument: GranolaDocument = {
+				id: 'empty-doc-2',
+				title: 'Empty Document 2',
+				created_at: '2023-01-01T10:00:00Z',
+				updated_at: '2023-01-01T10:00:00Z',
+				user_id: 'user-123',
+				notes_plain: '',
+				notes_markdown: '',
+				notes: { type: 'doc', content: [] },
+				last_viewed_panel: { content: { type: 'doc', content: [] } },
+			};
+
+			const emptyMetadata: DocumentDisplayMetadata = {
+				id: 'empty-doc-2',
+				title: 'Empty Document 2',
+				createdDate: '2023-01-01',
+				updatedDate: '2023-01-01',
+				createdAgo: '1 day ago',
+				updatedAgo: '1 day ago',
+				preview: 'No content available',
+				wordCount: 0,
+				readingTime: 1,
+				importStatus: { status: 'NEW', reason: 'New document', requiresUserChoice: false },
+				visible: true,
+				selected: true,
+			};
+
+			const result = await importManagerNoFiltering.importDocuments(
+				[emptyMetadata],
+				[emptyDocument],
+				defaultOptions
+			);
+
+			expect(result.total).toBe(1);
+			expect(result.skipped).toBe(0);
+			expect(result.completed).toBe(1);
 			expect(result.failed).toBe(0);
 		});
 	});

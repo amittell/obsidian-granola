@@ -2,11 +2,9 @@ import {
 	LogLevel,
 	ImportStrategy,
 	DatePrefixFormat,
-	ContentPriority,
 	GranolaSettings,
 	Logger,
-	DEFAULT_SETTINGS,
-} from '../../src/types';
+	DEFAULT_SETTINGS} from '../../src/types';
 import { GranolaSettingTab } from '../../src/settings';
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import GranolaImporterPlugin from '../../main';
@@ -17,8 +15,7 @@ const globalCallbacks = {
 	dropdownCallbacks: [] as Array<(value: string) => Promise<void>>,
 	toggleCallbacks: [] as Array<(value: boolean) => Promise<void>>,
 	textCallbacks: [] as Array<(value: string) => Promise<void>>,
-	buttonCallbacks: [] as Array<() => Promise<void>>,
-};
+	buttonCallbacks: [] as Array<() => Promise<void>>};
 
 // Mock the Setting class globally with our robust UI mock
 jest.mock('obsidian', () => ({
@@ -29,70 +26,63 @@ jest.mock('obsidian', () => ({
 			setDesc: jest.fn().mockReturnThis(),
 			addSlider: jest.fn().mockImplementation(builderFn => {
 				const mockSlider = {
-					setLimits: jest.fn().mockReturnThis(),
-					setValue: jest.fn().mockReturnThis(),
-					setDynamicTooltip: jest.fn().mockReturnThis(),
-					onChange: jest.fn().mockImplementation(callback => {
-						globalCallbacks.sliderCallbacks.push(callback);
-						return mockSlider;
-					}),
-				};
+		setLimits: jest.fn().mockReturnThis(),
+		setValue: jest.fn().mockReturnThis(),
+		setDynamicTooltip: jest.fn().mockReturnThis(),
+		onChange: jest.fn().mockImplementation(callback => {
+		globalCallbacks.sliderCallbacks.push(callback);
+		return mockSlider;
+		})};
 				builderFn(mockSlider);
 				return settingInstance;
 			}),
 			addDropdown: jest.fn().mockImplementation(builderFn => {
 				const mockDropdown = {
-					addOption: jest.fn().mockReturnThis(),
-					setValue: jest.fn().mockReturnThis(),
-					onChange: jest.fn().mockImplementation(callback => {
-						globalCallbacks.dropdownCallbacks.push(callback);
-						return mockDropdown;
-					}),
-				};
+		addOption: jest.fn().mockReturnThis(),
+		setValue: jest.fn().mockReturnThis(),
+		onChange: jest.fn().mockImplementation(callback => {
+		globalCallbacks.dropdownCallbacks.push(callback);
+		return mockDropdown;
+		})};
 				builderFn(mockDropdown);
 				return settingInstance;
 			}),
 			addToggle: jest.fn().mockImplementation(builderFn => {
 				const mockToggle = {
-					setValue: jest.fn().mockReturnThis(),
-					onChange: jest.fn().mockImplementation(callback => {
-						globalCallbacks.toggleCallbacks.push(callback);
-						return mockToggle;
-					}),
-				};
+		setValue: jest.fn().mockReturnThis(),
+		onChange: jest.fn().mockImplementation(callback => {
+		globalCallbacks.toggleCallbacks.push(callback);
+		return mockToggle;
+		})};
 				builderFn(mockToggle);
 				return settingInstance;
 			}),
 			addText: jest.fn().mockImplementation(builderFn => {
 				const mockText = {
-					setPlaceholder: jest.fn().mockReturnThis(),
-					setValue: jest.fn().mockReturnThis(),
-					onChange: jest.fn().mockImplementation(callback => {
-						globalCallbacks.textCallbacks.push(callback);
-						return mockText;
-					}),
-				};
+		setPlaceholder: jest.fn().mockReturnThis(),
+		setValue: jest.fn().mockReturnThis(),
+		onChange: jest.fn().mockImplementation(callback => {
+		globalCallbacks.textCallbacks.push(callback);
+		return mockText;
+		})};
 				builderFn(mockText);
 				return settingInstance;
 			}),
 			addButton: jest.fn().mockImplementation(builderFn => {
 				const mockButton = {
-					setButtonText: jest.fn().mockReturnThis(),
-					setCta: jest.fn().mockReturnThis(),
-					onClick: jest.fn().mockImplementation(callback => {
-						globalCallbacks.buttonCallbacks.push(callback);
-						return mockButton;
-					}),
-				};
+		setButtonText: jest.fn().mockReturnThis(),
+		setCta: jest.fn().mockReturnThis(),
+		onClick: jest.fn().mockImplementation(callback => {
+		globalCallbacks.buttonCallbacks.push(callback);
+		return mockButton;
+		})};
 				builderFn(mockButton);
 				return settingInstance;
-			}),
-		};
+			})};
 		return settingInstance;
 	}),
 	App: jest.fn(),
-	PluginSettingTab: jest.fn(),
-}));
+	PluginSettingTab: jest.fn()}));
 
 // Access callbacks from global mock
 const callbacks = globalCallbacks;
@@ -116,8 +106,8 @@ describe('Settings Module', () => {
 			const logLevels = Object.values(LogLevel).filter(v => typeof v === 'number');
 			expect(logLevels).toHaveLength(4);
 			expect(logLevels).toEqual([0, 1, 2, 3]);
+			});
 		});
-	});
 
 	describe('ImportStrategy enum', () => {
 		it('should have correct string values', () => {
@@ -179,128 +169,67 @@ describe('Settings Module', () => {
 		});
 	});
 
-	describe('ContentPriority enum', () => {
-		it('should have correct priority values', () => {
-			expect(ContentPriority.PANEL_FIRST).toBe('panel_first');
-			expect(ContentPriority.NOTES_FIRST).toBe('notes_first');
-			expect(ContentPriority.PANEL_ONLY).toBe('panel_only');
-			expect(ContentPriority.NOTES_ONLY).toBe('notes_only');
-		});
-
-		it('should have all expected priorities', () => {
-			const priorities = Object.values(ContentPriority);
-			expect(priorities).toContain('panel_first');
-			expect(priorities).toContain('notes_first');
-			expect(priorities).toContain('panel_only');
-			expect(priorities).toContain('notes_only');
-			expect(priorities).toHaveLength(4);
-		});
-
-		it('should be valid priority identifiers', () => {
-			Object.values(ContentPriority).forEach(priority => {
-				expect(typeof priority).toBe('string');
-				expect(priority.length).toBeGreaterThan(0);
-				expect(/^[a-z_]+$/.test(priority)).toBe(true);
-			});
-		});
-	});
-
 	describe('GranolaSettings interface structure', () => {
 		let validSettings: GranolaSettings;
 
 		beforeEach(() => {
 			validSettings = {
 				debug: {
-					enabled: false,
-					logLevel: LogLevel.INFO,
-					saveToFile: false,
+		enabled: false,
+		logLevel: LogLevel.INFO
 				},
 				import: {
-					strategy: ImportStrategy.SKIP_EXISTING,
-					defaultFolder: '',
-					createFolders: true,
-					maxFilenameLength: 100,
+		strategy: ImportStrategy.SKIP_EXISTING,
+		defaultFolder: ''
 				},
 				content: {
-					datePrefixFormat: DatePrefixFormat.ISO_DATE,
-					contentPriority: ContentPriority.PANEL_FIRST,
-					includeMetadata: true,
-					customFrontmatter: [],
+		datePrefixFormat: DatePrefixFormat.ISO_DATE
 				},
 				ui: {
-					autoCloseModal: false,
-					showProgressNotifications: true,
-					selectAllByDefault: false,
+		showProgressNotifications: true
 				},
 				connection: {
-					lastValidated: 0,
-					isConnected: false,
-					timeoutMs: 30000,
-				},
-			};
+		lastValidated: 0,
+		isConnected: false,
+		timeoutMs: 30000}};
 		});
 
 		it('should accept valid debug settings', () => {
 			expect(validSettings.debug.enabled).toBe(false);
 			expect(validSettings.debug.logLevel).toBe(LogLevel.INFO);
-			expect(validSettings.debug.saveToFile).toBe(false);
-
+			
 			// Test with different values
 			validSettings.debug.enabled = true;
 			validSettings.debug.logLevel = LogLevel.DEBUG;
-			validSettings.debug.saveToFile = true;
-
 			expect(validSettings.debug.enabled).toBe(true);
 			expect(validSettings.debug.logLevel).toBe(LogLevel.DEBUG);
-			expect(validSettings.debug.saveToFile).toBe(true);
 		});
 
 		it('should accept valid import settings', () => {
 			expect(validSettings.import.strategy).toBe(ImportStrategy.SKIP_EXISTING);
 			expect(validSettings.import.defaultFolder).toBe('');
-			expect(validSettings.import.createFolders).toBe(true);
-			expect(validSettings.import.maxFilenameLength).toBe(100);
-
+		
 			// Test with different values
 			validSettings.import.strategy = ImportStrategy.UPDATE_EXISTING;
 			validSettings.import.defaultFolder = 'Granola Notes';
-			validSettings.import.createFolders = false;
-			validSettings.import.maxFilenameLength = 200;
-
 			expect(validSettings.import.strategy).toBe(ImportStrategy.UPDATE_EXISTING);
 			expect(validSettings.import.defaultFolder).toBe('Granola Notes');
-			expect(validSettings.import.createFolders).toBe(false);
-			expect(validSettings.import.maxFilenameLength).toBe(200);
 		});
 
 		it('should accept valid content settings', () => {
 			expect(validSettings.content.datePrefixFormat).toBe(DatePrefixFormat.ISO_DATE);
-			expect(validSettings.content.contentPriority).toBe(ContentPriority.PANEL_FIRST);
-			expect(validSettings.content.includeMetadata).toBe(true);
-			expect(validSettings.content.customFrontmatter).toEqual([]);
-
 			// Test with different values
 			validSettings.content.datePrefixFormat = DatePrefixFormat.US_DATE;
-			validSettings.content.contentPriority = ContentPriority.NOTES_ONLY;
-			validSettings.content.includeMetadata = false;
-			validSettings.content.customFrontmatter = ['tags', 'category'];
-
 			expect(validSettings.content.datePrefixFormat).toBe(DatePrefixFormat.US_DATE);
-			expect(validSettings.content.contentPriority).toBe(ContentPriority.NOTES_ONLY);
-			expect(validSettings.content.includeMetadata).toBe(false);
-			expect(validSettings.content.customFrontmatter).toEqual(['tags', 'category']);
-		});
+			});
 
 		it('should accept valid UI settings', () => {
-			expect(validSettings.ui.autoCloseModal).toBe(false);
-			expect(validSettings.ui.showProgressNotifications).toBe(true);
+		expect(validSettings.ui.showProgressNotifications).toBe(true);
 
 			// Test with different values
-			validSettings.ui.autoCloseModal = true;
 			validSettings.ui.showProgressNotifications = false;
 
-			expect(validSettings.ui.autoCloseModal).toBe(true);
-			expect(validSettings.ui.showProgressNotifications).toBe(false);
+		expect(validSettings.ui.showProgressNotifications).toBe(false);
 		});
 
 		it('should support all enum combinations', () => {
@@ -308,8 +237,8 @@ describe('Settings Module', () => {
 			Object.values(LogLevel)
 				.filter(v => typeof v === 'number')
 				.forEach(level => {
-					validSettings.debug.logLevel = level as LogLevel;
-					expect(validSettings.debug.logLevel).toBe(level);
+		validSettings.debug.logLevel = level as LogLevel;
+		expect(validSettings.debug.logLevel).toBe(level);
 				});
 
 			// Test all ImportStrategy values
@@ -322,30 +251,6 @@ describe('Settings Module', () => {
 			Object.values(DatePrefixFormat).forEach(format => {
 				validSettings.content.datePrefixFormat = format;
 				expect(validSettings.content.datePrefixFormat).toBe(format);
-			});
-
-			// Test all ContentPriority values
-			Object.values(ContentPriority).forEach(priority => {
-				validSettings.content.contentPriority = priority;
-				expect(validSettings.content.contentPriority).toBe(priority);
-			});
-		});
-
-		it('should support custom frontmatter arrays', () => {
-			const customFields = ['author', 'source', 'tags', 'category', 'project'];
-			validSettings.content.customFrontmatter = customFields;
-
-			expect(validSettings.content.customFrontmatter).toEqual(customFields);
-			expect(validSettings.content.customFrontmatter).toHaveLength(5);
-		});
-
-		it('should support reasonable filename length limits', () => {
-			const testLengths = [50, 100, 150, 200, 255];
-
-			testLengths.forEach(length => {
-				validSettings.import.maxFilenameLength = length;
-				expect(validSettings.import.maxFilenameLength).toBe(length);
-				expect(validSettings.import.maxFilenameLength).toBeGreaterThan(0);
 			});
 		});
 
@@ -397,17 +302,7 @@ describe('Settings Module', () => {
 			// Test invalid values
 			expect(Object.values(DatePrefixFormat)).not.toContain('invalid');
 			expect(Object.values(DatePrefixFormat)).not.toContain('DD/MM/YYYY');
-		});
-
-		it('should validate ContentPriority values', () => {
-			const validPriorities = ['panel_first', 'notes_first', 'panel_only', 'notes_only'];
-			validPriorities.forEach(priority => {
-				expect(Object.values(ContentPriority)).toContain(priority);
 			});
-
-			// Test invalid values
-			expect(Object.values(ContentPriority)).not.toContain('invalid');
-			expect(Object.values(ContentPriority)).not.toContain('markdown_first');
 		});
 	});
 
@@ -415,98 +310,67 @@ describe('Settings Module', () => {
 		it('should support reasonable default values', () => {
 			const defaultSettings: GranolaSettings = {
 				debug: {
-					enabled: false,
-					logLevel: LogLevel.WARN,
-					saveToFile: false,
+		enabled: false,
+		logLevel: LogLevel.WARN
 				},
 				import: {
-					strategy: ImportStrategy.SKIP_EXISTING,
-					defaultFolder: '',
-					createFolders: true,
-					maxFilenameLength: 100,
+		strategy: ImportStrategy.SKIP_EXISTING,
+		defaultFolder: ''
 				},
 				content: {
-					datePrefixFormat: DatePrefixFormat.ISO_DATE,
-					contentPriority: ContentPriority.PANEL_FIRST,
-					includeMetadata: true,
-					customFrontmatter: [],
+		datePrefixFormat: DatePrefixFormat.ISO_DATE
 				},
 				ui: {
-					autoCloseModal: false,
-					showProgressNotifications: true,
-					selectAllByDefault: false,
+		showProgressNotifications: true
 				},
 				connection: {
-					lastValidated: 0,
-					isConnected: false,
-					timeoutMs: 30000,
-				},
-			};
+		lastValidated: 0,
+		isConnected: false,
+		timeoutMs: 30000}};
 
 			// Verify all defaults are reasonable
 			expect(defaultSettings.debug.enabled).toBe(false);
 			expect(defaultSettings.debug.logLevel).toBe(LogLevel.WARN);
 			expect(defaultSettings.import.strategy).toBe(ImportStrategy.SKIP_EXISTING);
-			expect(defaultSettings.import.maxFilenameLength).toBeGreaterThan(0);
-			expect(defaultSettings.content.datePrefixFormat).toBe(DatePrefixFormat.ISO_DATE);
-			expect(defaultSettings.content.includeMetadata).toBe(true);
-			expect(defaultSettings.ui.showProgressNotifications).toBe(true);
+						expect(defaultSettings.content.datePrefixFormat).toBe(DatePrefixFormat.ISO_DATE);
+		expect(defaultSettings.ui.showProgressNotifications).toBe(true);
 		});
 
 		it('should support edge case configurations', () => {
 			const edgeCaseSettings: GranolaSettings = {
 				debug: {
-					enabled: true,
-					logLevel: LogLevel.DEBUG,
-					saveToFile: true,
+		enabled: true,
+		logLevel: LogLevel.DEBUG
 				},
 				import: {
-					strategy: ImportStrategy.ALWAYS_PROMPT,
-					defaultFolder: 'Very/Deep/Nested/Folder/Structure',
-					createFolders: false,
-					maxFilenameLength: 255,
+		strategy: ImportStrategy.ALWAYS_PROMPT,
+		defaultFolder: 'Very/Deep/Nested/Folder/Structure'
 				},
 				content: {
-					datePrefixFormat: DatePrefixFormat.NONE,
-					contentPriority: ContentPriority.NOTES_ONLY,
-					includeMetadata: false,
-					customFrontmatter: ['field1', 'field2', 'field3', 'field4', 'field5'],
+		datePrefixFormat: DatePrefixFormat.NONE
 				},
 				ui: {
-					autoCloseModal: true,
-					showProgressNotifications: false,
-					selectAllByDefault: true,
-				},
-			};
+		showProgressNotifications: false
+				}};
 
 			// Verify edge cases work
 			expect(edgeCaseSettings.debug.enabled).toBe(true);
 			expect(edgeCaseSettings.import.defaultFolder).toContain('/');
-			expect(edgeCaseSettings.import.maxFilenameLength).toBe(255);
-			expect(edgeCaseSettings.content.customFrontmatter).toHaveLength(5);
+			});
 		});
-	});
 
 	describe('DEFAULT_SETTINGS', () => {
 		it('should have reasonable default values', () => {
 			expect(DEFAULT_SETTINGS.debug.enabled).toBe(false);
 			expect(DEFAULT_SETTINGS.debug.logLevel).toBe(LogLevel.WARN);
-			expect(DEFAULT_SETTINGS.debug.saveToFile).toBe(false);
-
+			
 			expect(DEFAULT_SETTINGS.import.strategy).toBe(ImportStrategy.ALWAYS_PROMPT);
 			expect(DEFAULT_SETTINGS.import.defaultFolder).toBe('');
-			expect(DEFAULT_SETTINGS.import.createFolders).toBe(true);
-			expect(DEFAULT_SETTINGS.import.maxFilenameLength).toBe(100);
-
+		
 			expect(DEFAULT_SETTINGS.content.datePrefixFormat).toBe(DatePrefixFormat.ISO_DATE);
-			expect(DEFAULT_SETTINGS.content.contentPriority).toBe(ContentPriority.PANEL_FIRST);
-			expect(DEFAULT_SETTINGS.content.includeMetadata).toBe(true);
-			expect(DEFAULT_SETTINGS.content.customFrontmatter).toEqual([]);
-
-			expect(DEFAULT_SETTINGS.ui.autoCloseModal).toBe(false);
-			expect(DEFAULT_SETTINGS.ui.showProgressNotifications).toBe(true);
-			expect(DEFAULT_SETTINGS.ui.selectAllByDefault).toBe(false);
-
+		
+		expect(DEFAULT_SETTINGS.ui.showProgressNotifications).toBe(true);
+			
 			expect(DEFAULT_SETTINGS.connection.lastValidated).toBe(0);
 			expect(DEFAULT_SETTINGS.connection.isConnected).toBe(false);
 			expect(DEFAULT_SETTINGS.connection.timeoutMs).toBe(30000);
@@ -524,11 +388,8 @@ describe('Settings Module', () => {
 			expect(Object.values(DatePrefixFormat)).toContain(
 				DEFAULT_SETTINGS.content.datePrefixFormat
 			);
-			expect(Object.values(ContentPriority)).toContain(
-				DEFAULT_SETTINGS.content.contentPriority
-			);
+			});
 		});
-	});
 
 	describe('Logger class', () => {
 		let logger: Logger;
@@ -541,33 +402,23 @@ describe('Settings Module', () => {
 		beforeEach(() => {
 			testSettings = {
 				debug: {
-					enabled: false,
-					logLevel: LogLevel.WARN,
-					saveToFile: false,
+		enabled: false,
+		logLevel: LogLevel.WARN
 				},
 				import: {
-					strategy: ImportStrategy.SKIP_EXISTING,
-					defaultFolder: '',
-					createFolders: true,
-					maxFilenameLength: 100,
+		strategy: ImportStrategy.SKIP_EXISTING,
+		defaultFolder: ''
 				},
 				content: {
-					datePrefixFormat: DatePrefixFormat.ISO_DATE,
-					contentPriority: ContentPriority.PANEL_FIRST,
-					includeMetadata: true,
-					customFrontmatter: [],
+		datePrefixFormat: DatePrefixFormat.ISO_DATE
 				},
 				ui: {
-					autoCloseModal: false,
-					showProgressNotifications: true,
-					selectAllByDefault: false,
+		showProgressNotifications: true
 				},
 				connection: {
-					lastValidated: 0,
-					isConnected: false,
-					timeoutMs: 30000,
-				},
-			};
+		lastValidated: 0,
+		isConnected: false,
+		timeoutMs: 30000}};
 
 			logger = new Logger(testSettings);
 
@@ -617,9 +468,9 @@ describe('Settings Module', () => {
 				logger.error('Test error message', 'extra', 'args');
 
 				expect(consoleErrorSpy).toHaveBeenCalledWith(
-					'[Granola Importer] Test error message',
-					'extra',
-					'args'
+		'[Granola Importer] Test error message',
+		'extra',
+		'args'
 				);
 			});
 
@@ -641,8 +492,8 @@ describe('Settings Module', () => {
 				logger.warn('Test warning message', { detail: 'object' });
 
 				expect(consoleWarnSpy).toHaveBeenCalledWith(
-					'[Granola Importer] Test warning message',
-					{ detail: 'object' }
+		'[Granola Importer] Test warning message',
+		{ detail: 'object' }
 				);
 			});
 
@@ -664,9 +515,9 @@ describe('Settings Module', () => {
 				logger.info('Test info message', 123, true);
 
 				expect(consoleInfoSpy).toHaveBeenCalledWith(
-					'[Granola Importer] Test info message',
-					123,
-					true
+		'[Granola Importer] Test info message',
+		123,
+		true
 				);
 			});
 
@@ -689,8 +540,8 @@ describe('Settings Module', () => {
 				logger.debug('Test debug message', ['array', 'data']);
 
 				expect(consoleLogSpy).toHaveBeenCalledWith(
-					'[Granola Importer Debug] Test debug message',
-					['array', 'data']
+		'[Granola Importer Debug] Test debug message',
+		['array', 'data']
 				);
 			});
 
@@ -702,7 +553,7 @@ describe('Settings Module', () => {
 				logger.debug('Test debug message');
 
 				expect(consoleLogSpy).toHaveBeenCalledWith(
-					'[Granola Importer Debug] Test debug message'
+		'[Granola Importer Debug] Test debug message'
 				);
 			});
 
@@ -714,36 +565,36 @@ describe('Settings Module', () => {
 				logger.debug('Test debug message');
 
 				expect(consoleLogSpy).toHaveBeenCalledWith(
-					'[Granola Importer Debug] Test debug message'
+		'[Granola Importer Debug] Test debug message'
 				);
 			});
 
 			it('should log debug messages when debug enabled OR log level is DEBUG', () => {
 				// Test all combinations with new OR logic
 				const testCases = [
-					{ enabled: false, logLevel: LogLevel.DEBUG, shouldLog: true },
-					{ enabled: true, logLevel: LogLevel.INFO, shouldLog: true },
-					{ enabled: false, logLevel: LogLevel.INFO, shouldLog: false },
-					{ enabled: true, logLevel: LogLevel.DEBUG, shouldLog: true },
+		{ enabled: false, logLevel: LogLevel.DEBUG, shouldLog: true },
+		{ enabled: true, logLevel: LogLevel.INFO, shouldLog: true },
+		{ enabled: false, logLevel: LogLevel.INFO, shouldLog: false },
+		{ enabled: true, logLevel: LogLevel.DEBUG, shouldLog: true },
 				];
 
 				testCases.forEach(({ enabled, logLevel, shouldLog }, index) => {
-					consoleLogSpy.mockClear();
-					testSettings.debug.enabled = enabled;
-					testSettings.debug.logLevel = logLevel;
-					logger.updateSettings(testSettings);
+		consoleLogSpy.mockClear();
+		testSettings.debug.enabled = enabled;
+		testSettings.debug.logLevel = logLevel;
+		logger.updateSettings(testSettings);
 
-					logger.debug(`Test message ${index}`);
+		logger.debug(`Test message ${index}`);
 
-					if (shouldLog) {
-						expect(consoleLogSpy).toHaveBeenCalledWith(
-							`[Granola Importer Debug] Test message ${index}`
-						);
-					} else {
-						expect(consoleLogSpy).not.toHaveBeenCalled();
-					}
-				});
+		if (shouldLog) {
+		expect(consoleLogSpy).toHaveBeenCalledWith(
+		`[Granola Importer Debug] Test message ${index}`
+		);
+		} else {
+		expect(consoleLogSpy).not.toHaveBeenCalled();
+		}
 			});
+		});
 		});
 
 		describe('log level hierarchy', () => {
@@ -791,15 +642,11 @@ describe('Settings Module', () => {
 				settings: DEFAULT_SETTINGS,
 				saveSettings: jest.fn().mockResolvedValue(undefined),
 				auth: {
-					loadCredentials: jest.fn().mockResolvedValue(undefined),
-				},
+		loadCredentials: jest.fn().mockResolvedValue(undefined)},
 				api: {
-					getDocuments: jest.fn().mockResolvedValue({ docs: [] }),
-				},
+		getDocuments: jest.fn().mockResolvedValue({ docs: [] })},
 				logger: {
-					updateSettings: jest.fn(),
-				},
-			} as unknown as GranolaImporterPlugin;
+		updateSettings: jest.fn()}} as unknown as GranolaImporterPlugin;
 
 			// Mock containerEl with all needed methods
 			mockContainerEl = {
@@ -808,8 +655,7 @@ describe('Settings Module', () => {
 				createDiv: jest.fn().mockReturnThis(),
 				addClass: jest.fn().mockReturnThis(),
 				appendChild: jest.fn(),
-				addEventListener: jest.fn(),
-			};
+				addEventListener: jest.fn()};
 
 			settingTab = new GranolaSettingTab(mockApp, mockPlugin);
 			settingTab.containerEl = mockContainerEl;
@@ -854,10 +700,9 @@ describe('Settings Module', () => {
 
 			it('should call updateConnectionStatus without errors', () => {
 				const mockStatusEl = {
-					innerHTML: '',
-				};
+		innerHTML: ''};
 				expect(() =>
-					(settingTab as any).updateConnectionStatus(mockStatusEl)
+		(settingTab as any).updateConnectionStatus(mockStatusEl)
 				).not.toThrow();
 			});
 		});
@@ -931,244 +776,164 @@ describe('Settings Module', () => {
 
 			describe('addConnectionSection method', () => {
 				it('should create connection settings with test button', () => {
-					(settingTab as any).addConnectionSection();
+		(settingTab as any).addConnectionSection();
 
-					expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-						text: 'Connection & Validation',
-					});
-					expect(Setting).toHaveBeenCalledWith(mockContainerEl);
-					// Button callback should be captured
-					expect(callbacks.buttonCallbacks.length).toBeGreaterThan(0);
-				});
-
-				it('should create API timeout slider with correct limits', () => {
-					(settingTab as any).addConnectionSection();
-
-					// Slider callback should be captured
-					expect(callbacks.sliderCallbacks.length).toBeGreaterThan(0);
+		expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
+		text: 'Connection & Validation'});
+		expect(Setting).toHaveBeenCalledWith(mockContainerEl);
+		// Button callback should be captured
+		expect(callbacks.buttonCallbacks.length).toBeGreaterThan(0);
 				});
 
 				it('should handle button click for connection test', async () => {
-					const mockStatusEl = { innerHTML: '' };
-					mockContainerEl.createDiv.mockReturnValue(mockStatusEl);
+		const mockStatusEl = { innerHTML: '' };
+		mockContainerEl.createDiv.mockReturnValue(mockStatusEl);
 
-					(settingTab as any).addConnectionSection();
+		(settingTab as any).addConnectionSection();
 
-					// Get the button callback and execute it
-					expect(callbacks.buttonCallbacks.length).toBeGreaterThan(0);
-					await callbacks.buttonCallbacks[0]();
+		// Get the button callback and execute it
+		expect(callbacks.buttonCallbacks.length).toBeGreaterThan(0);
+		await callbacks.buttonCallbacks[0]();
 
-					expect(mockPlugin.auth.loadCredentials).toHaveBeenCalled();
-				});
-
-				it('should handle slider change for timeout setting', async () => {
-					(settingTab as any).addConnectionSection();
-
-					// Get the slider callback and test it
-					expect(callbacks.sliderCallbacks.length).toBeGreaterThan(0);
-					await callbacks.sliderCallbacks[0](60);
-
-					expect(mockPlugin.settings.connection.timeoutMs).toBe(60000);
-					expect(mockPlugin.saveSettings).toHaveBeenCalled();
-				});
+		expect(mockPlugin.auth.loadCredentials).toHaveBeenCalled();
 			});
+		});
 
 			describe('addDebugSection method', () => {
 				it('should create debug settings with toggle and dropdown', () => {
-					(settingTab as any).addDebugSection();
+		(settingTab as any).addDebugSection();
 
-					expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-						text: 'Debug & Logging',
-					});
-					// Should have captured toggle and dropdown callbacks
-					expect(callbacks.toggleCallbacks.length).toBeGreaterThan(0);
-					expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
+		expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
+		text: 'Debug & Logging'});
+		// Should have captured toggle and dropdown callbacks
+		expect(callbacks.toggleCallbacks.length).toBeGreaterThan(0);
+		expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
 				});
 
 				it('should handle debug toggle change', async () => {
-					(settingTab as any).addDebugSection();
+		(settingTab as any).addDebugSection();
 
-					// Get the toggle callback and test it
-					expect(callbacks.toggleCallbacks.length).toBeGreaterThan(0);
-					await callbacks.toggleCallbacks[0](true);
+		// Get the toggle callback and test it
+		expect(callbacks.toggleCallbacks.length).toBeGreaterThan(0);
+		await callbacks.toggleCallbacks[0](true);
 
-					expect(mockPlugin.settings.debug.enabled).toBe(true);
-					expect(mockPlugin.logger.updateSettings).toHaveBeenCalledWith(
-						mockPlugin.settings
-					);
-					expect(mockPlugin.saveSettings).toHaveBeenCalled();
+		expect(mockPlugin.settings.debug.enabled).toBe(true);
+		expect(mockPlugin.logger.updateSettings).toHaveBeenCalledWith(
+		mockPlugin.settings
+		);
+		expect(mockPlugin.saveSettings).toHaveBeenCalled();
 				});
 
 				it('should handle log level dropdown change', async () => {
-					(settingTab as any).addDebugSection();
+		(settingTab as any).addDebugSection();
 
-					// Get the dropdown callback and test it
-					expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
-					await callbacks.dropdownCallbacks[0]('3');
+		// Get the dropdown callback and test it
+		expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
+		await callbacks.dropdownCallbacks[0]('3');
 
-					expect(mockPlugin.settings.debug.logLevel).toBe(3);
-					expect(mockPlugin.logger.updateSettings).toHaveBeenCalledWith(
-						mockPlugin.settings
-					);
-					expect(mockPlugin.saveSettings).toHaveBeenCalled();
+		expect(mockPlugin.settings.debug.logLevel).toBe(3);
+		expect(mockPlugin.logger.updateSettings).toHaveBeenCalledWith(
+		mockPlugin.settings
+		);
+		expect(mockPlugin.saveSettings).toHaveBeenCalled();
 				});
 
 				it('should populate dropdown with all log levels', () => {
-					(settingTab as any).addDebugSection();
+		(settingTab as any).addDebugSection();
 
-					// Verify dropdown callback was captured
-					expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
-				});
+		// Verify dropdown callback was captured
+		expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
 			});
+		});
 
 			describe('addImportSection method', () => {
 				it('should create import settings with strategy dropdown', () => {
-					(settingTab as any).addImportSection();
+		(settingTab as any).addImportSection();
 
-					expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-						text: 'Import Behavior',
-					});
-					// Should have captured dropdown, text, and toggle callbacks
-					expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
-					expect(callbacks.textCallbacks.length).toBeGreaterThan(0);
-					expect(callbacks.toggleCallbacks.length).toBeGreaterThan(0);
+		expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
+		text: 'Import Behavior'});
+		// Should have captured dropdown and text callbacks
+		expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
+		expect(callbacks.textCallbacks.length).toBeGreaterThan(0);
 				});
 
 				it('should handle import strategy dropdown change', async () => {
-					(settingTab as any).addImportSection();
+		(settingTab as any).addImportSection();
 
-					// Get the dropdown callback and test it
-					expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
-					await callbacks.dropdownCallbacks[0]('update_existing');
+		// Get the dropdown callback and test it
+		expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
+		await callbacks.dropdownCallbacks[0]('update_existing');
 
-					expect(mockPlugin.settings.import.strategy).toBe('update_existing');
-					expect(mockPlugin.saveSettings).toHaveBeenCalled();
+		expect(mockPlugin.settings.import.strategy).toBe('update_existing');
+		expect(mockPlugin.saveSettings).toHaveBeenCalled();
 				});
 
 				it('should handle folder text input change', async () => {
-					(settingTab as any).addImportSection();
+		(settingTab as any).addImportSection();
 
-					// Get the text callback and test it
-					expect(callbacks.textCallbacks.length).toBeGreaterThan(0);
-					await callbacks.textCallbacks[0]('My Folder');
+		// Get the text callback and test it
+		expect(callbacks.textCallbacks.length).toBeGreaterThan(0);
+		await callbacks.textCallbacks[0]('My Folder');
 
-					expect(mockPlugin.settings.import.defaultFolder).toBe('My Folder');
-					expect(mockPlugin.saveSettings).toHaveBeenCalled();
-				});
-
-				it('should handle create folders toggle change', async () => {
-					(settingTab as any).addImportSection();
-
-					// Get the toggle callback and test it
-					expect(callbacks.toggleCallbacks.length).toBeGreaterThan(0);
-					await callbacks.toggleCallbacks[0](false);
-
-					expect(mockPlugin.settings.import.createFolders).toBe(false);
-					expect(mockPlugin.saveSettings).toHaveBeenCalled();
-				});
+		expect(mockPlugin.settings.import.defaultFolder).toBe('My Folder');
+		expect(mockPlugin.saveSettings).toHaveBeenCalled();
 			});
+		});
 
 			describe('addContentSection method', () => {
 				it('should create content settings with all controls', () => {
-					(settingTab as any).addContentSection();
+		(settingTab as any).addContentSection();
 
-					expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-						text: 'Content Processing',
-					});
-					// Should have captured dropdown, toggle, and slider callbacks
-					expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
-					expect(callbacks.toggleCallbacks.length).toBeGreaterThan(0);
-					expect(callbacks.sliderCallbacks.length).toBeGreaterThan(0);
+		expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
+		text: 'Content Processing'});
+		// Should have captured dropdown, toggle, and slider callbacks
+		expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
+		expect(callbacks.toggleCallbacks.length).toBeGreaterThan(0);
+		// No sliders in content section anymore
 				});
 
 				it('should handle date prefix format change', async () => {
-					(settingTab as any).addContentSection();
+		(settingTab as any).addContentSection();
 
-					// Get the first dropdown callback and test it
-					expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
-					await callbacks.dropdownCallbacks[0]('us_date');
+		// Get the first dropdown callback and test it
+		expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
+		await callbacks.dropdownCallbacks[0]('us_date');
 
-					expect(mockPlugin.settings.content.datePrefixFormat).toBe('us_date');
-					expect(mockPlugin.saveSettings).toHaveBeenCalled();
-				});
-
-				it('should handle content priority change', async () => {
-					(settingTab as any).addContentSection();
-
-					// Get the second dropdown callback and test it
-					expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(1);
-					await callbacks.dropdownCallbacks[1]('notes_first');
-
-					expect(mockPlugin.settings.content.contentPriority).toBe('notes_first');
-					expect(mockPlugin.saveSettings).toHaveBeenCalled();
+		expect(mockPlugin.settings.content.datePrefixFormat).toBe('us_date');
+		expect(mockPlugin.saveSettings).toHaveBeenCalled();
 				});
 
 				it('should handle enhanced frontmatter toggle', async () => {
-					(settingTab as any).addContentSection();
+		(settingTab as any).addContentSection();
 
-					// Get the toggle callback and test it
-					expect(callbacks.toggleCallbacks.length).toBeGreaterThan(0);
-					await callbacks.toggleCallbacks[0](true);
+		// Get the toggle callback and test it
+		expect(callbacks.toggleCallbacks.length).toBeGreaterThan(0);
+		await callbacks.toggleCallbacks[0](true);
 
-					expect(mockPlugin.settings.content.includeEnhancedFrontmatter).toBe(true);
-					expect(mockPlugin.saveSettings).toHaveBeenCalled();
-				});
-
-				it('should handle filename length slider change', async () => {
-					(settingTab as any).addContentSection();
-
-					// Get the slider callback and test it
-					expect(callbacks.sliderCallbacks.length).toBeGreaterThan(0);
-					await callbacks.sliderCallbacks[0](150);
-
-					expect(mockPlugin.settings.import.maxFilenameLength).toBe(150);
-					expect(mockPlugin.saveSettings).toHaveBeenCalled();
-				});
+		expect(mockPlugin.settings.content.includeEnhancedFrontmatter).toBe(true);
+		expect(mockPlugin.saveSettings).toHaveBeenCalled();
 			});
+		});
 
 			describe('addUISection method', () => {
 				it('should create UI settings with toggles', () => {
-					(settingTab as any).addUISection();
+		(settingTab as any).addUISection();
 
-					expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-						text: 'User Interface',
-					});
-					// Should have captured 3 toggle callbacks
-					expect(callbacks.toggleCallbacks.length).toBe(3);
-				});
-
-				it('should handle auto-close modal toggle', async () => {
-					(settingTab as any).addUISection();
-
-					// Get the first toggle callback and test it
-					expect(callbacks.toggleCallbacks.length).toBeGreaterThan(0);
-					await callbacks.toggleCallbacks[0](true);
-
-					expect(mockPlugin.settings.ui.autoCloseModal).toBe(true);
-					expect(mockPlugin.saveSettings).toHaveBeenCalled();
+		expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
+		text: 'User Interface'});
+		// Should have captured 3 toggle callbacks
+		expect(callbacks.toggleCallbacks.length).toBe(1);
 				});
 
 				it('should handle progress notifications toggle', async () => {
-					(settingTab as any).addUISection();
+		(settingTab as any).addUISection();
 
-					// Get the second toggle callback and test it
-					expect(callbacks.toggleCallbacks.length).toBeGreaterThan(1);
-					await callbacks.toggleCallbacks[1](false);
+		// Get the toggle callback and test it
+		expect(callbacks.toggleCallbacks.length).toBeGreaterThan(0);
+		await callbacks.toggleCallbacks[0](false);
 
-					expect(mockPlugin.settings.ui.showProgressNotifications).toBe(false);
-					expect(mockPlugin.saveSettings).toHaveBeenCalled();
-				});
-
-				it('should handle select all by default toggle', async () => {
-					(settingTab as any).addUISection();
-
-					// Get the third toggle callback and test it
-					expect(callbacks.toggleCallbacks.length).toBeGreaterThan(2);
-					await callbacks.toggleCallbacks[2](true);
-
-					expect(mockPlugin.settings.ui.selectAllByDefault).toBe(true);
-					expect(mockPlugin.saveSettings).toHaveBeenCalled();
-				});
+		expect(mockPlugin.settings.ui.showProgressNotifications).toBe(false);
+		expect(mockPlugin.saveSettings).toHaveBeenCalled();
 			});
 		});
 
@@ -1228,8 +993,8 @@ describe('Settings Module', () => {
 			it('should handle auth.loadCredentials failure', async () => {
 				const mockStatusEl = { innerHTML: '' };
 				mockPlugin.auth.loadCredentials = jest
-					.fn()
-					.mockRejectedValue(new Error('Auth failed'));
+		.fn()
+		.mockRejectedValue(new Error('Auth failed'));
 
 				await (settingTab as any).validateConnection(mockStatusEl);
 
@@ -1245,7 +1010,7 @@ describe('Settings Module', () => {
 				await (settingTab as any).validateConnection(mockStatusEl);
 
 				expect(mockPlugin.settings.connection.lastValidated).toBeGreaterThanOrEqual(
-					beforeTime
+		beforeTime
 				);
 			});
 
@@ -1255,26 +1020,12 @@ describe('Settings Module', () => {
 				mockPlugin.settings.connection = {} as any;
 
 				expect(() =>
-					(settingTab as any).updateConnectionStatus(mockStatusEl)
+		(settingTab as any).updateConnectionStatus(mockStatusEl)
 				).not.toThrow();
 				expect(mockStatusEl.innerHTML).toContain('Connection not tested');
 			});
 
-			it('should handle slider value conversion for timeout setting', async () => {
-				(settingTab as any).addConnectionSection();
-
-				// Should have captured at least one slider callback
-				expect(callbacks.sliderCallbacks.length).toBeGreaterThan(0);
-
-				// Test edge values using captured callback
-				await callbacks.sliderCallbacks[0](5); // Minimum
-				expect(mockPlugin.settings.connection.timeoutMs).toBe(5000);
-
-				await callbacks.sliderCallbacks[0](120); // Maximum
-				expect(mockPlugin.settings.connection.timeoutMs).toBe(120000);
-			});
-
-			it('should handle all enum values in dropdown changes', async () => {
+						it('should handle all enum values in dropdown changes', async () => {
 				(settingTab as any).addImportSection();
 
 				// Should have captured dropdown callback
@@ -1291,24 +1042,7 @@ describe('Settings Module', () => {
 				expect(mockPlugin.settings.import.strategy).toBe(ImportStrategy.ALWAYS_PROMPT);
 			});
 
-			it('should handle filename length slider with edge values', async () => {
-				(settingTab as any).addContentSection();
-
-				// Should have captured slider callback
-				expect(callbacks.sliderCallbacks.length).toBeGreaterThan(0);
-
-				// Test edge values using captured callback
-				await callbacks.sliderCallbacks[0](50); // Minimum
-				expect(mockPlugin.settings.import.maxFilenameLength).toBe(50);
-
-				await callbacks.sliderCallbacks[0](200); // Maximum
-				expect(mockPlugin.settings.import.maxFilenameLength).toBe(200);
-
-				await callbacks.sliderCallbacks[0](150); // Middle value
-				expect(mockPlugin.settings.import.maxFilenameLength).toBe(150);
-			});
-
-			it('should handle date format dropdown with all options', async () => {
+						it('should handle date format dropdown with all options', async () => {
 				(settingTab as any).addContentSection();
 
 				// Should have captured dropdown callback
@@ -1317,7 +1051,7 @@ describe('Settings Module', () => {
 				// Test all DatePrefixFormat values using captured callback
 				await callbacks.dropdownCallbacks[0](DatePrefixFormat.ISO_DATE);
 				expect(mockPlugin.settings.content.datePrefixFormat).toBe(
-					DatePrefixFormat.ISO_DATE
+		DatePrefixFormat.ISO_DATE
 				);
 
 				await callbacks.dropdownCallbacks[0](DatePrefixFormat.US_DATE);
@@ -1328,39 +1062,11 @@ describe('Settings Module', () => {
 
 				await callbacks.dropdownCallbacks[0](DatePrefixFormat.DOT_DATE);
 				expect(mockPlugin.settings.content.datePrefixFormat).toBe(
-					DatePrefixFormat.DOT_DATE
+		DatePrefixFormat.DOT_DATE
 				);
 
 				await callbacks.dropdownCallbacks[0](DatePrefixFormat.NONE);
 				expect(mockPlugin.settings.content.datePrefixFormat).toBe(DatePrefixFormat.NONE);
-			});
-
-			it('should handle content priority dropdown with all options', async () => {
-				(settingTab as any).addContentSection();
-
-				// Should have captured dropdown callback
-				expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
-
-				// Test all ContentPriority values using captured callback
-				await callbacks.dropdownCallbacks[1](ContentPriority.PANEL_FIRST);
-				expect(mockPlugin.settings.content.contentPriority).toBe(
-					ContentPriority.PANEL_FIRST
-				);
-
-				await callbacks.dropdownCallbacks[1](ContentPriority.NOTES_FIRST);
-				expect(mockPlugin.settings.content.contentPriority).toBe(
-					ContentPriority.NOTES_FIRST
-				);
-
-				await callbacks.dropdownCallbacks[1](ContentPriority.PANEL_ONLY);
-				expect(mockPlugin.settings.content.contentPriority).toBe(
-					ContentPriority.PANEL_ONLY
-				);
-
-				await callbacks.dropdownCallbacks[1](ContentPriority.NOTES_ONLY);
-				expect(mockPlugin.settings.content.contentPriority).toBe(
-					ContentPriority.NOTES_ONLY
-				);
 			});
 
 			it('should handle text input with various folder paths', async () => {
@@ -1381,7 +1087,7 @@ describe('Settings Module', () => {
 
 				await callbacks.textCallbacks[0]('Folder with spaces and-hyphens');
 				expect(mockPlugin.settings.import.defaultFolder).toBe(
-					'Folder with spaces and-hyphens'
+		'Folder with spaces and-hyphens'
 				);
 			});
 
@@ -1389,19 +1095,17 @@ describe('Settings Module', () => {
 				(settingTab as any).addUISection();
 
 				// Should have 3 toggle callbacks
-				expect(callbacks.toggleCallbacks).toHaveLength(3);
+				expect(callbacks.toggleCallbacks).toHaveLength(1);
 
 				// Test auto-close modal
 				await callbacks.toggleCallbacks[0](true);
-				expect(mockPlugin.settings.ui.autoCloseModal).toBe(true);
-
+				
 				// Test progress notifications
-				await callbacks.toggleCallbacks[1](false);
+				await callbacks.toggleCallbacks[0](false);
 				expect(mockPlugin.settings.ui.showProgressNotifications).toBe(false);
 
 				// Test select all by default
-				await callbacks.toggleCallbacks[2](true);
-				expect(mockPlugin.settings.ui.selectAllByDefault).toBe(true);
+				
 			});
 
 			it('should create proper section headers', () => {
@@ -1412,20 +1116,15 @@ describe('Settings Module', () => {
 				(settingTab as any).addUISection();
 
 				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-					text: 'Connection & Validation',
-				});
+		text: 'Connection & Validation'});
 				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-					text: 'Debug & Logging',
-				});
+		text: 'Debug & Logging'});
 				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-					text: 'Import Behavior',
-				});
+		text: 'Import Behavior'});
 				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-					text: 'Content Processing',
-				});
+		text: 'Content Processing'});
 				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-					text: 'User Interface',
-				});
+		text: 'User Interface'});
 			});
 		});
 	});

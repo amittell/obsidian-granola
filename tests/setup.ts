@@ -3,18 +3,9 @@ import { jest } from '@jest/globals';
 // Define development constants for test environment
 (global as any).__DEV__ = true;
 (global as any).DEBUG = true;
-(global as any).ENABLE_PERFORMANCE_MONITORING = true;
-(global as any).PERFORMANCE_MONITORING_ENABLED = true;
 
 // Enhanced DOM environment setup for complex UI testing
 import './helpers/dom-test-utils';
-
-// Mock performance monitoring completely in test environment
-jest.mock('../src/performance/performance-monitor', () =>
-	require('./__mocks__/performance-monitor')
-);
-jest.mock('../src/performance/performance-utils', () => require('./__mocks__/performance-utils'));
-jest.mock('../src/performance/index', () => require('./__mocks__/performance-monitor'));
 
 // Mock filesystem operations
 jest.mock('fs', () => ({

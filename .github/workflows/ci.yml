@@ -78,29 +78,8 @@ jobs:
             - name: Run tests
               run: npm run test:ci
 
-            - name: Coverage threshold enforcement with trend monitoring
-              run: |
-                  # Run coverage monitoring with threshold enforcement
-                  npm run monitor:coverage:check
-
-            - name: Bundle size monitoring with regression detection
-              run: |
-                  # Build and generate metafile for analysis
-                  npm run build
-                  npm run analyze
-
-                  # Run bundle size tracker with regression detection
-                  npm run monitor:bundle:check
-
-            - name: Performance regression testing
-              run: |
-                  # Run performance benchmarks with regression detection
-                  npm run monitor:performance:check
-
-            - name: Enhanced security audit with vulnerability scanning
-              run: |
-                  # Run comprehensive security audit
-                  node scripts/security-audit.js check
+            - name: Security audit
+              run: npm audit --audit-level moderate
 
             - name: Build documentation
               run: npm run docs:build

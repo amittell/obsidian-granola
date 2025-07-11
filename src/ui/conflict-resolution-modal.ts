@@ -3,7 +3,6 @@ import { Modal, ButtonComponent } from 'obsidian';
 import type { GranolaDocument } from '../api';
 import type { DocumentDisplayMetadata } from '../services/document-metadata';
 import type { Logger } from '../types';
-import { PerformanceMonitor, trackMemoryLeaks } from '../performance/performance-monitor';
 import { extractTextFromProseMirror } from '../utils/prosemirror';
 
 /**
@@ -22,10 +21,7 @@ export type ConflictResolution =
  * This modal provides users with clear options for handling conflicts,
  * showing them what will happen and letting them make informed decisions
  * about their data.
- *
- * Enhanced with memory leak detection and performance optimization.
  */
-@trackMemoryLeaks('ConflictResolutionModal')
 export class ConflictResolutionModal extends Modal {
 	private document: GranolaDocument;
 	private metadata: DocumentDisplayMetadata;
@@ -34,16 +30,6 @@ export class ConflictResolutionModal extends Modal {
 	private logger: Logger;
 	private resolve!: (resolution: ConflictResolution) => void;
 	private reject!: (error: Error) => void;
-
-	// Performance monitoring
-	private performanceMonitor: PerformanceMonitor;
-	private memoryTrackingId: string = '';
-	private eventListenersToCleanup: Array<{
-		element: HTMLElement;
-		type: string;
-		handler: EventListener;
-	}> = [];
-	private timersToCleanup: Set<number> = new Set();
 
 	constructor(
 		app: App,
@@ -57,9 +43,6 @@ export class ConflictResolutionModal extends Modal {
 		this.metadata = metadata;
 		this.existingFile = existingFile;
 		this.logger = logger;
-
-		// Initialize performance monitoring
-		this.performanceMonitor = PerformanceMonitor.getInstance();
 
 		// Debug: Modal initialization
 		this.logger.debug(
