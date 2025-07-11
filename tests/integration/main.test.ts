@@ -84,8 +84,14 @@ describe('GranolaImporterPlugin Integration', () => {
 			});
 
 			// Debug command is only registered when __DEV__ is defined
-			// In Jest, __DEV__ is undefined, so only 1 command is registered
-			expect(addCommandSpy).toHaveBeenCalledTimes(1);
+			// In Jest environment, __DEV__ is true, so both commands are registered
+			expect(addCommandSpy).toHaveBeenCalledTimes(2);
+			
+			expect(addCommandSpy).toHaveBeenNthCalledWith(2, {
+				id: 'diagnose-empty-granola-documents',
+				name: 'Diagnose Empty Granola Documents',
+				callback: expect.any(Function),
+			});
 		});
 
 		it('should initialize plugin components', async () => {
