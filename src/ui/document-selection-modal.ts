@@ -746,30 +746,30 @@ export class DocumentSelectionModal extends Modal {
 	 */
 	private createOverviewStats(container: HTMLElement, result: ImportProgress): void {
 		const stats = container.createDiv('import-stats-overview');
-		
+
 		const statsGrid = stats.createDiv('stats-grid');
-		
+
 		// Successful imports
 		if (result.completed > 0) {
 			const successStat = statsGrid.createDiv('stat-item stat-success');
 			successStat.createEl('div', { text: result.completed.toString(), cls: 'stat-number' });
 			successStat.createEl('div', { text: 'Imported Successfully', cls: 'stat-label' });
 		}
-		
+
 		// Failed imports
 		if (result.failed > 0) {
 			const failedStat = statsGrid.createDiv('stat-item stat-failed');
 			failedStat.createEl('div', { text: result.failed.toString(), cls: 'stat-number' });
 			failedStat.createEl('div', { text: 'Failed', cls: 'stat-label' });
 		}
-		
+
 		// Skipped imports
 		if (result.skipped > 0) {
 			const skippedStat = statsGrid.createDiv('stat-item stat-skipped');
 			skippedStat.createEl('div', { text: result.skipped.toString(), cls: 'stat-number' });
 			skippedStat.createEl('div', { text: 'Skipped', cls: 'stat-label' });
 		}
-		
+
 		// Empty documents
 		if (result.empty > 0) {
 			const emptyStat = statsGrid.createDiv('stat-item stat-empty');
@@ -792,21 +792,21 @@ export class DocumentSelectionModal extends Modal {
 		const section = container.createDiv('import-section success-section');
 		const header = section.createDiv('section-header');
 		header.createEl('h4', { text: `✅ Successfully Imported (${successDocs.length})` });
-		
+
 		const toggle = header.createEl('button', { cls: 'section-toggle', text: '▼' });
 		const content = section.createDiv('section-content');
-		
+
 		const list = content.createEl('ul', { cls: 'success-documents-list' });
 		successDocs.forEach(doc => {
 			const docMeta = this.documentMetadata.find(d => d.id === doc.id);
 			const title = docMeta?.title || 'Unknown Document';
 			const listItem = list.createEl('li');
 			listItem.createEl('span', { text: title, cls: 'success-doc-title' });
-			
+
 			if (doc.file) {
-				const openButton = listItem.createEl('button', { 
-					text: 'Open', 
-					cls: 'open-doc-button' 
+				const openButton = listItem.createEl('button', {
+					text: 'Open',
+					cls: 'open-doc-button',
 				});
 				openButton.addEventListener('click', async () => {
 					const leaf = this.app.workspace.getLeaf('tab');
@@ -814,7 +814,7 @@ export class DocumentSelectionModal extends Modal {
 				});
 			}
 		});
-		
+
 		this.setupSectionToggle(toggle, content);
 	}
 
@@ -832,35 +832,38 @@ export class DocumentSelectionModal extends Modal {
 		const section = container.createDiv('import-section failure-section');
 		const header = section.createDiv('section-header');
 		header.createEl('h4', { text: `❌ Failed Documents (${failedDocs.length})` });
-		
+
 		const toggle = header.createEl('button', { cls: 'section-toggle', text: '▼' });
 		const content = section.createDiv('section-content');
-		
+
 		// Group by error category
 		const errorCategories = this.groupDocumentsByErrorCategory(failedDocs);
-		
+
 		Object.entries(errorCategories).forEach(([category, docs]) => {
 			if (docs.length === 0) return;
-			
+
 			const categorySection = content.createDiv('error-category');
 			const categoryTitle = this.getErrorCategoryTitle(category);
 			const categoryDescription = this.getErrorCategoryDescription(category);
-			
+
 			categorySection.createEl('h5', { text: `${categoryTitle} (${docs.length})` });
-			categorySection.createEl('p', { text: categoryDescription, cls: 'category-description' });
-			
+			categorySection.createEl('p', {
+				text: categoryDescription,
+				cls: 'category-description',
+			});
+
 			const errorList = categorySection.createEl('ul', { cls: 'error-documents-list' });
 			docs.forEach(doc => {
 				const docMeta = this.documentMetadata.find(d => d.id === doc.id);
 				const title = docMeta?.title || 'Unknown Document';
 				const errorMsg = doc.error || 'Unknown error';
-				
+
 				const listItem = errorList.createEl('li');
 				listItem.createEl('span', { text: title, cls: 'failed-doc-title' });
 				listItem.createEl('span', { text: errorMsg, cls: 'failed-doc-error' });
 			});
 		});
-		
+
 		this.setupSectionToggle(toggle, content);
 	}
 
@@ -878,34 +881,34 @@ export class DocumentSelectionModal extends Modal {
 		const section = container.createDiv('import-section skipped-section');
 		const header = section.createDiv('section-header');
 		header.createEl('h4', { text: `⏭️ Skipped Documents (${skippedDocs.length})` });
-		
+
 		const toggle = header.createEl('button', { cls: 'section-toggle', text: '▼' });
 		const content = section.createDiv('section-content');
-		
+
 		// Group by skip reason
 		const skipReasons = this.groupDocumentsBySkipReason(skippedDocs);
-		
+
 		Object.entries(skipReasons).forEach(([reason, docs]) => {
 			if (docs.length === 0) return;
-			
+
 			const reasonSection = content.createDiv('skip-reason-category');
 			const reasonTitle = this.getSkipReasonTitle(reason);
 			const reasonDescription = this.getSkipReasonDescription(reason);
-			
+
 			reasonSection.createEl('h5', { text: `${reasonTitle} (${docs.length})` });
 			reasonSection.createEl('p', { text: reasonDescription, cls: 'category-description' });
-			
+
 			const skipList = reasonSection.createEl('ul', { cls: 'skipped-documents-list' });
 			docs.forEach(doc => {
 				const docMeta = this.documentMetadata.find(d => d.id === doc.id);
 				const title = docMeta?.title || 'Unknown Document';
-				
+
 				const listItem = skipList.createEl('li');
 				listItem.createEl('span', { text: title, cls: 'skipped-doc-title' });
 				listItem.createEl('span', { text: doc.message, cls: 'skip-reason' });
 			});
 		});
-		
+
 		this.setupSectionToggle(toggle, content);
 	}
 
@@ -923,24 +926,24 @@ export class DocumentSelectionModal extends Modal {
 		const section = container.createDiv('import-section empty-section');
 		const header = section.createDiv('section-header');
 		header.createEl('h4', { text: `📄 Empty Documents (${emptyDocs.length})` });
-		
+
 		const toggle = header.createEl('button', { cls: 'section-toggle', text: '▼' });
 		const content = section.createDiv('section-content');
-		
-		content.createEl('p', { 
+
+		content.createEl('p', {
 			text: 'These documents were created but never edited in Granola, so they contain no content to import.',
-			cls: 'category-description'
+			cls: 'category-description',
 		});
-		
+
 		const emptyList = content.createEl('ul', { cls: 'empty-documents-list' });
 		emptyDocs.forEach(doc => {
 			const docMeta = this.documentMetadata.find(d => d.id === doc.id);
 			const title = docMeta?.title || 'Unknown Document';
-			
+
 			const listItem = emptyList.createEl('li');
 			listItem.createEl('span', { text: title, cls: 'empty-doc-title' });
 		});
-		
+
 		this.setupSectionToggle(toggle, content);
 	}
 
@@ -952,42 +955,56 @@ export class DocumentSelectionModal extends Modal {
 	 * @param {ImportProgress} result - Import results
 	 * @param {DocumentProgress[]} allDocProgress - All document progress data
 	 */
-	private createRecommendationsSection(container: HTMLElement, result: ImportProgress, allDocProgress: DocumentProgress[]): void {
+	private createRecommendationsSection(
+		container: HTMLElement,
+		result: ImportProgress,
+		allDocProgress: DocumentProgress[]
+	): void {
 		const recommendations: string[] = [];
-		
+
 		// Analyze results and generate recommendations
 		const failedDocs = allDocProgress.filter(progress => progress.status === 'failed');
 		const skippedDocs = allDocProgress.filter(progress => progress.status === 'skipped');
-		
+
 		if (failedDocs.length > 0) {
 			const errorCategories = this.groupDocumentsByErrorCategory(failedDocs);
-			
+
 			if (errorCategories.filesystem?.length > 0) {
-				recommendations.push('Check your vault permissions and available disk space for filesystem errors.');
+				recommendations.push(
+					'Check your vault permissions and available disk space for filesystem errors.'
+				);
 			}
 			if (errorCategories.network?.length > 0) {
-				recommendations.push('Check your internet connection and try importing failed documents again.');
+				recommendations.push(
+					'Check your internet connection and try importing failed documents again.'
+				);
 			}
 			if (errorCategories.conversion?.length > 0) {
-				recommendations.push('Some documents may have unsupported content formats. Check these documents in Granola.');
+				recommendations.push(
+					'Some documents may have unsupported content formats. Check these documents in Granola.'
+				);
 			}
 		}
-		
+
 		if (skippedDocs.length > 0) {
 			const alreadyExists = skippedDocs.filter(doc => doc.message.includes('already exists'));
 			if (alreadyExists.length > 0) {
-				recommendations.push('Use "Import Granola Notes" again with update strategy to import existing documents.');
+				recommendations.push(
+					'Use "Import Granola Notes" again with update strategy to import existing documents.'
+				);
 			}
 		}
-		
+
 		if (result.empty > 0) {
-			recommendations.push('Empty documents can be safely ignored as they contain no content.');
+			recommendations.push(
+				'Empty documents can be safely ignored as they contain no content.'
+			);
 		}
-		
+
 		if (recommendations.length > 0) {
 			const section = container.createDiv('import-section recommendations-section');
 			section.createEl('h4', { text: '💡 Recommendations' });
-			
+
 			const list = section.createEl('ul', { cls: 'recommendations-list' });
 			recommendations.forEach(rec => {
 				list.createEl('li', { text: rec });
@@ -1004,7 +1021,7 @@ export class DocumentSelectionModal extends Modal {
 	 */
 	private setupSectionToggle(toggle: HTMLElement, content: HTMLElement): void {
 		let isExpanded = true;
-		
+
 		toggle.addEventListener('click', () => {
 			isExpanded = !isExpanded;
 			content.style.display = isExpanded ? 'block' : 'none';
@@ -1019,16 +1036,18 @@ export class DocumentSelectionModal extends Modal {
 	 * @param {DocumentProgress[]} failedDocs - Failed documents
 	 * @returns {Record<string, DocumentProgress[]>} Grouped documents
 	 */
-	private groupDocumentsByErrorCategory(failedDocs: DocumentProgress[]): Record<string, DocumentProgress[]> {
+	private groupDocumentsByErrorCategory(
+		failedDocs: DocumentProgress[]
+	): Record<string, DocumentProgress[]> {
 		const categories: Record<string, DocumentProgress[]> = {
 			validation: [],
 			conversion: [],
 			filesystem: [],
 			permission: [],
 			network: [],
-			unknown: []
+			unknown: [],
 		};
-		
+
 		failedDocs.forEach(doc => {
 			const category = doc.errorCategory || 'unknown';
 			if (categories[category]) {
@@ -1037,7 +1056,7 @@ export class DocumentSelectionModal extends Modal {
 				categories.unknown.push(doc);
 			}
 		});
-		
+
 		return categories;
 	}
 
@@ -1048,15 +1067,17 @@ export class DocumentSelectionModal extends Modal {
 	 * @param {DocumentProgress[]} skippedDocs - Skipped documents
 	 * @returns {Record<string, DocumentProgress[]>} Grouped documents
 	 */
-	private groupDocumentsBySkipReason(skippedDocs: DocumentProgress[]): Record<string, DocumentProgress[]> {
+	private groupDocumentsBySkipReason(
+		skippedDocs: DocumentProgress[]
+	): Record<string, DocumentProgress[]> {
 		const reasons: Record<string, DocumentProgress[]> = {
 			already_exists: [],
 			user_cancelled: [],
 			empty_document: [],
 			filename_collision: [],
-			other: []
+			other: [],
 		};
-		
+
 		skippedDocs.forEach(doc => {
 			const message = doc.message.toLowerCase();
 			if (message.includes('already exists')) {
@@ -1071,7 +1092,7 @@ export class DocumentSelectionModal extends Modal {
 				reasons.other.push(doc);
 			}
 		});
-		
+
 		return reasons;
 	}
 
@@ -1084,12 +1105,18 @@ export class DocumentSelectionModal extends Modal {
 	 */
 	private getErrorCategoryTitle(category: string): string {
 		switch (category) {
-			case 'validation': return '🔍 Document Validation Errors';
-			case 'conversion': return '🔄 Content Conversion Errors';
-			case 'filesystem': return '💾 File System Errors';
-			case 'permission': return '🔒 Permission Errors';
-			case 'network': return '🌐 Network Errors';
-			default: return '❓ Unknown Errors';
+			case 'validation':
+				return '🔍 Document Validation Errors';
+			case 'conversion':
+				return '🔄 Content Conversion Errors';
+			case 'filesystem':
+				return '💾 File System Errors';
+			case 'permission':
+				return '🔒 Permission Errors';
+			case 'network':
+				return '🌐 Network Errors';
+			default:
+				return '❓ Unknown Errors';
 		}
 	}
 
@@ -1102,12 +1129,18 @@ export class DocumentSelectionModal extends Modal {
 	 */
 	private getErrorCategoryDescription(category: string): string {
 		switch (category) {
-			case 'validation': return 'Documents with invalid or corrupted structure.';
-			case 'conversion': return 'Documents that could not be converted to Markdown format.';
-			case 'filesystem': return 'Errors related to file creation or disk space.';
-			case 'permission': return 'Access denied errors due to insufficient permissions.';
-			case 'network': return 'Connection issues while fetching document data.';
-			default: return 'Unrecognized error types.';
+			case 'validation':
+				return 'Documents with invalid or corrupted structure.';
+			case 'conversion':
+				return 'Documents that could not be converted to Markdown format.';
+			case 'filesystem':
+				return 'Errors related to file creation or disk space.';
+			case 'permission':
+				return 'Access denied errors due to insufficient permissions.';
+			case 'network':
+				return 'Connection issues while fetching document data.';
+			default:
+				return 'Unrecognized error types.';
 		}
 	}
 
@@ -1120,11 +1153,16 @@ export class DocumentSelectionModal extends Modal {
 	 */
 	private getSkipReasonTitle(reason: string): string {
 		switch (reason) {
-			case 'already_exists': return '📁 Already Exists';
-			case 'user_cancelled': return '🚫 User Cancelled';
-			case 'empty_document': return '📄 Empty Content';
-			case 'filename_collision': return '🏷️ Filename Collision';
-			default: return '🔀 Other Reasons';
+			case 'already_exists':
+				return '📁 Already Exists';
+			case 'user_cancelled':
+				return '🚫 User Cancelled';
+			case 'empty_document':
+				return '📄 Empty Content';
+			case 'filename_collision':
+				return '🏷️ Filename Collision';
+			default:
+				return '🔀 Other Reasons';
 		}
 	}
 
@@ -1137,11 +1175,16 @@ export class DocumentSelectionModal extends Modal {
 	 */
 	private getSkipReasonDescription(reason: string): string {
 		switch (reason) {
-			case 'already_exists': return 'Documents that already exist in your vault and were skipped per import strategy.';
-			case 'user_cancelled': return 'Documents skipped due to user cancellation during conflict resolution.';
-			case 'empty_document': return 'Documents detected as empty and filtered out.';
-			case 'filename_collision': return 'Documents with filename conflicts that could not be resolved.';
-			default: return 'Documents skipped for various other reasons.';
+			case 'already_exists':
+				return 'Documents that already exist in your vault and were skipped per import strategy.';
+			case 'user_cancelled':
+				return 'Documents skipped due to user cancellation during conflict resolution.';
+			case 'empty_document':
+				return 'Documents detected as empty and filtered out.';
+			case 'filename_collision':
+				return 'Documents with filename conflicts that could not be resolved.';
+			default:
+				return 'Documents skipped for various other reasons.';
 		}
 	}
 
