@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import GranolaImporterPlugin from '../../main';
+import GranolaImporterPlugin from '../../main.ts';
 import { mockApp, mockVault, Notice } from '../__mocks__/obsidian';
 import { createMockFs, mockDocument, mockCredentials, createMockLogger } from '../helpers';
 

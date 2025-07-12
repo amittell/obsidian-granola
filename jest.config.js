@@ -28,13 +28,6 @@ module.exports = {
 	setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
 	moduleNameMapper: {
 		'^obsidian$': '<rootDir>/tests/__mocks__/obsidian.ts',
-		'^../performance/performance-monitor$': '<rootDir>/tests/__mocks__/performance-monitor.ts',
-		'^\\.\\.?/performance/performance-monitor$':
-			'<rootDir>/tests/__mocks__/performance-monitor.ts',
-		'^src/performance/performance-monitor$': '<rootDir>/tests/__mocks__/performance-monitor.ts',
-		'^../performance/performance-utils$': '<rootDir>/tests/__mocks__/performance-utils.ts',
-		'^\\.\\.?/performance/performance-utils$': '<rootDir>/tests/__mocks__/performance-utils.ts',
-		'^src/performance/performance-utils$': '<rootDir>/tests/__mocks__/performance-utils.ts',
 		// Add support for CSS and other asset imports in tests
 		'\\.(css|less|scss|sass)$': 'identity-obj-proxy',
 		'\\.(gif|ttf|eot|svg|png)$': '<rootDir>/tests/__mocks__/file-mock.js',

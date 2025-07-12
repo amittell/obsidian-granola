@@ -8,7 +8,7 @@ import {
 } from '../../src/types';
 import { GranolaSettingTab } from '../../src/settings';
 import { App, PluginSettingTab, Setting } from 'obsidian';
-import GranolaImporterPlugin from '../../main';
+import GranolaImporterPlugin from '../../main.ts';
 
 // Create a global mock for callbacks that can be accessed from both mock factory and tests
 const globalCallbacks = {
