@@ -83,13 +83,19 @@ describe('GranolaImporterPlugin Integration', () => {
 				callback: expect.any(Function),
 			});
 
-			// Debug command is only registered when __DEV__ is defined
-			// In Jest environment, __DEV__ is true, so both commands are registered
-			expect(addCommandSpy).toHaveBeenCalledTimes(2);
+			// All three commands are registered: import, diagnose, and debug (when __DEV__ is true)
+			// In Jest environment, __DEV__ is true, so all three commands are registered
+			expect(addCommandSpy).toHaveBeenCalledTimes(3);
 
 			expect(addCommandSpy).toHaveBeenNthCalledWith(2, {
 				id: 'diagnose-empty-granola-documents',
 				name: 'Diagnose Empty Granola Documents',
+				callback: expect.any(Function),
+			});
+
+			expect(addCommandSpy).toHaveBeenNthCalledWith(3, {
+				id: 'debug-granola-api',
+				name: 'Debug Granola API Response',
 				callback: expect.any(Function),
 			});
 		});
