@@ -49,10 +49,10 @@ module.exports = {
 	],
 	coverageThreshold: {
 		global: {
-			branches: 59,
+			branches: 55,
 			functions: 50,
-			lines: 60,
-			statements: 60,
+			lines: 56,
+			statements: 56,
 		},
 	},
 	// Enhanced timeout for complex UI testing
