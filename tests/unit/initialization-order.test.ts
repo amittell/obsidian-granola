@@ -73,9 +73,12 @@ describe('Initialization Order Tests', () => {
 			// Should throw the error but not due to undefined logger
 			await expect(plugin.onload()).rejects.toThrow('Settings load failed');
 
-			// Should have used console.error for early errors (could be from source or bundled code)
+			// Should have used console.error for early errors
 			expect(consoleErrorSpy).toHaveBeenCalled();
-			expect(consoleErrorSpy.mock.calls[0][0]).toMatch(/fatal|error/i);
+			const firstCall = consoleErrorSpy.mock.calls[0];
+			expect(firstCall[0]).toContain('Fatal error during plugin initialization:');
+			expect(firstCall[1]).toBeInstanceOf(Error);
+			expect(firstCall[1].message).toBe('Settings load failed');
 		});
 	});
 
@@ -136,7 +139,10 @@ describe('Initialization Order Tests', () => {
 
 				// Should not have any additional TypeError about undefined logger
 				expect(consoleErrorSpy).toHaveBeenCalled();
-				expect(consoleErrorSpy.mock.calls[0][0]).toMatch(/fatal|error/i);
+				const firstCall = consoleErrorSpy.mock.calls[0];
+				expect(firstCall[0]).toContain('Fatal error during plugin initialization:');
+				expect(firstCall[1]).toBeInstanceOf(Error);
+				expect(firstCall[1].message).toBe('Simulated failure');
 			}
 		});
 	});
