@@ -670,7 +670,7 @@ export class DocumentSelectionModal extends Modal {
 	}
 
 	/**
-	 * Shows import completion summary.
+	 * Shows import completion summary with enhanced categorization and details.
 	 *
 	 * @private
 	 * @param {ImportProgress} result - Final import results
@@ -687,69 +687,31 @@ export class DocumentSelectionModal extends Modal {
 		const summary = this.progressEl.createDiv('import-summary');
 		summary.createEl('h3', { text: 'Import Complete!' });
 
-		const stats = summary.createDiv('import-stats');
-		stats.createEl('p', { text: `✅ ${result.completed} documents imported successfully` });
-		if (result.failed > 0) {
-			stats.createEl('p', { text: `❌ ${result.failed} documents failed` });
-		}
-		if (result.skipped > 0) {
-			stats.createEl('p', { text: `⏭️ ${result.skipped} documents skipped` });
-		}
-		if (result.empty > 0) {
-			stats.createEl('p', {
-				text: `📄 ${result.empty} documents were empty (never modified)`,
-			});
-		}
-
 		// Get all document progress for detailed reporting
 		const allDocProgress = this.importManager.getAllDocumentProgress();
 
-		// Show detailed failure list if there are any failures
-		const failedDocs = allDocProgress.filter(progress => progress.status === 'failed');
-		if (failedDocs.length > 0) {
-			const failureSection = summary.createDiv('import-failures');
-			failureSection.createEl('h4', { text: 'Failed Documents:' });
-			const failureList = failureSection.createEl('ul', { cls: 'failed-documents-list' });
+		// Create overview statistics
+		this.createOverviewStats(summary, result);
 
-			failedDocs.forEach(doc => {
-				const listItem = failureList.createEl('li');
-				// Find the document metadata to get the title
-				const docMeta = this.documentMetadata.find(
-					(d: DocumentDisplayMetadata) => d.id === doc.id
-				);
-				const title = docMeta?.title || 'Unknown Document';
-				const errorMsg = doc.error || 'Unknown error';
-				listItem.createEl('span', {
-					text: `${title}`,
-					cls: 'failed-doc-title',
-				});
-				listItem.createEl('span', {
-					text: ` - ${errorMsg}`,
-					cls: 'failed-doc-error',
-				});
-			});
+		// Create detailed sections for different outcomes
+		if (result.completed > 0) {
+			this.createSuccessSection(summary, allDocProgress);
 		}
 
-		// Show empty documents list if there are any
-		const emptyDocs = allDocProgress.filter(progress => progress.status === 'empty');
-		if (emptyDocs.length > 0) {
-			const emptySection = summary.createDiv('empty-documents-section');
-			emptySection.createEl('h4', { text: 'Empty Documents (not imported):' });
-			const emptyList = emptySection.createEl('ul', { cls: 'empty-documents-list' });
-
-			emptyDocs.forEach(doc => {
-				const listItem = emptyList.createEl('li');
-				// Find the document metadata to get the title
-				const docMeta = this.documentMetadata.find(
-					(d: DocumentDisplayMetadata) => d.id === doc.id
-				);
-				const title = docMeta?.title || 'Unknown Document';
-				listItem.createEl('span', {
-					text: title,
-					cls: 'empty-doc-title',
-				});
-			});
+		if (result.failed > 0) {
+			this.createFailureSection(summary, allDocProgress);
 		}
+
+		if (result.skipped > 0) {
+			this.createSkippedSection(summary, allDocProgress);
+		}
+
+		if (result.empty > 0) {
+			this.createEmptySection(summary, allDocProgress);
+		}
+
+		// Add actionable recommendations
+		this.createRecommendationsSection(summary, result, allDocProgress);
 
 		// Get successfully imported files for opening
 		const importedFiles = allDocProgress
@@ -773,6 +735,414 @@ export class DocumentSelectionModal extends Modal {
 
 		// Always show close button
 		new ButtonComponent(buttonsDiv).setButtonText('Close').onClick(() => this.close());
+	}
+
+	/**
+	 * Creates overview statistics section.
+	 *
+	 * @private
+	 * @param {HTMLElement} container - Container element
+	 * @param {ImportProgress} result - Import results
+	 */
+	private createOverviewStats(container: HTMLElement, result: ImportProgress): void {
+		const stats = container.createDiv('import-stats-overview');
+		
+		const statsGrid = stats.createDiv('stats-grid');
+		
+		// Successful imports
+		if (result.completed > 0) {
+			const successStat = statsGrid.createDiv('stat-item stat-success');
+			successStat.createEl('div', { text: result.completed.toString(), cls: 'stat-number' });
+			successStat.createEl('div', { text: 'Imported Successfully', cls: 'stat-label' });
+		}
+		
+		// Failed imports
+		if (result.failed > 0) {
+			const failedStat = statsGrid.createDiv('stat-item stat-failed');
+			failedStat.createEl('div', { text: result.failed.toString(), cls: 'stat-number' });
+			failedStat.createEl('div', { text: 'Failed', cls: 'stat-label' });
+		}
+		
+		// Skipped imports
+		if (result.skipped > 0) {
+			const skippedStat = statsGrid.createDiv('stat-item stat-skipped');
+			skippedStat.createEl('div', { text: result.skipped.toString(), cls: 'stat-number' });
+			skippedStat.createEl('div', { text: 'Skipped', cls: 'stat-label' });
+		}
+		
+		// Empty documents
+		if (result.empty > 0) {
+			const emptyStat = statsGrid.createDiv('stat-item stat-empty');
+			emptyStat.createEl('div', { text: result.empty.toString(), cls: 'stat-number' });
+			emptyStat.createEl('div', { text: 'Empty Documents', cls: 'stat-label' });
+		}
+	}
+
+	/**
+	 * Creates success section showing imported documents.
+	 *
+	 * @private
+	 * @param {HTMLElement} container - Container element
+	 * @param {DocumentProgress[]} allDocProgress - All document progress data
+	 */
+	private createSuccessSection(container: HTMLElement, allDocProgress: DocumentProgress[]): void {
+		const successDocs = allDocProgress.filter(progress => progress.status === 'completed');
+		if (successDocs.length === 0) return;
+
+		const section = container.createDiv('import-section success-section');
+		const header = section.createDiv('section-header');
+		header.createEl('h4', { text: `✅ Successfully Imported (${successDocs.length})` });
+		
+		const toggle = header.createEl('button', { cls: 'section-toggle', text: '▼' });
+		const content = section.createDiv('section-content');
+		
+		const list = content.createEl('ul', { cls: 'success-documents-list' });
+		successDocs.forEach(doc => {
+			const docMeta = this.documentMetadata.find(d => d.id === doc.id);
+			const title = docMeta?.title || 'Unknown Document';
+			const listItem = list.createEl('li');
+			listItem.createEl('span', { text: title, cls: 'success-doc-title' });
+			
+			if (doc.file) {
+				const openButton = listItem.createEl('button', { 
+					text: 'Open', 
+					cls: 'open-doc-button' 
+				});
+				openButton.addEventListener('click', async () => {
+					const leaf = this.app.workspace.getLeaf('tab');
+					await leaf.openFile(doc.file!);
+				});
+			}
+		});
+		
+		this.setupSectionToggle(toggle, content);
+	}
+
+	/**
+	 * Creates failure section with categorized errors.
+	 *
+	 * @private
+	 * @param {HTMLElement} container - Container element
+	 * @param {DocumentProgress[]} allDocProgress - All document progress data
+	 */
+	private createFailureSection(container: HTMLElement, allDocProgress: DocumentProgress[]): void {
+		const failedDocs = allDocProgress.filter(progress => progress.status === 'failed');
+		if (failedDocs.length === 0) return;
+
+		const section = container.createDiv('import-section failure-section');
+		const header = section.createDiv('section-header');
+		header.createEl('h4', { text: `❌ Failed Documents (${failedDocs.length})` });
+		
+		const toggle = header.createEl('button', { cls: 'section-toggle', text: '▼' });
+		const content = section.createDiv('section-content');
+		
+		// Group by error category
+		const errorCategories = this.groupDocumentsByErrorCategory(failedDocs);
+		
+		Object.entries(errorCategories).forEach(([category, docs]) => {
+			if (docs.length === 0) return;
+			
+			const categorySection = content.createDiv('error-category');
+			const categoryTitle = this.getErrorCategoryTitle(category);
+			const categoryDescription = this.getErrorCategoryDescription(category);
+			
+			categorySection.createEl('h5', { text: `${categoryTitle} (${docs.length})` });
+			categorySection.createEl('p', { text: categoryDescription, cls: 'category-description' });
+			
+			const errorList = categorySection.createEl('ul', { cls: 'error-documents-list' });
+			docs.forEach(doc => {
+				const docMeta = this.documentMetadata.find(d => d.id === doc.id);
+				const title = docMeta?.title || 'Unknown Document';
+				const errorMsg = doc.error || 'Unknown error';
+				
+				const listItem = errorList.createEl('li');
+				listItem.createEl('span', { text: title, cls: 'failed-doc-title' });
+				listItem.createEl('span', { text: errorMsg, cls: 'failed-doc-error' });
+			});
+		});
+		
+		this.setupSectionToggle(toggle, content);
+	}
+
+	/**
+	 * Creates skipped section with categorized reasons.
+	 *
+	 * @private
+	 * @param {HTMLElement} container - Container element
+	 * @param {DocumentProgress[]} allDocProgress - All document progress data
+	 */
+	private createSkippedSection(container: HTMLElement, allDocProgress: DocumentProgress[]): void {
+		const skippedDocs = allDocProgress.filter(progress => progress.status === 'skipped');
+		if (skippedDocs.length === 0) return;
+
+		const section = container.createDiv('import-section skipped-section');
+		const header = section.createDiv('section-header');
+		header.createEl('h4', { text: `⏭️ Skipped Documents (${skippedDocs.length})` });
+		
+		const toggle = header.createEl('button', { cls: 'section-toggle', text: '▼' });
+		const content = section.createDiv('section-content');
+		
+		// Group by skip reason
+		const skipReasons = this.groupDocumentsBySkipReason(skippedDocs);
+		
+		Object.entries(skipReasons).forEach(([reason, docs]) => {
+			if (docs.length === 0) return;
+			
+			const reasonSection = content.createDiv('skip-reason-category');
+			const reasonTitle = this.getSkipReasonTitle(reason);
+			const reasonDescription = this.getSkipReasonDescription(reason);
+			
+			reasonSection.createEl('h5', { text: `${reasonTitle} (${docs.length})` });
+			reasonSection.createEl('p', { text: reasonDescription, cls: 'category-description' });
+			
+			const skipList = reasonSection.createEl('ul', { cls: 'skipped-documents-list' });
+			docs.forEach(doc => {
+				const docMeta = this.documentMetadata.find(d => d.id === doc.id);
+				const title = docMeta?.title || 'Unknown Document';
+				
+				const listItem = skipList.createEl('li');
+				listItem.createEl('span', { text: title, cls: 'skipped-doc-title' });
+				listItem.createEl('span', { text: doc.message, cls: 'skip-reason' });
+			});
+		});
+		
+		this.setupSectionToggle(toggle, content);
+	}
+
+	/**
+	 * Creates empty documents section.
+	 *
+	 * @private
+	 * @param {HTMLElement} container - Container element
+	 * @param {DocumentProgress[]} allDocProgress - All document progress data
+	 */
+	private createEmptySection(container: HTMLElement, allDocProgress: DocumentProgress[]): void {
+		const emptyDocs = allDocProgress.filter(progress => progress.status === 'empty');
+		if (emptyDocs.length === 0) return;
+
+		const section = container.createDiv('import-section empty-section');
+		const header = section.createDiv('section-header');
+		header.createEl('h4', { text: `📄 Empty Documents (${emptyDocs.length})` });
+		
+		const toggle = header.createEl('button', { cls: 'section-toggle', text: '▼' });
+		const content = section.createDiv('section-content');
+		
+		content.createEl('p', { 
+			text: 'These documents were created but never edited in Granola, so they contain no content to import.',
+			cls: 'category-description'
+		});
+		
+		const emptyList = content.createEl('ul', { cls: 'empty-documents-list' });
+		emptyDocs.forEach(doc => {
+			const docMeta = this.documentMetadata.find(d => d.id === doc.id);
+			const title = docMeta?.title || 'Unknown Document';
+			
+			const listItem = emptyList.createEl('li');
+			listItem.createEl('span', { text: title, cls: 'empty-doc-title' });
+		});
+		
+		this.setupSectionToggle(toggle, content);
+	}
+
+	/**
+	 * Creates recommendations section based on import results.
+	 *
+	 * @private
+	 * @param {HTMLElement} container - Container element
+	 * @param {ImportProgress} result - Import results
+	 * @param {DocumentProgress[]} allDocProgress - All document progress data
+	 */
+	private createRecommendationsSection(container: HTMLElement, result: ImportProgress, allDocProgress: DocumentProgress[]): void {
+		const recommendations: string[] = [];
+		
+		// Analyze results and generate recommendations
+		const failedDocs = allDocProgress.filter(progress => progress.status === 'failed');
+		const skippedDocs = allDocProgress.filter(progress => progress.status === 'skipped');
+		
+		if (failedDocs.length > 0) {
+			const errorCategories = this.groupDocumentsByErrorCategory(failedDocs);
+			
+			if (errorCategories.filesystem?.length > 0) {
+				recommendations.push('Check your vault permissions and available disk space for filesystem errors.');
+			}
+			if (errorCategories.network?.length > 0) {
+				recommendations.push('Check your internet connection and try importing failed documents again.');
+			}
+			if (errorCategories.conversion?.length > 0) {
+				recommendations.push('Some documents may have unsupported content formats. Check these documents in Granola.');
+			}
+		}
+		
+		if (skippedDocs.length > 0) {
+			const alreadyExists = skippedDocs.filter(doc => doc.message.includes('already exists'));
+			if (alreadyExists.length > 0) {
+				recommendations.push('Use "Import Granola Notes" again with update strategy to import existing documents.');
+			}
+		}
+		
+		if (result.empty > 0) {
+			recommendations.push('Empty documents can be safely ignored as they contain no content.');
+		}
+		
+		if (recommendations.length > 0) {
+			const section = container.createDiv('import-section recommendations-section');
+			section.createEl('h4', { text: '💡 Recommendations' });
+			
+			const list = section.createEl('ul', { cls: 'recommendations-list' });
+			recommendations.forEach(rec => {
+				list.createEl('li', { text: rec });
+			});
+		}
+	}
+
+	/**
+	 * Sets up toggle functionality for collapsible sections.
+	 *
+	 * @private
+	 * @param {HTMLElement} toggle - Toggle button element
+	 * @param {HTMLElement} content - Content element to toggle
+	 */
+	private setupSectionToggle(toggle: HTMLElement, content: HTMLElement): void {
+		let isExpanded = true;
+		
+		toggle.addEventListener('click', () => {
+			isExpanded = !isExpanded;
+			content.style.display = isExpanded ? 'block' : 'none';
+			toggle.textContent = isExpanded ? '▼' : '▶';
+		});
+	}
+
+	/**
+	 * Groups documents by error category.
+	 *
+	 * @private
+	 * @param {DocumentProgress[]} failedDocs - Failed documents
+	 * @returns {Record<string, DocumentProgress[]>} Grouped documents
+	 */
+	private groupDocumentsByErrorCategory(failedDocs: DocumentProgress[]): Record<string, DocumentProgress[]> {
+		const categories: Record<string, DocumentProgress[]> = {
+			validation: [],
+			conversion: [],
+			filesystem: [],
+			permission: [],
+			network: [],
+			unknown: []
+		};
+		
+		failedDocs.forEach(doc => {
+			const category = doc.errorCategory || 'unknown';
+			if (categories[category]) {
+				categories[category].push(doc);
+			} else {
+				categories.unknown.push(doc);
+			}
+		});
+		
+		return categories;
+	}
+
+	/**
+	 * Groups documents by skip reason.
+	 *
+	 * @private
+	 * @param {DocumentProgress[]} skippedDocs - Skipped documents
+	 * @returns {Record<string, DocumentProgress[]>} Grouped documents
+	 */
+	private groupDocumentsBySkipReason(skippedDocs: DocumentProgress[]): Record<string, DocumentProgress[]> {
+		const reasons: Record<string, DocumentProgress[]> = {
+			already_exists: [],
+			user_cancelled: [],
+			empty_document: [],
+			filename_collision: [],
+			other: []
+		};
+		
+		skippedDocs.forEach(doc => {
+			const message = doc.message.toLowerCase();
+			if (message.includes('already exists')) {
+				reasons.already_exists.push(doc);
+			} else if (message.includes('cancelled')) {
+				reasons.user_cancelled.push(doc);
+			} else if (message.includes('empty')) {
+				reasons.empty_document.push(doc);
+			} else if (message.includes('filename collision')) {
+				reasons.filename_collision.push(doc);
+			} else {
+				reasons.other.push(doc);
+			}
+		});
+		
+		return reasons;
+	}
+
+	/**
+	 * Gets user-friendly title for error category.
+	 *
+	 * @private
+	 * @param {string} category - Error category
+	 * @returns {string} User-friendly title
+	 */
+	private getErrorCategoryTitle(category: string): string {
+		switch (category) {
+			case 'validation': return '🔍 Document Validation Errors';
+			case 'conversion': return '🔄 Content Conversion Errors';
+			case 'filesystem': return '💾 File System Errors';
+			case 'permission': return '🔒 Permission Errors';
+			case 'network': return '🌐 Network Errors';
+			default: return '❓ Unknown Errors';
+		}
+	}
+
+	/**
+	 * Gets description for error category.
+	 *
+	 * @private
+	 * @param {string} category - Error category
+	 * @returns {string} Category description
+	 */
+	private getErrorCategoryDescription(category: string): string {
+		switch (category) {
+			case 'validation': return 'Documents with invalid or corrupted structure.';
+			case 'conversion': return 'Documents that could not be converted to Markdown format.';
+			case 'filesystem': return 'Errors related to file creation or disk space.';
+			case 'permission': return 'Access denied errors due to insufficient permissions.';
+			case 'network': return 'Connection issues while fetching document data.';
+			default: return 'Unrecognized error types.';
+		}
+	}
+
+	/**
+	 * Gets user-friendly title for skip reason.
+	 *
+	 * @private
+	 * @param {string} reason - Skip reason category
+	 * @returns {string} User-friendly title
+	 */
+	private getSkipReasonTitle(reason: string): string {
+		switch (reason) {
+			case 'already_exists': return '📁 Already Exists';
+			case 'user_cancelled': return '🚫 User Cancelled';
+			case 'empty_document': return '📄 Empty Content';
+			case 'filename_collision': return '🏷️ Filename Collision';
+			default: return '🔀 Other Reasons';
+		}
+	}
+
+	/**
+	 * Gets description for skip reason.
+	 *
+	 * @private
+	 * @param {string} reason - Skip reason category
+	 * @returns {string} Reason description
+	 */
+	private getSkipReasonDescription(reason: string): string {
+		switch (reason) {
+			case 'already_exists': return 'Documents that already exist in your vault and were skipped per import strategy.';
+			case 'user_cancelled': return 'Documents skipped due to user cancellation during conflict resolution.';
+			case 'empty_document': return 'Documents detected as empty and filtered out.';
+			case 'filename_collision': return 'Documents with filename conflicts that could not be resolved.';
+			default: return 'Documents skipped for various other reasons.';
+		}
 	}
 
 	/**
@@ -1298,6 +1668,197 @@ export class DocumentSelectionModal extends Modal {
 			.granola-import-modal .empty-documents-list li {
 				margin-bottom: 0.25rem;
 				color: var(--text-muted);
+			}
+			.granola-import-modal .import-stats-overview {
+				margin: 1rem 0;
+				padding: 1rem;
+				background: var(--background-secondary);
+				border-radius: 8px;
+			}
+			.granola-import-modal .stats-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+				gap: 1rem;
+			}
+			.granola-import-modal .stat-item {
+				text-align: center;
+				padding: 0.75rem;
+				border-radius: 6px;
+				background: var(--background-primary);
+				border: 1px solid var(--background-modifier-border);
+			}
+			.granola-import-modal .stat-success {
+				border-left: 4px solid var(--color-green);
+			}
+			.granola-import-modal .stat-failed {
+				border-left: 4px solid var(--color-red);
+			}
+			.granola-import-modal .stat-skipped {
+				border-left: 4px solid var(--color-orange);
+			}
+			.granola-import-modal .stat-empty {
+				border-left: 4px solid var(--text-muted);
+			}
+			.granola-import-modal .stat-number {
+				font-size: 1.5rem;
+				font-weight: bold;
+				margin-bottom: 0.25rem;
+			}
+			.granola-import-modal .stat-label {
+				font-size: 0.8rem;
+				color: var(--text-muted);
+				text-transform: uppercase;
+				letter-spacing: 0.5px;
+			}
+			.granola-import-modal .import-section {
+				margin: 1.5rem 0;
+				border: 1px solid var(--background-modifier-border);
+				border-radius: 8px;
+				overflow: hidden;
+			}
+			.granola-import-modal .section-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: 1rem;
+				background: var(--background-secondary);
+				border-bottom: 1px solid var(--background-modifier-border);
+			}
+			.granola-import-modal .section-header h4 {
+				margin: 0;
+				font-size: 1rem;
+			}
+			.granola-import-modal .section-toggle {
+				background: none;
+				border: none;
+				font-size: 1rem;
+				cursor: pointer;
+				color: var(--text-muted);
+				padding: 0.25rem;
+				border-radius: 3px;
+			}
+			.granola-import-modal .section-toggle:hover {
+				background: var(--background-modifier-hover);
+			}
+			.granola-import-modal .section-content {
+				padding: 1rem;
+			}
+			.granola-import-modal .success-section .section-header {
+				background: rgba(var(--color-green-rgb), 0.1);
+				border-left: 4px solid var(--color-green);
+			}
+			.granola-import-modal .failure-section .section-header {
+				background: rgba(var(--color-red-rgb), 0.1);
+				border-left: 4px solid var(--color-red);
+			}
+			.granola-import-modal .skipped-section .section-header {
+				background: rgba(var(--color-orange-rgb), 0.1);
+				border-left: 4px solid var(--color-orange);
+			}
+			.granola-import-modal .empty-section .section-header {
+				background: var(--background-secondary);
+				border-left: 4px solid var(--text-muted);
+			}
+			.granola-import-modal .recommendations-section {
+				border-left: 4px solid var(--interactive-accent);
+			}
+			.granola-import-modal .error-category,
+			.granola-import-modal .skip-reason-category {
+				margin-bottom: 1.5rem;
+				padding-bottom: 1rem;
+				border-bottom: 1px solid var(--background-modifier-border);
+			}
+			.granola-import-modal .error-category:last-child,
+			.granola-import-modal .skip-reason-category:last-child {
+				border-bottom: none;
+				margin-bottom: 0;
+				padding-bottom: 0;
+			}
+			.granola-import-modal .error-category h5,
+			.granola-import-modal .skip-reason-category h5 {
+				margin: 0 0 0.5rem 0;
+				font-size: 0.9rem;
+				color: var(--text-normal);
+			}
+			.granola-import-modal .category-description {
+				margin: 0 0 1rem 0;
+				font-size: 0.85rem;
+				color: var(--text-muted);
+				font-style: italic;
+			}
+			.granola-import-modal .success-documents-list,
+			.granola-import-modal .error-documents-list,
+			.granola-import-modal .skipped-documents-list {
+				margin: 0;
+				padding-left: 1rem;
+				max-height: 300px;
+				overflow-y: auto;
+			}
+			.granola-import-modal .success-documents-list li,
+			.granola-import-modal .error-documents-list li,
+			.granola-import-modal .skipped-documents-list li {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 0.5rem;
+				padding: 0.5rem;
+				background: var(--background-primary);
+				border-radius: 4px;
+				border-left: 3px solid transparent;
+			}
+			.granola-import-modal .success-documents-list li {
+				border-left-color: var(--color-green);
+			}
+			.granola-import-modal .error-documents-list li {
+				border-left-color: var(--color-red);
+			}
+			.granola-import-modal .skipped-documents-list li {
+				border-left-color: var(--color-orange);
+			}
+			.granola-import-modal .success-doc-title,
+			.granola-import-modal .skipped-doc-title {
+				font-weight: 500;
+				flex: 1;
+			}
+			.granola-import-modal .failed-doc-title {
+				font-weight: 500;
+				margin-right: 0.5rem;
+			}
+			.granola-import-modal .failed-doc-error {
+				color: var(--text-muted);
+				font-size: 0.85rem;
+				flex: 1;
+			}
+			.granola-import-modal .skip-reason {
+				color: var(--text-muted);
+				font-size: 0.85rem;
+				margin-left: 0.5rem;
+			}
+			.granola-import-modal .open-doc-button {
+				background: var(--interactive-accent);
+				color: var(--text-on-accent);
+				border: none;
+				border-radius: 4px;
+				padding: 0.25rem 0.5rem;
+				font-size: 0.75rem;
+				cursor: pointer;
+			}
+			.granola-import-modal .open-doc-button:hover {
+				background: var(--interactive-accent-hover);
+			}
+			.granola-import-modal .recommendations-list {
+				margin: 0;
+				padding-left: 1.5rem;
+			}
+			.granola-import-modal .recommendations-list li {
+				margin-bottom: 0.75rem;
+				line-height: 1.5;
+				color: var(--text-normal);
+			}
+			.granola-import-modal .import-complete-buttons {
+				margin-top: 2rem;
+				padding-top: 1rem;
+				border-top: 1px solid var(--background-modifier-border);
 			}
 		`;
 		document.head.appendChild(style);
