@@ -216,7 +216,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('Convert action items to tasks')
 			.setDesc(
-				'Automatically convert bullet points under "Action Items" headers to markdown task format (- [ ]). Recognizes headers like "Action Items", "Actions", "TODO", "Tasks".'
+				'Automatically convert bullet points under action-oriented headers to markdown task format (- [ ]). Recognizes variations like "Action Items for Alex", "Follow-ups", "Next Steps", "TODOs", etc.'
 			)
 			.addToggle(toggle => {
 				toggle

@@ -356,10 +356,16 @@ export class ProseMirrorConverter {
 			this.logger.warn(`Empty document analysis:`, JSON.stringify(emptyAnalysis, null, 2));
 
 			// Determine if this is truly empty or a conversion failure
+			// A document is truly empty if:
+			// 1. It was never modified after creation (created_at === updated_at)
+			// 2. It has no plain text or markdown content
+			// 3. It has no last_viewed_panel content (the primary content source)
+			// 4. The markdown conversion produced no meaningful content (empty after trim)
 			isTrulyEmpty =
 				emptyAnalysis.createdEqualsUpdated &&
 				!emptyAnalysis.hasNotesPlain &&
-				!emptyAnalysis.hasNotesMarkdown;
+				!emptyAnalysis.hasNotesMarkdown &&
+				!emptyAnalysis.hasLastViewedPanelContent;
 
 			if (isTrulyEmpty) {
 				this.logger.info(
@@ -1403,8 +1409,12 @@ export class ProseMirrorConverter {
 	 */
 	/** Regex patterns for detecting action items headers */
 	private static readonly ACTION_ITEMS_HEADER_PATTERNS = [
-		/^#{1,6}\s*(action\s+items?|actions?|todo|to\s+do|tasks?)\s*$/i,
-		/^(action\s+items?|actions?|todo|to\s+do|tasks?)\s*$/i, // Plain text headers
+		// Markdown headers with flexible matching
+		/^#{1,6}\s+.*\b(action\s*items?|actions?|tasks?|to-?dos?|to\s+dos?|follow-?\s*ups?|next\s+steps?)\b.*$/i,
+		// Plain text headers with flexible matching - must be at start of line or after colon
+		/^(action\s*items?|actions?|tasks?|to-?dos?|to\s+dos?|follow-?\s*ups?|next\s+steps?)\b.*$/i,
+		// Headers with colons like "Action Items:" or "Follow-ups:"
+		/^.*:\s*(action\s*items?|actions?|tasks?|to-?dos?|to\s+dos?|follow-?\s*ups?|next\s+steps?)\b.*$/i,
 	];
 
 	protected processActionItems(markdown: string): string {
@@ -1415,7 +1425,7 @@ export class ProseMirrorConverter {
 		const lines = markdown.split('\n');
 		const processedLines: string[] = [];
 		let inActionItemsSection = false;
-		let actionItemsConverted = false;
+		let anyTasksConverted = false; // Track if ANY tasks were converted in the document
 
 		this.logger.debug('Processing action items in markdown content');
 
@@ -1431,30 +1441,20 @@ export class ProseMirrorConverter {
 			if (isActionItemsHeader) {
 				this.logger.debug(`Found action items header at line ${i + 1}: "${trimmedLine}"`);
 				inActionItemsSection = true;
-				actionItemsConverted = false;
 				processedLines.push(line);
 				continue;
 			}
 
 			// Check if we're leaving the action items section
 			if (inActionItemsSection) {
-				// We leave the section if we hit another header or significant content
+				// We leave the section if we hit another header or non-bullet content
 				const isAnyHeader = /^#{1,6}\s/.test(trimmedLine);
-				const isSignificantContent =
-					trimmedLine.length > 0 &&
-					!trimmedLine.startsWith('-') &&
-					!trimmedLine.startsWith('*');
-
-				if (isAnyHeader || (isSignificantContent && !trimmedLine.match(/^[•\-*]\s/))) {
-					// Before leaving the section, add tag if we converted any tasks
-					if (actionItemsConverted && this.settings.actionItems.addTaskTag) {
-						// Insert the tag after the last task
-						const tagLine = this.settings.actionItems.taskTagName;
-						processedLines.push(tagLine);
-						this.logger.debug(`Added task tag: ${tagLine}`);
-					}
+				const isEmpty = trimmedLine.length === 0;
+				const isBullet = trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ');
+				
+				// If we hit another header or non-bullet, non-empty content, leave section
+				if (isAnyHeader || (!isEmpty && !isBullet)) {
 					inActionItemsSection = false;
-					actionItemsConverted = false;
 				}
 			}
 
@@ -1469,7 +1469,7 @@ export class ProseMirrorConverter {
 				const taskLine = `${indent}- [ ] ${bulletContent}`;
 
 				processedLines.push(taskLine);
-				actionItemsConverted = true;
+				anyTasksConverted = true; // Mark that we converted at least one task
 
 				this.logger.debug(`Converted bullet to task: "${trimmedLine}" → "${taskLine}"`);
 				continue;
@@ -1479,16 +1479,17 @@ export class ProseMirrorConverter {
 			processedLines.push(line);
 		}
 
-		// Handle case where document ends while still in action items section
-		if (inActionItemsSection && actionItemsConverted && this.settings.actionItems.addTaskTag) {
+		// Add tag once at the end if we converted any tasks
+		if (anyTasksConverted && this.settings.actionItems.addTaskTag) {
 			const tagLine = this.settings.actionItems.taskTagName;
+			processedLines.push(''); // Add blank line before tag
 			processedLines.push(tagLine);
 			this.logger.debug(`Added task tag at end of document: ${tagLine}`);
 		}
 
 		const result = processedLines.join('\n');
 
-		if (actionItemsConverted) {
+		if (anyTasksConverted) {
 			this.logger.info(
 				'Action items processing completed - converted bullet points to tasks'
 			);

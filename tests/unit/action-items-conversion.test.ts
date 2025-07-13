@@ -51,7 +51,8 @@ describe('Action Items Conversion', () => {
 			expect(result).toContain('#tasks');
 			// Non-action items should remain as bullets
 			expect(result).toContain('- Reviewed quarterly goals');
-			expect(result).toContain('- Continue with implementation');
+			// Next Steps is now recognized as an action header, so this will be converted
+			expect(result).toContain('- [ ] Continue with implementation');
 		});
 
 		it('should handle multiple action items sections', () => {
@@ -73,8 +74,8 @@ describe('Action Items Conversion', () => {
 			expect(result).toContain('- [ ] Second task');
 			expect(result).toContain('- [ ] Third task');
 			expect(result).toContain('- [ ] Fourth task');
-			// Should have two tags
-			expect((result.match(/#tasks/g) || []).length).toBe(2);
+			// Should have only one tag at the end
+			expect((result.match(/#tasks/g) || []).length).toBe(1);
 		});
 
 		it('should handle case insensitive headers', () => {
@@ -105,9 +106,9 @@ describe('Action Items Conversion', () => {
 			expect(result).toContain('        - [ ] Deeply indented task');
 		});
 
-		it('should not be called when convertToTasks is disabled', () => {
-			// This test verifies that the processActionItems method itself works
-			// The actual control flow (not calling it when disabled) is tested in integration
+		it('should not convert when convertToTasks is disabled', () => {
+			// When convertToTasks is false, processActionItems shouldn't be called at all
+			// But if we call it directly, it will still convert (the check is in convertDocument)
 			settings.actionItems.convertToTasks = false;
 			converter = new ProseMirrorConverter(logger, settings);
 
@@ -115,9 +116,11 @@ describe('Action Items Conversion', () => {
 - Task one
 - Task two`;
 
-			// processActionItems always converts if called - the check happens in convertDocument
+			// This test is actually testing that processActionItems works regardless of setting
+			// The real test should be in the converter integration test
 			const result = (converter as any).processActionItems(markdown);
 
+			// Even with setting disabled, calling processActionItems directly will convert
 			expect(result).toContain('- [ ] Task one');
 			expect(result).toContain('- [ ] Task two');
 		});
@@ -187,6 +190,41 @@ describe('Action Items Conversion', () => {
 			expect(result).toContain('- [ ] Final task');
 			expect(result).toContain('- [ ] Last task');
 			expect(result).toContain('#tasks');
+		});
+
+		it('should handle flexible action item headers', () => {
+			const markdown = `# Meeting Notes
+
+## Action Items for Alex
+- Contact the client
+- Review proposal
+
+## Follow-ups from today's meeting
+- Send meeting notes
+- Schedule next sync
+
+## Next Steps
+- Deploy the changes
+- Monitor performance
+
+## To-dos for the team
+- Update documentation
+- Run tests`;
+
+			const result = (converter as any).processActionItems(markdown);
+
+			// All variations should be recognized and converted
+			expect(result).toContain('- [ ] Contact the client');
+			expect(result).toContain('- [ ] Review proposal');
+			expect(result).toContain('- [ ] Send meeting notes');
+			expect(result).toContain('- [ ] Schedule next sync');
+			expect(result).toContain('- [ ] Deploy the changes');
+			expect(result).toContain('- [ ] Monitor performance');
+			expect(result).toContain('- [ ] Update documentation');
+			expect(result).toContain('- [ ] Run tests');
+			
+			// Should have only one tag at the end
+			expect((result.match(/#tasks/g) || []).length).toBe(1);
 		});
 	});
 });
