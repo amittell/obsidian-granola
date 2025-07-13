@@ -222,7 +222,7 @@ describe('Action Items Conversion', () => {
 			expect(result).toContain('- [ ] Monitor performance');
 			expect(result).toContain('- [ ] Update documentation');
 			expect(result).toContain('- [ ] Run tests');
-			
+
 			// Should have only one tag at the end
 			expect((result.match(/#tasks/g) || []).length).toBe(1);
 		});

@@ -1451,7 +1451,7 @@ export class ProseMirrorConverter {
 				const isAnyHeader = /^#{1,6}\s/.test(trimmedLine);
 				const isEmpty = trimmedLine.length === 0;
 				const isBullet = trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ');
-				
+
 				// If we hit another header or non-bullet, non-empty content, leave section
 				if (isAnyHeader || (!isEmpty && !isBullet)) {
 					inActionItemsSection = false;
