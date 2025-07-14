@@ -317,14 +317,14 @@ export class ProseMirrorConverter {
 
 		// Fallback to notes_markdown if ProseMirror conversion failed or is empty
 		if (!markdown.trim() && doc.notes_markdown?.trim()) {
-			markdown = doc.notes_markdown.trim();
+			markdown = this.decodeHtmlEntities(doc.notes_markdown.trim());
 			contentSource = 'markdown';
 			this.logger.debug(`Using notes_markdown fallback, length: ${markdown.length}`);
 		}
 
 		// Final fallback to notes_plain if everything else failed
 		if (!markdown.trim() && doc.notes_plain?.trim()) {
-			markdown = doc.notes_plain.trim();
+			markdown = this.decodeHtmlEntities(doc.notes_plain.trim());
 			contentSource = 'plain';
 			this.logger.debug(`Using notes_plain fallback, length: ${markdown.length}`);
 		}
@@ -643,7 +643,9 @@ export class ProseMirrorConverter {
 			return line;
 		});
 
-		return processedLines.join('\n').trim();
+		const result = processedLines.join('\n').trim();
+		// Decode HTML entities in the converted markdown
+		return this.decodeHtmlEntities(result);
 	}
 
 	/**
