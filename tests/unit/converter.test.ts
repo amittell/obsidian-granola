@@ -546,6 +546,33 @@ describe('ProseMirrorConverter', () => {
 			});
 		});
 
+		it('should decode HTML entities in title for frontmatter', () => {
+			mockSettings.content.includeEnhancedFrontmatter = true;
+			converter = new ProseMirrorConverter(createMockLogger(), mockSettings);
+
+			const docWithEncodedTitle: GranolaDocument = {
+				id: 'test-id',
+				title: 'RFP Updates &amp; Next Steps',
+				created_at: '2024-01-01T10:00:00Z',
+				updated_at: '2024-01-01T11:00:00Z',
+				user_id: 'test-user',
+				notes: {
+					type: 'doc',
+					content: [
+						{
+							type: 'paragraph',
+							content: [{ type: 'text', text: 'Test content' }],
+						},
+					],
+				},
+			};
+
+			const result = converter.convertDocument(docWithEncodedTitle);
+			expect(result.frontmatter.title).toBe('RFP Updates & Next Steps');
+			// Filename will have & sanitized to -
+			expect(result.filename).toContain('RFP Updates - Next Steps');
+		});
+
 		it('should handle missing title in enhanced frontmatter', () => {
 			mockSettings.content.includeEnhancedFrontmatter = true;
 			converter.updateSettings(mockSettings);
