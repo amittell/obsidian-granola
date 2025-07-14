@@ -46,7 +46,7 @@ export class ConflictResolutionModal extends Modal {
 
 		// Debug: Modal initialization
 		this.logger.debug(
-			`ConflictResolutionModal initialized for document: ${document.title || 'Untitled'} (${document.id})`
+			`ConflictResolutionModal initialized for document: ${this.decodeHtmlEntities(document.title || 'Untitled')} (${document.id})`
 		);
 		this.logger.debug(`Conflict reason: ${metadata.importStatus.reason}`);
 	}
@@ -143,7 +143,9 @@ export class ConflictResolutionModal extends Modal {
 		// Title
 		const titleRow = table.createEl('tr');
 		titleRow.createEl('td', { text: 'Title:', cls: 'info-label' });
-		titleRow.createEl('td', { text: this.document.title || 'Untitled' });
+		titleRow.createEl('td', {
+			text: this.decodeHtmlEntities(this.document.title || 'Untitled'),
+		});
 
 		// Granola ID
 		const idRow = table.createEl('tr');
@@ -450,13 +452,62 @@ export class ConflictResolutionModal extends Modal {
 	}
 
 	private generateAlternativeFilename(): string {
-		const baseTitle = this.document.title || 'Untitled';
+		const baseTitle = this.decodeHtmlEntities(this.document.title || 'Untitled');
 		const sanitized = baseTitle
 			.replace(/[<>:"/\\|?*]/g, '-')
 			.replace(/\s+/g, ' ')
 			.trim();
 		const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 		return `${sanitized} (Granola ${timestamp})`;
+	}
+
+	/**
+	 * Decodes common HTML entities to their corresponding characters.
+	 *
+	 * @private
+	 * @param {string} text - Text that may contain HTML entities
+	 * @returns {string} Text with HTML entities decoded
+	 */
+	private decodeHtmlEntities(text: string): string {
+		const htmlEntities: { [key: string]: string } = {
+			'&amp;': '&',
+			'&lt;': '<',
+			'&gt;': '>',
+			'&quot;': '"',
+			'&#39;': "'",
+			'&apos;': "'",
+			'&nbsp;': ' ',
+			'&copy;': '©',
+			'&reg;': '®',
+			'&trade;': '™',
+			'&euro;': '€',
+			'&pound;': '£',
+			'&yen;': '¥',
+			'&cent;': '¢',
+			'&mdash;': '—',
+			'&ndash;': '–',
+			'&hellip;': '…',
+			'&ldquo;': '"',
+			'&rdquo;': '"',
+			'&lsquo;': "'",
+			'&rsquo;': "'",
+		};
+
+		// Replace known HTML entities
+		let decodedText = text;
+		for (const [entity, char] of Object.entries(htmlEntities)) {
+			decodedText = decodedText.replace(new RegExp(entity, 'g'), char);
+		}
+
+		// Handle numeric entities like &#123; or &#x7B;
+		decodedText = decodedText.replace(/&#(\d+);/g, (match, dec) => {
+			return String.fromCharCode(parseInt(dec, 10));
+		});
+		decodedText = decodedText.replace(/&#x([0-9A-Fa-f]+);/g, (match, hex) => {
+			return String.fromCharCode(parseInt(hex, 16));
+		});
+
+		return decodedText;
 	}
 
 	/**

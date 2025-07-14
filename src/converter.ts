@@ -161,7 +161,9 @@ export class ProseMirrorConverter {
 			throw new Error(`Document validation failed: ${validationResult.reason}`);
 		}
 		// Debug logging for content analysis
-		this.logger.debug(`========== Processing document: ${doc.id} - "${doc.title}" ==========`);
+		this.logger.debug(
+			`========== Processing document: ${doc.id} - "${this.decodeHtmlEntities(doc.title)}" ==========`
+		);
 		this.logger.debug(`Document created_at: ${doc.created_at}`);
 		this.logger.debug(`Document updated_at: ${doc.updated_at}`);
 		this.logger.debug(`Notes field exists: ${!!doc.notes}`);
@@ -351,7 +353,7 @@ export class ProseMirrorConverter {
 			};
 
 			this.logger.warn(
-				`WARNING: No content extracted for document ${doc.id} - "${doc.title}"`
+				`WARNING: No content extracted for document ${doc.id} - "${this.decodeHtmlEntities(doc.title)}"`
 			);
 			this.logger.warn(`Empty document analysis:`, JSON.stringify(emptyAnalysis, null, 2));
 
@@ -543,7 +545,7 @@ export class ProseMirrorConverter {
 	 */
 	private generateDatePrefixedFilename(doc: GranolaDocument): string {
 		this.logger.debug(`Generating date-prefixed filename for: ${doc.id}`);
-		this.logger.debug(`Original title: "${doc.title}"`);
+		this.logger.debug(`Original title: "${this.decodeHtmlEntities(doc.title)}"`);
 		this.logger.debug(`Created at: ${doc.created_at}`);
 
 		// Extract date from created_at timestamp
