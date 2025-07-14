@@ -1,8 +1,7 @@
 import { ProseMirrorDoc, ProseMirrorNode, GranolaDocument } from './api';
 import { Logger, GranolaSettings } from './types';
 
-// Converter Constants (removing unused constant)
-// const MAX_FILENAME_LENGTH = 100;
+// Converter Constants
 
 /**
  * Represents a successfully converted document ready for Obsidian import.

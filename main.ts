@@ -183,7 +183,7 @@ export default class GranolaImporterPlugin extends Plugin {
 	 * ```
 	 */
 	onunload(): void {
-		// Plugin cleanup
+		// Clean up resources when plugin is disabled
 	}
 
 	/**
