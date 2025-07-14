@@ -192,6 +192,41 @@ describe('Action Items Conversion', () => {
 			expect(result).toContain('#tasks');
 		});
 
+		it('should handle nested content under action headers', () => {
+			const markdown = `### Action Items
+For Alex:
+- Complete login to new Stripe environment
+- Review UI flow screenshots
+
+Support contract renewal:
+- Current contract expires end of June 2025
+- Bridge extension possible during RFP process
+
+### Next Steps
+Alex to:
+- Update Slack username
+- Schedule team training session
+
+Shannon to:
+- Continue supporting LDAP/access requests
+- Review team agent development progress`;
+
+			const result = (converter as any).processActionItems(markdown);
+
+			// All bullets should be converted, even with intervening text
+			expect(result).toContain('- [ ] Complete login to new Stripe environment');
+			expect(result).toContain('- [ ] Review UI flow screenshots');
+			expect(result).toContain('- [ ] Current contract expires end of June 2025');
+			expect(result).toContain('- [ ] Bridge extension possible during RFP process');
+			expect(result).toContain('- [ ] Update Slack username');
+			expect(result).toContain('- [ ] Schedule team training session');
+			expect(result).toContain('- [ ] Continue supporting LDAP/access requests');
+			expect(result).toContain('- [ ] Review team agent development progress');
+
+			// Should have only one tag at the end
+			expect((result.match(/#tasks/g) || []).length).toBe(1);
+		});
+
 		it('should handle flexible action item headers', () => {
 			const markdown = `# Meeting Notes
 

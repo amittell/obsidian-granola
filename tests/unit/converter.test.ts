@@ -271,6 +271,47 @@ describe('ProseMirrorConverter', () => {
 			const result = (converter as any).convertNode(linkWithoutHref);
 			expect(result).toBe('[broken link](#)');
 		});
+
+		it('should decode HTML entities in text', () => {
+			const textWithEntities = {
+				type: 'text',
+				text: 'Action Items &amp; Next Steps',
+			};
+
+			const result = (converter as any).convertNode(textWithEntities);
+			expect(result).toBe('Action Items & Next Steps');
+		});
+
+		it('should decode multiple HTML entities', () => {
+			const textWithMultipleEntities = {
+				type: 'text',
+				text: '&lt;div&gt; &quot;Hello&quot; &amp; &apos;World&apos; &mdash; &copy; 2024',
+			};
+
+			const result = (converter as any).convertNode(textWithMultipleEntities);
+			expect(result).toBe('<div> "Hello" & \'World\' — © 2024');
+		});
+
+		it('should decode numeric HTML entities', () => {
+			const textWithNumericEntities = {
+				type: 'text',
+				text: '&#65; &#x42; &#8212;',
+			};
+
+			const result = (converter as any).convertNode(textWithNumericEntities);
+			expect(result).toBe('A B —');
+		});
+
+		it('should preserve HTML entities in formatted text', () => {
+			const boldTextWithEntities = {
+				type: 'text',
+				text: 'Q&amp;A Session',
+				marks: [{ type: 'strong' }],
+			};
+
+			const result = (converter as any).convertNode(boldTextWithEntities);
+			expect(result).toBe('**Q&A Session**');
+		});
 	});
 
 	describe('convertNode - code blocks', () => {
