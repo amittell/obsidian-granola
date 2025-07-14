@@ -1406,9 +1406,16 @@ export class ProseMirrorConverter {
 	/**
 	 * Processes action items in markdown content by converting bullet points to tasks.
 	 *
-	 * Detects headers that indicate action items sections (both markdown headers with #
-	 * and plain-text headers) and converts bullet points under those headers to markdown
-	 * task format (- [ ]). Optionally adds tags after converted tasks if the setting is enabled.
+	 * Detects headers that indicate action items sections using flexible pattern matching.
+	 * Supports both markdown headers (with # prefix) and plain-text headers, including
+	 * headers with colons like "Action Items:" or "Follow-ups:". Converts bullet points
+	 * under those headers to markdown task format (- [ ]). Optionally adds tags after
+	 * converted tasks if the setting is enabled.
+	 *
+	 * Supported header patterns:
+	 * - Markdown headers: "### Action Items", "## Tasks", etc.
+	 * - Plain-text headers: "Action Items", "Next Steps", etc.
+	 * - Colon headers: "Action Items:", "Follow-ups:", etc.
 	 *
 	 * @private
 	 * @param {string} markdown - The markdown content to process
