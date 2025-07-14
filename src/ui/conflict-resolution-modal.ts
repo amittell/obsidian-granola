@@ -46,7 +46,7 @@ export class ConflictResolutionModal extends Modal {
 
 		// Debug: Modal initialization
 		this.logger.debug(
-			`ConflictResolutionModal initialized for document: ${this.decodeHtmlEntities(document.title || 'Untitled')} (${document.id})`
+			`ConflictResolutionModal initialized for document: ${metadata.title} (${document.id})`
 		);
 		this.logger.debug(`Conflict reason: ${metadata.importStatus.reason}`);
 	}
@@ -143,9 +143,8 @@ export class ConflictResolutionModal extends Modal {
 		// Title
 		const titleRow = table.createEl('tr');
 		titleRow.createEl('td', { text: 'Title:', cls: 'info-label' });
-		titleRow.createEl('td', {
-			text: this.decodeHtmlEntities(this.document.title || 'Untitled'),
-		});
+		const titleCell = titleRow.createEl('td');
+		titleCell.textContent = this.metadata.title;
 
 		// Granola ID
 		const idRow = table.createEl('tr');
@@ -452,7 +451,7 @@ export class ConflictResolutionModal extends Modal {
 	}
 
 	private generateAlternativeFilename(): string {
-		const baseTitle = this.decodeHtmlEntities(this.document.title || 'Untitled');
+		const baseTitle = this.metadata.title;
 		const sanitized = baseTitle
 			.replace(/[<>:"/\\|?*]/g, '-')
 			.replace(/\s+/g, ' ')

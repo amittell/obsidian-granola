@@ -393,10 +393,10 @@ export class DocumentSelectionModal extends Modal {
 
 		// Title and status
 		const titleRow = content.createDiv('document-title-row');
-		titleRow.createEl('h3', {
-			text: this.decodeHtmlEntities(doc.title),
+		const titleEl = titleRow.createEl('h3', {
 			cls: 'document-title',
 		});
+		titleEl.textContent = doc.title;
 
 		titleRow.createEl('span', {
 			text: this.getStatusText(doc.importStatus.status),
@@ -801,7 +801,8 @@ export class DocumentSelectionModal extends Modal {
 			const docMeta = this.documentMetadata.find(d => d.id === doc.id);
 			const title = docMeta?.title || 'Unknown Document';
 			const listItem = list.createEl('li');
-			listItem.createEl('span', { text: title, cls: 'success-doc-title' });
+			const titleSpan = listItem.createEl('span', { cls: 'success-doc-title' });
+			titleSpan.textContent = title;
 
 			if (doc.file) {
 				const openButton = listItem.createEl('button', {
@@ -859,7 +860,8 @@ export class DocumentSelectionModal extends Modal {
 				const errorMsg = doc.error || 'Unknown error';
 
 				const listItem = errorList.createEl('li');
-				listItem.createEl('span', { text: title, cls: 'failed-doc-title' });
+				const titleSpan = listItem.createEl('span', { cls: 'failed-doc-title' });
+				titleSpan.textContent = title;
 				listItem.createEl('span', { text: errorMsg, cls: 'failed-doc-error' });
 			});
 		});
@@ -904,7 +906,8 @@ export class DocumentSelectionModal extends Modal {
 				const title = docMeta?.title || 'Unknown Document';
 
 				const listItem = skipList.createEl('li');
-				listItem.createEl('span', { text: title, cls: 'skipped-doc-title' });
+				const titleSpan = listItem.createEl('span', { cls: 'skipped-doc-title' });
+				titleSpan.textContent = title;
 				listItem.createEl('span', { text: doc.message, cls: 'skip-reason' });
 			});
 		});
@@ -941,7 +944,8 @@ export class DocumentSelectionModal extends Modal {
 			const title = docMeta?.title || 'Unknown Document';
 
 			const listItem = emptyList.createEl('li');
-			listItem.createEl('span', { text: title, cls: 'empty-doc-title' });
+			const titleSpan = listItem.createEl('span', { cls: 'empty-doc-title' });
+			titleSpan.textContent = title;
 		});
 
 		this.setupSectionToggle(toggle, content);
