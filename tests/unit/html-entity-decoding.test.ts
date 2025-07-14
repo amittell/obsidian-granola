@@ -63,7 +63,7 @@ describe('HTML Entity Decoding in UI', () => {
 	describe('UI Modal Title Display', () => {
 		it('should use decoded titles from metadata in document selection modal', () => {
 			const metadataService = new DocumentMetadataService(DEFAULT_SETTINGS);
-			
+
 			// Create metadata with decoded title
 			const metadata = metadataService.extractMetadata(mockDocument, {
 				status: 'NEW',
@@ -78,7 +78,7 @@ describe('HTML Entity Decoding in UI', () => {
 
 		it('should use decoded titles from metadata in conflict resolution modal', () => {
 			const metadataService = new DocumentMetadataService(DEFAULT_SETTINGS);
-			
+
 			// Create metadata with decoded title
 			const metadata = metadataService.extractMetadata(mockDocument, {
 				status: 'CONFLICT',
