@@ -292,7 +292,11 @@ export class GranolaSettingTab extends PluginSettingTab {
 	 * Validates the Granola connection and updates the UI.
 	 */
 	private async validateConnection(statusEl: HTMLElement): Promise<void> {
-		statusEl.innerHTML = '<span style="color: orange;">🔄 Testing connection...</span>';
+		statusEl.empty();
+		const testingSpan = statusEl.createEl('span', { 
+			text: '🔄 Testing connection...',
+			cls: 'connection-testing'
+		});
 
 		try {
 			// Create a temporary API instance for testing
@@ -307,8 +311,11 @@ export class GranolaSettingTab extends PluginSettingTab {
 				this.plugin.settings.connection.lastValidated = Date.now();
 				await this.plugin.saveSettings();
 
-				statusEl.innerHTML =
-					'<span style="color: green;">✅ Connected successfully!</span>';
+				statusEl.empty();
+				statusEl.createEl('span', {
+					text: '✅ Connected successfully!',
+					cls: 'connection-success'
+				});
 				new Notice('✅ Granola connection test successful!', 3000);
 			} else {
 				throw new Error('Invalid response format');
@@ -318,7 +325,11 @@ export class GranolaSettingTab extends PluginSettingTab {
 			await this.plugin.saveSettings();
 
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-			statusEl.innerHTML = '<span style="color: red;">❌ Connection failed</span>';
+			statusEl.empty();
+			statusEl.createEl('span', {
+				text: '❌ Connection failed',
+				cls: 'connection-failed'
+			});
 			new Notice(`❌ Connection test failed: ${errorMessage}`, 5000);
 		}
 	}
@@ -329,11 +340,18 @@ export class GranolaSettingTab extends PluginSettingTab {
 	private updateConnectionStatus(statusEl: HTMLElement): void {
 		const { isConnected, lastValidated } = this.plugin.settings.connection;
 
+		statusEl.empty();
 		if (isConnected && lastValidated > 0) {
 			const lastCheck = new Date(lastValidated).toLocaleString();
-			statusEl.innerHTML = `<span style="color: green;">✅ Connected (last checked: ${lastCheck})</span>`;
+			statusEl.createEl('span', {
+				text: `✅ Connected (last checked: ${lastCheck})`,
+				cls: 'connection-connected'
+			});
 		} else {
-			statusEl.innerHTML = '<span style="color: gray;">⚪ Connection not tested</span>';
+			statusEl.createEl('span', {
+				text: '⚪ Connection not tested',
+				cls: 'connection-not-tested'
+			});
 		}
 	}
 }

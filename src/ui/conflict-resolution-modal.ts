@@ -101,7 +101,7 @@ export class ConflictResolutionModal extends Modal {
 		header.createEl('h2', { text: 'Import Conflict Detected' });
 
 		const status = header.createEl('div', { cls: 'conflict-status' });
-		status.innerHTML = this.getStatusMessage();
+		this.setStatusMessage(status);
 
 		// Document info
 		const docInfo = this.contentEl.createDiv('conflict-document-info');
@@ -119,20 +119,42 @@ export class ConflictResolutionModal extends Modal {
 		this.applyStyles();
 	}
 
-	private getStatusMessage(): string {
+	private setStatusMessage(container: HTMLElement): void {
 		const status = this.metadata.importStatus.status;
 		const reason = this.metadata.importStatus.reason;
 
+		let icon = '';
+		let label = '';
+		let className = '';
+
 		switch (status) {
 			case 'CONFLICT':
-				return `<span class="status-conflict">⚠️ Conflict:</span> ${reason}`;
+				icon = '⚠️';
+				label = 'Conflict:';
+				className = 'status-conflict';
+				break;
 			case 'EXISTS':
-				return `<span class="status-exists">📄 Exists:</span> ${reason}`;
+				icon = '📄';
+				label = 'Exists:';
+				className = 'status-exists';
+				break;
 			case 'UPDATED':
-				return `<span class="status-updated">🔄 Updated:</span> ${reason}`;
+				icon = '🔄';
+				label = 'Updated:';
+				className = 'status-updated';
+				break;
 			default:
-				return `<span class="status-unknown">❓ Unknown:</span> ${reason}`;
+				icon = '❓';
+				label = 'Unknown:';
+				className = 'status-unknown';
+				break;
 		}
+
+		const statusSpan = container.createEl('span', { 
+			text: `${icon} ${label}`,
+			cls: className 
+		});
+		container.appendText(` ${reason}`);
 	}
 
 	private createDocumentInfo(container: HTMLElement): void {

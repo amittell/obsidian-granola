@@ -151,7 +151,8 @@ export class DOMTestUtils {
 		const startTime = Date.now();
 
 		while (Date.now() - startTime < timeout) {
-			const element = parent.querySelector(selector) as HTMLElement;
+			const element = parent.querySelector(selector);
+			if (!(element instanceof HTMLElement)) continue;
 
 			if (element) {
 				if (visible) {
@@ -228,7 +229,8 @@ export class DOMTestUtils {
 		const startTime = Date.now();
 
 		while (Date.now() - startTime < timeout) {
-			const element = parent.querySelector(selector) as HTMLElement;
+			const element = parent.querySelector(selector);
+			if (!(element instanceof HTMLElement)) continue;
 
 			if (element) {
 				const textContent = element.textContent || '';

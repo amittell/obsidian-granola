@@ -114,8 +114,8 @@ export class ModalTestHelper<T extends Modal = Modal> {
 	 * Simulates a button click by selector or element.
 	 */
 	async clickButton(selector: string): Promise<void> {
-		const button = this.mockContentEl.querySelector(selector) as MockHTMLElement;
-		if (!button) {
+		const button = this.mockContentEl.querySelector(selector);
+		if (!(button instanceof MockHTMLElement)) {
 			throw new Error(`Button not found: ${selector}`);
 		}
 
@@ -128,8 +128,8 @@ export class ModalTestHelper<T extends Modal = Modal> {
 	 * Simulates typing in an input field.
 	 */
 	async typeInInput(selector: string, value: string): Promise<void> {
-		const input = this.mockContentEl.querySelector(selector) as MockHTMLElement;
-		if (!input) {
+		const input = this.mockContentEl.querySelector(selector);
+		if (!(input instanceof MockHTMLElement)) {
 			throw new Error(`Input not found: ${selector}`);
 		}
 
@@ -144,8 +144,8 @@ export class ModalTestHelper<T extends Modal = Modal> {
 	 * Simulates checking/unchecking a checkbox.
 	 */
 	async toggleCheckbox(selector: string, checked: boolean = true): Promise<void> {
-		const checkbox = this.mockContentEl.querySelector(selector) as MockHTMLElement;
-		if (!checkbox) {
+		const checkbox = this.mockContentEl.querySelector(selector);
+		if (!(checkbox instanceof MockHTMLElement)) {
 			throw new Error(`Checkbox not found: ${selector}`);
 		}
 
@@ -159,8 +159,8 @@ export class ModalTestHelper<T extends Modal = Modal> {
 	 * Simulates selecting an option from a dropdown.
 	 */
 	async selectOption(selector: string, value: string): Promise<void> {
-		const select = this.mockContentEl.querySelector(selector) as MockHTMLElement;
-		if (!select) {
+		const select = this.mockContentEl.querySelector(selector);
+		if (!(select instanceof MockHTMLElement)) {
 			throw new Error(`Select not found: ${selector}`);
 		}
 
@@ -177,8 +177,8 @@ export class ModalTestHelper<T extends Modal = Modal> {
 		const startTime = Date.now();
 
 		while (Date.now() - startTime < timeout) {
-			const element = this.mockContentEl.querySelector(selector) as MockHTMLElement;
-			if (element) {
+			const element = this.mockContentEl.querySelector(selector);
+			if (element instanceof MockHTMLElement) {
 				return element;
 			}
 			await this.delay(10);
@@ -215,8 +215,8 @@ export class ModalTestHelper<T extends Modal = Modal> {
 		const startTime = Date.now();
 
 		while (Date.now() - startTime < timeout) {
-			const element = this.mockContentEl.querySelector(selector) as MockHTMLElement;
-			if (element && element.textContent?.includes(expectedText)) {
+			const element = this.mockContentEl.querySelector(selector);
+			if (element instanceof MockHTMLElement && element.textContent?.includes(expectedText)) {
 				return;
 			}
 			await this.delay(10);
@@ -253,7 +253,8 @@ export class ModalTestHelper<T extends Modal = Modal> {
 	 * Gets a single element matching a selector.
 	 */
 	query(selector: string): MockHTMLElement | null {
-		return this.mockContentEl.querySelector(selector) as MockHTMLElement | null;
+		const element = this.mockContentEl.querySelector(selector);
+		return element instanceof MockHTMLElement ? element : null;
 	}
 
 	/**

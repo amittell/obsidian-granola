@@ -1,5 +1,48 @@
 /* Granola Importer Plugin Styles */
 
-/* Future-ready stylesheet for any custom styling needs */
-/* Currently empty to maintain minimal footprint */
-/* Add styles here as needed for UI components */
+/* Progress Elements */
+.granola-progress-hidden {
+	display: none !important;
+}
+
+.granola-progress-visible {
+	display: block !important;
+}
+
+.granola-progress-visible-flex {
+	display: flex !important;
+}
+
+.granola-progress-fill {
+	transition: width 0.3s ease;
+}
+
+/* Document Selection Modal */
+.granola-controls-hidden {
+	display: none !important;
+}
+
+.granola-controls-visible {
+	display: block !important;
+}
+
+/* Settings Connection Status */
+.connection-testing {
+	color: var(--text-warning);
+}
+
+.connection-success {
+	color: var(--text-success);
+}
+
+.connection-failed {
+	color: var(--text-error);
+}
+
+.connection-connected {
+	color: var(--text-success);
+}
+
+.connection-not-tested {
+	color: var(--text-muted);
+}
