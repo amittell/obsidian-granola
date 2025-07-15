@@ -110,13 +110,13 @@ let activeTimeouts = new Set();
 let activeIntervals = new Set();
 let activeAnimationFrames = new Set();
 
-global.setTimeout = (callback: any, delay?: number, ...args: any[]) => {
+global.setTimeout = (callback: (...args: unknown[]) => void, delay?: number, ...args: unknown[]) => {
 	const id = originalSetTimeout(callback, delay, ...args);
 	activeTimeouts.add(id);
 	return id;
 };
 
-global.setInterval = (callback: any, delay?: number, ...args: any[]) => {
+global.setInterval = (callback: (...args: unknown[]) => void, delay?: number, ...args: unknown[]) => {
 	const id = originalSetInterval(callback, delay, ...args);
 	activeIntervals.add(id);
 	return id;
@@ -135,17 +135,17 @@ const originalClearTimeout = global.clearTimeout;
 const originalClearInterval = global.clearInterval;
 const originalCancelAnimationFrame = global.cancelAnimationFrame;
 
-global.clearTimeout = (id: any) => {
+global.clearTimeout = (id: NodeJS.Timeout) => {
 	activeTimeouts.delete(id);
 	return originalClearTimeout(id);
 };
 
-global.clearInterval = (id: any) => {
+global.clearInterval = (id: NodeJS.Timeout) => {
 	activeIntervals.delete(id);
 	return originalClearInterval(id);
 };
 
-global.cancelAnimationFrame = (id: any) => {
+global.cancelAnimationFrame = (id: number) => {
 	activeAnimationFrames.delete(id);
 	if (originalCancelAnimationFrame) {
 		return originalCancelAnimationFrame(id);
@@ -280,7 +280,7 @@ Object.assign(navigator, {
 // Mock File API for file upload testing
 global.File = jest.fn().mockImplementation((bits, name, options) => ({
 	name,
-	size: bits.reduce((acc: number, bit: any) => acc + (bit.length || 0), 0),
+	size: bits.reduce((acc: number, bit: string | ArrayBuffer | ArrayBufferView) => acc + (typeof bit === 'string' ? bit.length : bit.byteLength || 0), 0),
 	type: options?.type || '',
 	lastModified: Date.now(),
 	arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(0)),

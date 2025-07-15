@@ -484,7 +484,7 @@ export class DOMTestUtils {
 	/**
 	 * Triggers a custom event on an element.
 	 */
-	static triggerCustomEvent(element: HTMLElement, eventType: string, eventData: any = {}): void {
+	static triggerCustomEvent(element: HTMLElement, eventType: string, eventData: Record<string, unknown> = {}): void {
 		const event = new CustomEvent(eventType, {
 			detail: eventData,
 			bubbles: true,

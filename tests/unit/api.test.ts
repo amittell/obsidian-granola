@@ -389,7 +389,7 @@ describe('GranolaAPI', () => {
 
 			// Mock setTimeout to resolve immediately for testing
 			const originalSetTimeout = global.setTimeout;
-			const mockSetTimeout = jest.fn().mockImplementation((callback: any) => {
+			const mockSetTimeout = jest.fn().mockImplementation((callback: () => void) => {
 				callback();
 				return 1;
 			});
@@ -453,8 +453,8 @@ describe('GranolaAPI', () => {
 	});
 
 	describe('user agent initialization edge cases', () => {
-		let originalFs: any;
-		let originalPath: any;
+		let originalFs: typeof import('fs');
+		let originalPath: typeof import('path');
 
 		beforeEach(() => {
 			// Store original modules

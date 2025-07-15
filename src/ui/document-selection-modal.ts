@@ -497,10 +497,14 @@ export class DocumentSelectionModal extends Modal {
 	 * @private
 	 */
 	private showMainView(): void {
-		this.controlsEl.removeClass('granola-controls-hidden').addClass('granola-controls-visible');
-		this.searchEl.removeClass('granola-controls-hidden').addClass('granola-controls-visible');
-		this.documentListEl.removeClass('granola-controls-hidden').addClass('granola-controls-visible');
-		this.footerEl.removeClass('granola-controls-hidden').addClass('granola-controls-visible');
+		this.controlsEl.removeClass('granola-controls-hidden');
+		this.controlsEl.addClass('granola-controls-visible');
+		this.searchEl.removeClass('granola-controls-hidden');
+		this.searchEl.addClass('granola-controls-visible');
+		this.documentListEl.removeClass('granola-controls-hidden');
+		this.documentListEl.addClass('granola-controls-visible');
+		this.footerEl.removeClass('granola-controls-hidden');
+		this.footerEl.addClass('granola-controls-visible');
 		this.progressEl.addClass('granola-progress-hidden');
 	}
 
@@ -510,11 +514,16 @@ export class DocumentSelectionModal extends Modal {
 	 * @private
 	 */
 	private showProgressView(): void {
-		this.controlsEl.removeClass('granola-controls-visible').addClass('granola-controls-hidden');
-		this.searchEl.removeClass('granola-controls-visible').addClass('granola-controls-hidden');
-		this.documentListEl.removeClass('granola-controls-visible').addClass('granola-controls-hidden');
-		this.footerEl.removeClass('granola-controls-visible').addClass('granola-controls-hidden');
-		this.progressEl.removeClass('granola-progress-hidden').addClass('granola-progress-visible');
+		this.controlsEl.removeClass('granola-controls-visible');
+		this.controlsEl.addClass('granola-controls-hidden');
+		this.searchEl.removeClass('granola-controls-visible');
+		this.searchEl.addClass('granola-controls-hidden');
+		this.documentListEl.removeClass('granola-controls-visible');
+		this.documentListEl.addClass('granola-controls-hidden');
+		this.footerEl.removeClass('granola-controls-visible');
+		this.footerEl.addClass('granola-controls-hidden');
+		this.progressEl.removeClass('granola-progress-hidden');
+		this.progressEl.addClass('granola-progress-visible');
 
 		this.progressEl.empty();
 		this.progressEl.createEl('h3', { text: 'Importing Documents...' });
@@ -585,7 +594,8 @@ export class DocumentSelectionModal extends Modal {
 			docProgress.status === 'completed' ||
 			docProgress.status === 'failed'
 		) {
-			progressIndicator.removeClass('granola-progress-hidden').addClass('granola-progress-visible-flex');
+			progressIndicator.removeClass('granola-progress-hidden');
+			progressIndicator.addClass('granola-progress-visible-flex');
 		}
 
 		// Update icon and text based on status
@@ -680,7 +690,8 @@ export class DocumentSelectionModal extends Modal {
 		this.setImporting(false);
 
 		// Hide footer buttons since they're no longer relevant
-		this.footerEl.removeClass('granola-controls-visible').addClass('granola-controls-hidden');
+		this.footerEl.removeClass('granola-controls-visible');
+		this.footerEl.addClass('granola-controls-hidden');
 
 		this.progressEl.empty();
 
@@ -1029,9 +1040,11 @@ export class DocumentSelectionModal extends Modal {
 		toggle.addEventListener('click', () => {
 			isExpanded = !isExpanded;
 			if (isExpanded) {
-				content.removeClass('granola-controls-hidden').addClass('granola-controls-visible');
+				content.removeClass('granola-controls-hidden');
+				content.addClass('granola-controls-visible');
 			} else {
-				content.removeClass('granola-controls-visible').addClass('granola-controls-hidden');
+				content.removeClass('granola-controls-visible');
+				content.addClass('granola-controls-hidden');
 			}
 			toggle.textContent = isExpanded ? '▼' : '▶';
 		});

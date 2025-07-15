@@ -724,7 +724,7 @@ export class SelectiveImportManager {
 	 *
 	 * @private
 	 * @async
-	 * @param {any} convertedNote - Converted document
+	 * @param {{filename: string, content: string}} convertedNote - Converted document
 	 * @param {boolean} createBackup - Whether to create backup
 	 */
 	private async handleOverwrite(
@@ -753,7 +753,7 @@ export class SelectiveImportManager {
 	 *
 	 * @private
 	 * @async
-	 * @param {any} convertedNote - Converted document
+	 * @param {{filename: string, content: string}} convertedNote - Converted document
 	 * @param {'append' | 'prepend'} strategy - Merge strategy
 	 */
 	private async handleMerge(
@@ -795,7 +795,7 @@ export class SelectiveImportManager {
 	 *
 	 * @private
 	 * @async
-	 * @param {any} convertedNote - Converted document
+	 * @param {{filename: string, content: string}} convertedNote - Converted document
 	 * @param {string} newFilename - New filename to use
 	 */
 	private async handleRename(

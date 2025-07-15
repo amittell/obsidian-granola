@@ -599,7 +599,7 @@ export class MockHTMLElement {
 		this.triggerEvent('click');
 	}
 
-	triggerEvent(event: string, eventData?: any): void {
+	triggerEvent(event: string, eventData?: Record<string, unknown>): void {
 		const listeners = this.eventListeners.get(event);
 		if (listeners) {
 			listeners.forEach(listener => {
