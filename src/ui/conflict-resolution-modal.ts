@@ -150,9 +150,9 @@ export class ConflictResolutionModal extends Modal {
 				break;
 		}
 
-		const statusSpan = container.createEl('span', { 
+		container.createEl('span', {
 			text: `${icon} ${label}`,
-			cls: className 
+			cls: className,
 		});
 		container.appendText(` ${reason}`);
 	}

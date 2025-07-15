@@ -293,9 +293,9 @@ export class GranolaSettingTab extends PluginSettingTab {
 	 */
 	private async validateConnection(statusEl: HTMLElement): Promise<void> {
 		statusEl.empty();
-		const testingSpan = statusEl.createEl('span', { 
+		statusEl.createEl('span', {
 			text: '🔄 Testing connection...',
-			cls: 'connection-testing'
+			cls: 'connection-testing',
 		});
 
 		try {
@@ -314,7 +314,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 				statusEl.empty();
 				statusEl.createEl('span', {
 					text: '✅ Connected successfully!',
-					cls: 'connection-success'
+					cls: 'connection-success',
 				});
 				new Notice('✅ Granola connection test successful!', 3000);
 			} else {
@@ -328,7 +328,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 			statusEl.empty();
 			statusEl.createEl('span', {
 				text: '❌ Connection failed',
-				cls: 'connection-failed'
+				cls: 'connection-failed',
 			});
 			new Notice(`❌ Connection test failed: ${errorMessage}`, 5000);
 		}
@@ -345,12 +345,12 @@ export class GranolaSettingTab extends PluginSettingTab {
 			const lastCheck = new Date(lastValidated).toLocaleString();
 			statusEl.createEl('span', {
 				text: `✅ Connected (last checked: ${lastCheck})`,
-				cls: 'connection-connected'
+				cls: 'connection-connected',
 			});
 		} else {
 			statusEl.createEl('span', {
 				text: '⚪ Connection not tested',
-				cls: 'connection-not-tested'
+				cls: 'connection-not-tested',
 			});
 		}
 	}

@@ -110,13 +110,21 @@ let activeTimeouts = new Set();
 let activeIntervals = new Set();
 let activeAnimationFrames = new Set();
 
-global.setTimeout = (callback: (...args: unknown[]) => void, delay?: number, ...args: unknown[]) => {
+global.setTimeout = (
+	callback: (...args: unknown[]) => void,
+	delay?: number,
+	...args: unknown[]
+) => {
 	const id = originalSetTimeout(callback, delay, ...args);
 	activeTimeouts.add(id);
 	return id;
 };
 
-global.setInterval = (callback: (...args: unknown[]) => void, delay?: number, ...args: unknown[]) => {
+global.setInterval = (
+	callback: (...args: unknown[]) => void,
+	delay?: number,
+	...args: unknown[]
+) => {
 	const id = originalSetInterval(callback, delay, ...args);
 	activeIntervals.add(id);
 	return id;
@@ -280,7 +288,11 @@ Object.assign(navigator, {
 // Mock File API for file upload testing
 global.File = jest.fn().mockImplementation((bits, name, options) => ({
 	name,
-	size: bits.reduce((acc: number, bit: string | ArrayBuffer | ArrayBufferView) => acc + (typeof bit === 'string' ? bit.length : bit.byteLength || 0), 0),
+	size: bits.reduce(
+		(acc: number, bit: string | ArrayBuffer | ArrayBufferView) =>
+			acc + (typeof bit === 'string' ? bit.length : bit.byteLength || 0),
+		0
+	),
 	type: options?.type || '',
 	lastModified: Date.now(),
 	arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(0)),
