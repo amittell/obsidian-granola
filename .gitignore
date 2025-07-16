@@ -45,3 +45,6 @@ monitoring/obsidian-releases/
 
 # Cloned repositories
 obsidian-releases-fork/
+
+# Local development files
+CLAUDE.md
