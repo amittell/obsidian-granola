@@ -554,7 +554,9 @@ export class DocumentSelectionModal extends Modal {
 		const progressText = this.progressEl.querySelector('.progress-text') as HTMLElement;
 
 		if (progressFill) {
-			progressFill.removeClass('progress-width-0 progress-width-25 progress-width-50 progress-width-75 progress-width-100');
+			progressFill.removeClass(
+				'progress-width-0 progress-width-25 progress-width-50 progress-width-75 progress-width-100'
+			);
 			if (progress.percentage <= 0) {
 				progressFill.addClass('progress-width-0');
 			} else if (progress.percentage <= 25) {
@@ -615,7 +617,9 @@ export class DocumentSelectionModal extends Modal {
 		progressText.textContent = docProgress.message || statusConfig.defaultMessage;
 
 		// Update progress bar
-		progressFill.removeClass('progress-width-0 progress-width-25 progress-width-50 progress-width-75 progress-width-100');
+		progressFill.removeClass(
+			'progress-width-0 progress-width-25 progress-width-50 progress-width-75 progress-width-100'
+		);
 		if (docProgress.progress <= 0) {
 			progressFill.addClass('progress-width-0');
 		} else if (docProgress.progress <= 25) {
