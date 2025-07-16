@@ -54,19 +54,19 @@ When you run the import command, the plugin will:
 1. **Authenticate** - Automatically detect and use your Granola credentials
 2. **Fetch Documents** - Retrieve all your Granola notes
 3. **Document Selection** - Open an interactive modal where you can:
-   - Preview document titles and metadata
-   - Select/deselect individual documents
-   - Use "Select All" or "Deselect All" buttons
-   - See document counts and import status
+    - Preview document titles and metadata
+    - Select/deselect individual documents
+    - Use "Select All" or "Deselect All" buttons
+    - See document counts and import status
 4. **Import Selected** - Click "Import Selected" to begin the import
 5. **Conflict Resolution** - If documents already exist, you'll see options to:
-   - Skip the existing document
-   - Update with newer content from Granola
-   - Create a new file with a different name
+    - Skip the existing document
+    - Update with newer content from Granola
+    - Create a new file with a different name
 6. **Progress Tracking** - Watch real-time progress with:
-   - Document-by-document status updates
-   - Success/failure indicators
-   - Detailed error messages if issues occur
+    - Document-by-document status updates
+    - Success/failure indicators
+    - Detailed error messages if issues occur
 
 ## Plugin Settings
 
@@ -85,27 +85,27 @@ Access plugin settings via: **Settings → Plugin Options → Granola Importer**
 ### Import Behavior
 
 - **Duplicate handling** - Choose default action for existing documents:
-  - Skip existing documents
-  - Update existing with newer content
-  - Always ask what to do
+    - Skip existing documents
+    - Update existing with newer content
+    - Always ask what to do
 - **Import folder** - Set default vault location for imported notes (e.g., "Meetings/Granola")
 - **Skip empty documents** - Filter out placeholder documents with no content
 
 ### Content Processing
 
 - **Date prefix format** - Add dates to filenames to prevent duplicates:
-  - YYYY-MM-DD (ISO standard)
-  - MM-DD-YYYY (US format)
-  - DD-MM-YYYY (European format)
-  - YYYY.MM.DD (dot separated)
-  - No date prefix
+    - YYYY-MM-DD (ISO standard)
+    - MM-DD-YYYY (US format)
+    - DD-MM-YYYY (European format)
+    - YYYY.MM.DD (dot separated)
+    - No date prefix
 - **Enhanced frontmatter** - Include additional metadata (id, title, updated timestamp)
 
 ### Action Items Processing
 
 - **Convert action items to tasks** - Transform bullet points under action headers to `- [ ]` format
-  - Recognizes headers like "Action Items", "Follow-ups", "Next Steps", "TODOs"
-  - Preserves assignee information (e.g., "Action Items for Alex")
+    - Recognizes headers like "Action Items", "Follow-ups", "Next Steps", "TODOs"
+    - Preserves assignee information (e.g., "Action Items for Alex")
 - **Add task tag** - Automatically tag notes containing converted tasks
 - **Task tag name** - Customize the tag (default: `#tasks`)
 
