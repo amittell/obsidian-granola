@@ -104,7 +104,10 @@ export class GranolaSettingTab extends PluginSettingTab {
 					.addOption(LogLevel.DEBUG.toString(), 'Debug and above')
 					.setValue(this.plugin.settings.debug.logLevel.toString())
 					.onChange(async value => {
-						this.plugin.settings.debug.logLevel = parseInt(value) as LogLevel;
+						const numValue = parseInt(value);
+						if (Object.values(LogLevel).includes(numValue)) {
+							this.plugin.settings.debug.logLevel = numValue;
+						}
 						this.plugin.logger.updateSettings(this.plugin.settings);
 						await this.plugin.saveSettings();
 					});
