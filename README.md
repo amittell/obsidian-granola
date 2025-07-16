@@ -41,36 +41,83 @@ npm run build
 
 ## Usage
 
+### Getting Started
+
 1. **Ensure Granola is installed** and you've used it to create notes
 2. **Open Obsidian** and enable the Granola Importer plugin
 3. **Run the import** via Command Palette: `Granola Importer: Import Granola Notes`
-4. **Select documents** to import using the preview interface
-5. **Resolve conflicts** if any existing notes are found
-6. **Watch your notes** appear in Obsidian with perfect formatting
+
+### Import Process
+
+When you run the import command, the plugin will:
+
+1. **Authenticate** - Automatically detect and use your Granola credentials
+2. **Fetch Documents** - Retrieve all your Granola notes
+3. **Document Selection** - Open an interactive modal where you can:
+   - Preview document titles and metadata
+   - Select/deselect individual documents
+   - Use "Select All" or "Deselect All" buttons
+   - See document counts and import status
+4. **Import Selected** - Click "Import Selected" to begin the import
+5. **Conflict Resolution** - If documents already exist, you'll see options to:
+   - Skip the existing document
+   - Update with newer content from Granola
+   - Create a new file with a different name
+6. **Progress Tracking** - Watch real-time progress with:
+   - Document-by-document status updates
+   - Success/failure indicators
+   - Detailed error messages if issues occur
+
+## Plugin Settings
+
+Access plugin settings via: **Settings → Plugin Options → Granola Importer**
+
+### Connection & Validation
+
+- **Test Connection** - Verify the plugin can access your Granola documents
+- Shows connection status and last validation time
+
+### Debug & Logging
+
+- **Enable debug mode** - Toggle detailed logging for troubleshooting
+- **Log level** - Control verbosity (Error, Warning, Info, Debug)
+
+### Import Behavior
+
+- **Duplicate handling** - Choose default action for existing documents:
+  - Skip existing documents
+  - Update existing with newer content
+  - Always ask what to do
+- **Import folder** - Set default vault location for imported notes (e.g., "Meetings/Granola")
+- **Skip empty documents** - Filter out placeholder documents with no content
+
+### Content Processing
+
+- **Date prefix format** - Add dates to filenames to prevent duplicates:
+  - YYYY-MM-DD (ISO standard)
+  - MM-DD-YYYY (US format)
+  - DD-MM-YYYY (European format)
+  - YYYY.MM.DD (dot separated)
+  - No date prefix
+- **Enhanced frontmatter** - Include additional metadata (id, title, updated timestamp)
+
+### Action Items Processing
+
+- **Convert action items to tasks** - Transform bullet points under action headers to `- [ ]` format
+  - Recognizes headers like "Action Items", "Follow-ups", "Next Steps", "TODOs"
+  - Preserves assignee information (e.g., "Action Items for Alex")
+- **Add task tag** - Automatically tag notes containing converted tasks
+- **Task tag name** - Customize the tag (default: `#tasks`)
+
+### User Interface
+
+- **Show progress notifications** - Display toast notifications during import
 
 ## Requirements
 
 - Obsidian v0.15.0+
 - Granola app installed with existing notes
 - Node.js 16+ (for development)
-
-## Architecture
-
-This plugin follows a modular design with comprehensive testing:
-
-### Core Components
-
-- **Authentication** - Cross-platform credential discovery
-- **API Client** - HTTP client with retry logic and batch processing
-- **Converter** - ProseMirror JSON to Markdown transformation
-- **Import Manager** - Selective document imports with progress tracking
-- **UI Components** - Document selection and conflict resolution modals
-
-### Security
-
-- **No credential storage** - Reads directly from Granola's secure storage
-- **No token logging** - Credentials never appear in console or logs
-- **Secure error handling** - Error messages don't expose sensitive data
 
 ## Supported Content Types
 
@@ -79,6 +126,14 @@ This plugin follows a modular design with comprehensive testing:
 - **Lists** (bulleted and numbered)
 - **Text formatting** (bold, italic, code, links)
 - **YAML frontmatter** with metadata
+- **Action items** that can be converted to tasks
+
+## Security & Privacy
+
+- **No credential storage** - Reads directly from Granola's secure storage
+- **No token logging** - Credentials never appear in console or logs
+- **Secure error handling** - Error messages don't expose sensitive data
+- **Local processing** - All conversion happens on your machine
 
 ## Development
 
@@ -111,6 +166,14 @@ This plugin follows a modular design with comprehensive testing:
 ## Technical Details
 
 For detailed API documentation and technical implementation details, see [granola-api.md](granola-api.md).
+
+### Architecture Overview
+
+- **Authentication** - Cross-platform credential discovery
+- **API Client** - HTTP client with retry logic and batch processing
+- **Converter** - ProseMirror JSON to Markdown transformation
+- **Import Manager** - Selective document imports with progress tracking
+- **UI Components** - Document selection and conflict resolution modals
 
 ## License
 
