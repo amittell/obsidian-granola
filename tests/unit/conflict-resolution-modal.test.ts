@@ -15,7 +15,12 @@ const mockApp = {
 } as unknown as App;
 
 // Mock TFile
-const mockFile = new TFile('test-document.md');
+const mockFile = {
+	name: 'test-document.md',
+	path: 'test-document.md',
+	basename: 'test-document',
+	extension: 'md',
+} as TFile;
 
 // Mock Logger
 const mockLogger = {
@@ -41,7 +46,7 @@ describe('ConflictResolutionModal', () => {
 					requiresUserChoice: true,
 				},
 			} as DocumentDisplayMetadata;
-			const mockFile = new TFile('test-document.md');
+			const mockFile = {} as TFile;
 			const testModal = new ConflictResolutionModal(
 				mockApp,
 				mockDoc,

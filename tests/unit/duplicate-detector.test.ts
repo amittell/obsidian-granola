@@ -13,9 +13,16 @@ const mockVault = {
 } as unknown as Vault;
 
 // Mock TFile
-const createMockFile = (name: string, path: string = name): TFile => {
-	return new TFile(path);
-};
+const createMockFile = (name: string, path: string = name): TFile =>
+	({
+		name,
+		path,
+		basename: name.replace('.md', ''),
+		extension: 'md',
+		parent: null,
+		vault: mockVault,
+		stat: { ctime: 0, mtime: 0, size: 0 },
+	}) as TFile;
 
 describe('DuplicateDetector', () => {
 	let detector: DuplicateDetector;

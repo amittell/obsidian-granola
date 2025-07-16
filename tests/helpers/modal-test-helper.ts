@@ -574,7 +574,6 @@ export class MockHTMLElement {
 	empty(): void {
 		this.children = [];
 		this._textContent = '';
-		// Clear innerHTML when emptying, but don't use it for actual DOM manipulation
 		this._innerHTML = '';
 	}
 
