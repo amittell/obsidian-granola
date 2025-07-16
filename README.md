@@ -59,6 +59,7 @@ npm run build
 This plugin follows a modular design with comprehensive testing:
 
 ### Core Components
+
 - **Authentication** - Cross-platform credential discovery
 - **API Client** - HTTP client with retry logic and batch processing
 - **Converter** - ProseMirror JSON to Markdown transformation
@@ -66,6 +67,7 @@ This plugin follows a modular design with comprehensive testing:
 - **UI Components** - Document selection and conflict resolution modals
 
 ### Security
+
 - **No credential storage** - Reads directly from Granola's secure storage
 - **No token logging** - Credentials never appear in console or logs
 - **Secure error handling** - Error messages don't expose sensitive data
@@ -81,16 +83,19 @@ This plugin follows a modular design with comprehensive testing:
 ## Development
 
 ### Build Commands
+
 - `npm run dev` - Watch mode with hot reload
 - `npm run build` - Production build
 - `npm run version` - Bump version
 
 ### Testing
+
 - `npm test` - Run all tests
 - `npm run test:coverage` - Run tests with coverage report
 - `npm run test:ci` - Run tests in CI mode
 
 ### Code Quality
+
 - `npm run lint` - Run ESLint
 - `npm run format` - Auto-format code with Prettier
 - `npm run type-check` - TypeScript type checking
