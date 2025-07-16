@@ -31,6 +31,7 @@ const mockVault = {
 	modify: jest.fn(),
 	read: jest.fn(),
 	delete: jest.fn(),
+	getAbstractFileByPath: jest.fn(),
 } as unknown as Vault;
 
 const mockConverter = {
@@ -191,6 +192,7 @@ describe('SelectiveImportManager', () => {
 		(mockConverter.generateFilename as jest.Mock).mockReturnValue('test-document.md');
 		(mockVault.create as jest.Mock).mockResolvedValue(createMockFile('test-document.md'));
 		(mockVault.modify as jest.Mock).mockResolvedValue(undefined);
+		(mockVault.getAbstractFileByPath as jest.Mock).mockReturnValue(null);
 	});
 
 	describe('constructor', () => {
@@ -532,7 +534,7 @@ describe('SelectiveImportManager', () => {
 		});
 
 		it('should handle filename generation errors', async () => {
-			(mockConverter.generateFilename as jest.Mock).mockImplementation(() => {
+			(mockConverter.convertDocument as jest.Mock).mockImplementation(() => {
 				throw new Error('Filename error');
 			});
 
@@ -596,7 +598,7 @@ describe('SelectiveImportManager', () => {
 			const metadataWithCancellation = [
 				{
 					...mockDocumentMetadata[0],
-					isSelected: true,
+					selected: true,
 				},
 			];
 
@@ -622,7 +624,7 @@ describe('SelectiveImportManager', () => {
 			const conflictMetadata = [
 				{
 					...mockDocumentMetadata[0],
-					isSelected: true,
+					selected: true,
 					importStatus: {
 						status: 'CONFLICT' as const,
 						requiresUserChoice: true,
@@ -684,7 +686,7 @@ describe('SelectiveImportManager', () => {
 			const existingMetadata = [
 				{
 					...mockDocumentMetadata[0],
-					isSelected: true,
+					selected: true,
 					importStatus: {
 						status: 'EXISTS' as const,
 						requiresUserChoice: false,
@@ -788,7 +790,7 @@ describe('SelectiveImportManager', () => {
 			};
 
 			await importManager.importDocuments(
-				mockDocumentMetadata.filter(m => m.isSelected),
+				mockDocumentMetadata.filter(m => m.selected),
 				mockGranolaDocuments,
 				options
 			);
@@ -915,11 +917,24 @@ describe('SelectiveImportManager', () => {
 				settingsWithoutFiltering
 			);
 
+			// Override converter to return a document that is not "truly empty" to test the setting
+			(mockConverter.convertDocument as jest.Mock).mockReturnValue({
+				filename: 'empty-document-2.md',
+				content: '# Empty Document 2\n\n',
+				frontmatter: {
+					granola_id: 'empty-doc-2',
+					title: 'Empty Document 2',
+					created_at: '2023-01-01T10:00:00.000Z',
+					updated_at: '2023-01-01T11:00:00.000Z',
+				},
+				isTrulyEmpty: false, // This is the key - not truly empty
+			});
+
 			const emptyDocument: GranolaDocument = {
 				id: 'empty-doc-2',
 				title: 'Empty Document 2',
 				created_at: '2023-01-01T10:00:00Z',
-				updated_at: '2023-01-01T10:00:00Z',
+				updated_at: '2023-01-01T11:00:00Z', // Different timestamp to avoid "truly empty" detection
 				user_id: 'user-123',
 				notes_plain: '',
 				notes_markdown: '',
@@ -983,13 +998,25 @@ describe('SelectiveImportManager', () => {
 		});
 
 		it('should handle file system permission errors', async () => {
+			// Reset mocks first
+			jest.clearAllMocks();
+			(mockConverter.convertDocument as jest.Mock).mockResolvedValue({
+				filename: 'test-document.md',
+				content: '# Test\n\nMarkdown content',
+				frontmatter: {
+					granola_id: 'test-id',
+					title: 'Test Document',
+					created_at: '2023-01-01T00:00:00.000Z',
+					updated_at: '2023-01-01T00:00:00.000Z',
+				},
+			});
 			// Simulate permission denied error
 			(mockVault.create as jest.Mock).mockRejectedValue(
 				new Error('EACCES: permission denied')
 			);
 
 			const result = await importManager.importDocuments(
-				[{ ...mockDocumentMetadata[0], isSelected: true }],
+				[{ ...mockDocumentMetadata[0], selected: true }],
 				[mockGranolaDocuments[0]],
 				{ ...defaultOptions, stopOnError: false }
 			);
@@ -1028,7 +1055,7 @@ describe('SelectiveImportManager', () => {
 		it('should handle concurrent import attempts', async () => {
 			// Start first import
 			const firstImport = importManager.importDocuments(
-				[{ ...mockDocumentMetadata[0], isSelected: true }],
+				[{ ...mockDocumentMetadata[0], selected: true }],
 				[mockGranolaDocuments[0]],
 				defaultOptions
 			);
@@ -1037,7 +1064,7 @@ describe('SelectiveImportManager', () => {
 			let secondImportFailed = false;
 			try {
 				await importManager.importDocuments(
-					[{ ...mockDocumentMetadata[1], isSelected: true }],
+					[{ ...mockDocumentMetadata[1], selected: true }],
 					[mockGranolaDocuments[1]],
 					defaultOptions
 				);
