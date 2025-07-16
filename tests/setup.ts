@@ -39,8 +39,12 @@ beforeEach(() => {
 	jest.clearAllMocks();
 
 	// Reset DOM state
-	document.body.innerHTML = '';
-	document.head.innerHTML = '';
+	while (document.body.firstChild) {
+		document.body.removeChild(document.body.firstChild);
+	}
+	while (document.head.firstChild) {
+		document.head.removeChild(document.head.firstChild);
+	}
 
 	// Enhanced DOM element creation mock
 	const originalCreateElement = document.createElement.bind(document);

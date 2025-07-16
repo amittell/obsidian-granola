@@ -446,7 +446,7 @@ export class DocumentSelectionModal extends Modal {
 
 		const progressBar = progressIndicator.createDiv('progress-bar');
 		const progressFill = progressBar.createDiv('progress-fill');
-		progressFill.style.setProperty('width', '0%');
+		progressFill.addClass('progress-width-0');
 	}
 
 	/**
@@ -554,7 +554,18 @@ export class DocumentSelectionModal extends Modal {
 		const progressText = this.progressEl.querySelector('.progress-text') as HTMLElement;
 
 		if (progressFill) {
-			progressFill.style.setProperty('width', `${progress.percentage}%`);
+			progressFill.removeClass('progress-width-0 progress-width-25 progress-width-50 progress-width-75 progress-width-100');
+			if (progress.percentage <= 0) {
+				progressFill.addClass('progress-width-0');
+			} else if (progress.percentage <= 25) {
+				progressFill.addClass('progress-width-25');
+			} else if (progress.percentage <= 50) {
+				progressFill.addClass('progress-width-50');
+			} else if (progress.percentage <= 75) {
+				progressFill.addClass('progress-width-75');
+			} else {
+				progressFill.addClass('progress-width-100');
+			}
 		}
 
 		if (progressText) {
@@ -604,7 +615,18 @@ export class DocumentSelectionModal extends Modal {
 		progressText.textContent = docProgress.message || statusConfig.defaultMessage;
 
 		// Update progress bar
-		progressFill.style.setProperty('width', `${docProgress.progress}%`);
+		progressFill.removeClass('progress-width-0 progress-width-25 progress-width-50 progress-width-75 progress-width-100');
+		if (docProgress.progress <= 0) {
+			progressFill.addClass('progress-width-0');
+		} else if (docProgress.progress <= 25) {
+			progressFill.addClass('progress-width-25');
+		} else if (docProgress.progress <= 50) {
+			progressFill.addClass('progress-width-50');
+		} else if (docProgress.progress <= 75) {
+			progressFill.addClass('progress-width-75');
+		} else {
+			progressFill.addClass('progress-width-100');
+		}
 
 		// Update item styling
 		documentItem.className = documentItem.className.replace(/\bimport-\w+\b/g, '');
@@ -1672,6 +1694,21 @@ export class DocumentSelectionModal extends Modal {
 				text-align: center;
 				margin-top: 0.5rem;
 				font-size: 0.9rem;
+			}
+			.granola-import-modal .progress-width-0 {
+				width: 0%;
+			}
+			.granola-import-modal .progress-width-25 {
+				width: 25%;
+			}
+			.granola-import-modal .progress-width-50 {
+				width: 50%;
+			}
+			.granola-import-modal .progress-width-75 {
+				width: 75%;
+			}
+			.granola-import-modal .progress-width-100 {
+				width: 100%;
 			}
 			.granola-import-modal .message,
 			.granola-import-modal .error-message {
