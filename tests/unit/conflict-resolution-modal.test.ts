@@ -39,14 +39,30 @@ describe('ConflictResolutionModal', () => {
 
 	describe('constructor', () => {
 		it('should create modal instance', () => {
-			const mockDoc = {} as GranolaDocument;
-			const mockMeta = {
+			const mockDoc: GranolaDocument = {
+				id: 'test-id',
+				title: 'Test Document',
+				created_at: '2023-01-01T00:00:00Z',
+				updated_at: '2023-01-01T00:00:00Z',
+				user_id: 'test-user',
+				notes: { content: [] },
+				last_viewed_panel: { content: { type: 'doc', content: [] } }
+			};
+			const mockMeta: DocumentDisplayMetadata = {
+				id: 'test-id',
+				title: 'Test Document',
+				createdDate: '2023-01-01',
+				updatedDate: '2023-01-01',
+				timeAgo: '1 year ago',
+				wordCount: 0,
+				preview: '',
+				selected: false,
 				importStatus: {
 					status: 'CONFLICT',
 					reason: 'Test conflict',
 					requiresUserChoice: true,
 				},
-			} as DocumentDisplayMetadata;
+			};
 			const mockFile = Object.create(TFile.prototype);
 			const testModal = new ConflictResolutionModal(
 				mockApp,
@@ -247,7 +263,15 @@ describe('ConflictResolutionModal', () => {
 
 	describe('error handling', () => {
 		it('should handle invalid document data gracefully', () => {
-			const invalidDocument = {} as GranolaDocument;
+			const invalidDocument: GranolaDocument = {
+				id: '',
+				title: '',
+				created_at: '',
+				updated_at: '',
+				user_id: '',
+				notes: {},
+				last_viewed_panel: {}
+			};
 			const invalidModal = new ConflictResolutionModal(
 				mockApp,
 				invalidDocument,
@@ -260,13 +284,21 @@ describe('ConflictResolutionModal', () => {
 		});
 
 		it('should handle missing metadata gracefully', () => {
-			const invalidMetadata = {
+			const invalidMetadata: DocumentDisplayMetadata = {
+				id: '',
+				title: '',
+				createdDate: '',
+				updatedDate: '',
+				timeAgo: '',
+				wordCount: 0,
+				preview: '',
+				selected: false,
 				importStatus: {
 					status: 'UNKNOWN',
 					reason: 'Missing metadata',
 					requiresUserChoice: false,
 				},
-			} as DocumentDisplayMetadata;
+			};
 			const invalidModal = new ConflictResolutionModal(
 				mockApp,
 				mockDocument,
