@@ -46,7 +46,7 @@ describe('ConflictResolutionModal', () => {
 				updated_at: '2023-01-01T00:00:00Z',
 				user_id: 'test-user',
 				notes: { content: [] },
-				last_viewed_panel: { content: { type: 'doc', content: [] } }
+				last_viewed_panel: { content: { type: 'doc', content: [] } },
 			};
 			const mockMeta: DocumentDisplayMetadata = {
 				id: 'test-id',
@@ -270,7 +270,7 @@ describe('ConflictResolutionModal', () => {
 				updated_at: '',
 				user_id: '',
 				notes: {},
-				last_viewed_panel: {}
+				last_viewed_panel: {},
 			};
 			const invalidModal = new ConflictResolutionModal(
 				mockApp,
