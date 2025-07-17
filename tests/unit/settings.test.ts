@@ -720,17 +720,17 @@ describe('GranolaSettingTab class', () => {
 
 		it('should call updateConnectionStatus without errors', () => {
 			const mockStatusEl = {
-				innerHTML: '',
+				_content: '',
 				empty: jest.fn(() => {
-					mockStatusEl.innerHTML = '';
+					mockStatusEl._content = '';
 				}),
 				createEl: jest.fn((tag, options) => {
 					const text = options?.text || '';
-					mockStatusEl.innerHTML += text;
+					mockStatusEl._content += text;
 					return { textContent: text };
 				}),
 				appendText: jest.fn(text => {
-					mockStatusEl.innerHTML += text;
+					mockStatusEl._content += text;
 				}),
 			};
 			expect(() => (settingTab as any).updateConnectionStatus(mockStatusEl)).not.toThrow();
@@ -740,17 +740,17 @@ describe('GranolaSettingTab class', () => {
 	describe('validateConnection', () => {
 		it('should handle successful connection test', async () => {
 			const mockStatusEl = {
-				innerHTML: '',
+				_content: '',
 				empty: jest.fn(() => {
-					mockStatusEl.innerHTML = '';
+					mockStatusEl._content = '';
 				}),
 				createEl: jest.fn((tag, options) => {
 					const text = options?.text || '';
-					mockStatusEl.innerHTML += text;
+					mockStatusEl._content += text;
 					return { textContent: text };
 				}),
 				appendText: jest.fn(text => {
-					mockStatusEl.innerHTML += text;
+					mockStatusEl._content += text;
 				}),
 			};
 			mockPlugin.api.getDocuments = jest.fn().mockResolvedValue({ docs: [] });
@@ -765,17 +765,17 @@ describe('GranolaSettingTab class', () => {
 
 		it('should handle connection test failure', async () => {
 			const mockStatusEl = {
-				innerHTML: '',
+				_content: '',
 				empty: jest.fn(() => {
-					mockStatusEl.innerHTML = '';
+					mockStatusEl._content = '';
 				}),
 				createEl: jest.fn((tag, options) => {
 					const text = options?.text || '';
-					mockStatusEl.innerHTML += text;
+					mockStatusEl._content += text;
 					return { textContent: text };
 				}),
 				appendText: jest.fn(text => {
-					mockStatusEl.innerHTML += text;
+					mockStatusEl._content += text;
 				}),
 			};
 			const testError = new Error('Connection failed');
@@ -785,22 +785,22 @@ describe('GranolaSettingTab class', () => {
 
 			expect(mockPlugin.settings.connection.isConnected).toBe(false);
 			expect(mockPlugin.saveSettings).toHaveBeenCalled();
-			expect(mockStatusEl.innerHTML).toContain('Connection failed');
+			expect(mockStatusEl._content).toContain('Connection failed');
 		});
 
 		it('should handle non-Error exceptions in connection test', async () => {
 			const mockStatusEl = {
-				innerHTML: '',
+				_content: '',
 				empty: jest.fn(() => {
-					mockStatusEl.innerHTML = '';
+					mockStatusEl._content = '';
 				}),
 				createEl: jest.fn((tag, options) => {
 					const text = options?.text || '';
-					mockStatusEl.innerHTML += text;
+					mockStatusEl._content += text;
 					return { textContent: text };
 				}),
 				appendText: jest.fn(text => {
-					mockStatusEl.innerHTML += text;
+					mockStatusEl._content += text;
 				}),
 			};
 			mockPlugin.api.getDocuments = jest.fn().mockRejectedValue('string error');
@@ -808,22 +808,22 @@ describe('GranolaSettingTab class', () => {
 			await (settingTab as any).validateConnection(mockStatusEl);
 
 			expect(mockPlugin.settings.connection.isConnected).toBe(false);
-			expect(mockStatusEl.innerHTML).toContain('Connection failed');
+			expect(mockStatusEl._content).toContain('Connection failed');
 		});
 
 		it('should handle invalid response format', async () => {
 			const mockStatusEl = {
-				innerHTML: '',
+				_content: '',
 				empty: jest.fn(() => {
-					mockStatusEl.innerHTML = '';
+					mockStatusEl._content = '';
 				}),
 				createEl: jest.fn((tag, options) => {
 					const text = options?.text || '';
-					mockStatusEl.innerHTML += text;
+					mockStatusEl._content += text;
 					return { textContent: text };
 				}),
 				appendText: jest.fn(text => {
-					mockStatusEl.innerHTML += text;
+					mockStatusEl._content += text;
 				}),
 			};
 			mockPlugin.api.getDocuments = jest.fn().mockResolvedValue(null);
@@ -831,22 +831,22 @@ describe('GranolaSettingTab class', () => {
 			await (settingTab as any).validateConnection(mockStatusEl);
 
 			expect(mockPlugin.settings.connection.isConnected).toBe(false);
-			expect(mockStatusEl.innerHTML).toContain('Connection failed');
+			expect(mockStatusEl._content).toContain('Connection failed');
 		});
 
 		it('should handle response with undefined docs', async () => {
 			const mockStatusEl = {
-				innerHTML: '',
+				_content: '',
 				empty: jest.fn(() => {
-					mockStatusEl.innerHTML = '';
+					mockStatusEl._content = '';
 				}),
 				createEl: jest.fn((tag, options) => {
 					const text = options?.text || '';
-					mockStatusEl.innerHTML += text;
+					mockStatusEl._content += text;
 					return { textContent: text };
 				}),
 				appendText: jest.fn(text => {
-					mockStatusEl.innerHTML += text;
+					mockStatusEl._content += text;
 				}),
 			};
 			mockPlugin.api.getDocuments = jest.fn().mockResolvedValue({ deleted: [] });
@@ -854,7 +854,7 @@ describe('GranolaSettingTab class', () => {
 			await (settingTab as any).validateConnection(mockStatusEl);
 
 			expect(mockPlugin.settings.connection.isConnected).toBe(false);
-			expect(mockStatusEl.innerHTML).toContain('Connection failed');
+			expect(mockStatusEl._content).toContain('Connection failed');
 		});
 	});
 
@@ -883,17 +883,17 @@ describe('GranolaSettingTab class', () => {
 
 			it('should handle button click for connection test', async () => {
 				const mockStatusEl = {
-					innerHTML: '',
+					_content: '',
 					empty: jest.fn(() => {
-						mockStatusEl.innerHTML = '';
+						mockStatusEl._content = '';
 					}),
 					createEl: jest.fn((tag, options) => {
 						const text = options?.text || '';
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 						return { textContent: text };
 					}),
 					appendText: jest.fn(text => {
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 					}),
 				};
 				mockContainerEl.createDiv.mockReturnValue(mockStatusEl);
@@ -1049,17 +1049,17 @@ describe('GranolaSettingTab class', () => {
 		describe('updateConnectionStatus method', () => {
 			it('should show connected status with timestamp when connected', () => {
 				const mockStatusEl = {
-					innerHTML: '',
+					_content: '',
 					empty: jest.fn(() => {
-						mockStatusEl.innerHTML = '';
+						mockStatusEl._content = '';
 					}),
 					createEl: jest.fn((tag, options) => {
 						const text = options?.text || '';
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 						return { textContent: text };
 					}),
 					appendText: jest.fn(text => {
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 					}),
 				};
 				mockPlugin.settings.connection.isConnected = true;
@@ -1067,23 +1067,23 @@ describe('GranolaSettingTab class', () => {
 
 				(settingTab as any).updateConnectionStatus(mockStatusEl);
 
-				expect(mockStatusEl.innerHTML).toContain('Connected');
-				expect(mockStatusEl.innerHTML).toContain('last checked:');
+				expect(mockStatusEl._content).toContain('Connected');
+				expect(mockStatusEl._content).toContain('last checked:');
 			});
 
 			it('should show not tested status when not connected', () => {
 				const mockStatusEl = {
-					innerHTML: '',
+					_content: '',
 					empty: jest.fn(() => {
-						mockStatusEl.innerHTML = '';
+						mockStatusEl._content = '';
 					}),
 					createEl: jest.fn((tag, options) => {
 						const text = options?.text || '';
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 						return { textContent: text };
 					}),
 					appendText: jest.fn(text => {
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 					}),
 				};
 				mockPlugin.settings.connection.isConnected = false;
@@ -1091,22 +1091,22 @@ describe('GranolaSettingTab class', () => {
 
 				(settingTab as any).updateConnectionStatus(mockStatusEl);
 
-				expect(mockStatusEl.innerHTML).toContain('Connection not tested');
+				expect(mockStatusEl._content).toContain('Connection not tested');
 			});
 
 			it('should show not tested status when lastValidated is 0', () => {
 				const mockStatusEl = {
-					innerHTML: '',
+					_content: '',
 					empty: jest.fn(() => {
-						mockStatusEl.innerHTML = '';
+						mockStatusEl._content = '';
 					}),
 					createEl: jest.fn((tag, options) => {
 						const text = options?.text || '';
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 						return { textContent: text };
 					}),
 					appendText: jest.fn(text => {
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 					}),
 				};
 				mockPlugin.settings.connection.isConnected = true;
@@ -1114,7 +1114,7 @@ describe('GranolaSettingTab class', () => {
 
 				(settingTab as any).updateConnectionStatus(mockStatusEl);
 
-				expect(mockStatusEl.innerHTML).toContain('Connection not tested');
+				expect(mockStatusEl._content).toContain('Connection not tested');
 			});
 		});
 
@@ -1130,17 +1130,17 @@ describe('GranolaSettingTab class', () => {
 
 			it('should handle connection test with empty response', async () => {
 				const mockStatusEl = {
-					innerHTML: '',
+					_content: '',
 					empty: jest.fn(() => {
-						mockStatusEl.innerHTML = '';
+						mockStatusEl._content = '';
 					}),
 					createEl: jest.fn((tag, options) => {
 						const text = options?.text || '';
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 						return { textContent: text };
 					}),
 					appendText: jest.fn(text => {
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 					}),
 				};
 				mockPlugin.api.getDocuments = jest.fn().mockResolvedValue({});
@@ -1148,22 +1148,22 @@ describe('GranolaSettingTab class', () => {
 				await (settingTab as any).validateConnection(mockStatusEl);
 
 				expect(mockPlugin.settings.connection.isConnected).toBe(false);
-				expect(mockStatusEl.innerHTML).toContain('Connection failed');
+				expect(mockStatusEl._content).toContain('Connection failed');
 			});
 
 			it('should handle auth.loadCredentials failure', async () => {
 				const mockStatusEl = {
-					innerHTML: '',
+					_content: '',
 					empty: jest.fn(() => {
-						mockStatusEl.innerHTML = '';
+						mockStatusEl._content = '';
 					}),
 					createEl: jest.fn((tag, options) => {
 						const text = options?.text || '';
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 						return { textContent: text };
 					}),
 					appendText: jest.fn(text => {
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 					}),
 				};
 				mockPlugin.auth.loadCredentials = jest
@@ -1173,22 +1173,22 @@ describe('GranolaSettingTab class', () => {
 				await (settingTab as any).validateConnection(mockStatusEl);
 
 				expect(mockPlugin.settings.connection.isConnected).toBe(false);
-				expect(mockStatusEl.innerHTML).toContain('Connection failed');
+				expect(mockStatusEl._content).toContain('Connection failed');
 			});
 
 			it('should set lastValidated timestamp on successful connection', async () => {
 				const mockStatusEl = {
-					innerHTML: '',
+					_content: '',
 					empty: jest.fn(() => {
-						mockStatusEl.innerHTML = '';
+						mockStatusEl._content = '';
 					}),
 					createEl: jest.fn((tag, options) => {
 						const text = options?.text || '';
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 						return { textContent: text };
 					}),
 					appendText: jest.fn(text => {
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 					}),
 				};
 				const beforeTime = Date.now();
@@ -1203,17 +1203,17 @@ describe('GranolaSettingTab class', () => {
 
 			it('should handle updateConnectionStatus with partial settings', () => {
 				const mockStatusEl = {
-					innerHTML: '',
+					_content: '',
 					empty: jest.fn(() => {
-						mockStatusEl.innerHTML = '';
+						mockStatusEl._content = '';
 					}),
 					createEl: jest.fn((tag, options) => {
 						const text = options?.text || '';
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 						return { textContent: text };
 					}),
 					appendText: jest.fn(text => {
-						mockStatusEl.innerHTML += text;
+						mockStatusEl._content += text;
 					}),
 				};
 				// Simulate missing connection object
@@ -1222,7 +1222,7 @@ describe('GranolaSettingTab class', () => {
 				expect(() =>
 					(settingTab as any).updateConnectionStatus(mockStatusEl)
 				).not.toThrow();
-				expect(mockStatusEl.innerHTML).toContain('Connection not tested');
+				expect(mockStatusEl._content).toContain('Connection not tested');
 			});
 
 			it('should handle all enum values in dropdown changes', async () => {

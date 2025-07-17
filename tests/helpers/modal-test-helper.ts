@@ -563,11 +563,11 @@ export class MockHTMLElement {
 		this._textContent = value;
 	}
 
-	get innerHTML(): string {
+	get textContent(): string {
 		return this._innerHTML;
 	}
 
-	set innerHTML(value: string) {
+	set textContent(value: string) {
 		this._innerHTML = value;
 	}
 
@@ -575,6 +575,7 @@ export class MockHTMLElement {
 		this.children = [];
 		this._textContent = '';
 		this._innerHTML = '';
+		this.empty();
 	}
 
 	// Event methods
