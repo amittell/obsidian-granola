@@ -571,12 +571,15 @@ export default class GranolaImporterPlugin extends Plugin {
 	async loadSettings(): Promise<void> {
 		const savedData = await this.loadData();
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
-		
+
 		// Migration: If user has custom template but no toggle setting, enable it
-		if (savedData && savedData.content && 
-			savedData.content.filenameTemplate && 
+		if (
+			savedData &&
+			savedData.content &&
+			savedData.content.filenameTemplate &&
 			savedData.content.filenameTemplate !== '{title}' &&
-			savedData.content.useCustomFilenameTemplate === undefined) {
+			savedData.content.useCustomFilenameTemplate === undefined
+		) {
 			this.settings.content.useCustomFilenameTemplate = true;
 			await this.saveSettings();
 		}

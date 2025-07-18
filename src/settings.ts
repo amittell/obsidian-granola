@@ -210,7 +210,9 @@ export class GranolaSettingTab extends PluginSettingTab {
 		// Custom filename template toggle
 		new Setting(containerEl)
 			.setName('Use custom filename template')
-			.setDesc('Enable custom filename templates with variables instead of date prefix format')
+			.setDesc(
+				'Enable custom filename templates with variables instead of date prefix format'
+			)
 			.addToggle(toggle => {
 				toggle
 					.setValue(this.plugin.settings.content.useCustomFilenameTemplate)
@@ -239,7 +241,8 @@ export class GranolaSettingTab extends PluginSettingTab {
 						.addOption(DatePrefixFormat.NONE, 'No date prefix')
 						.setValue(this.plugin.settings.content.datePrefixFormat)
 						.onChange(async value => {
-							this.plugin.settings.content.datePrefixFormat = value as DatePrefixFormat;
+							this.plugin.settings.content.datePrefixFormat =
+								value as DatePrefixFormat;
 							await this.plugin.saveSettings();
 						});
 				});
@@ -251,11 +254,11 @@ export class GranolaSettingTab extends PluginSettingTab {
 					'Customize how files are named. Available variables: {title}, {id}, {created_date}, {updated_date}, {created_time}, {updated_time}'
 				)
 				.addText(text => {
-					text
-						.setPlaceholder('{created_date} - {title}')
+					text.setPlaceholder('{created_date} - {title}')
 						.setValue(this.plugin.settings.content.filenameTemplate)
 						.onChange(async value => {
-							this.plugin.settings.content.filenameTemplate = value || '{created_date} - {title}';
+							this.plugin.settings.content.filenameTemplate =
+								value || '{created_date} - {title}';
 							await this.plugin.saveSettings();
 							// Update preview
 							this.updateFilenamePreview();

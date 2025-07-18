@@ -13,7 +13,7 @@ describe('ProseMirrorConverter', () => {
 		// Deep clone to ensure nested objects are also cloned
 		mockSettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 		converter = new ProseMirrorConverter(createMockLogger(), mockSettings);
-		
+
 		mockDocument = {
 			id: 'test-doc-id',
 			title: 'Test Document',
@@ -897,7 +897,7 @@ describe('ProseMirrorConverter', () => {
 
 	describe('Attendee tag extraction', () => {
 		let mockDocumentWithAttendees: GranolaDocument;
-		
+
 		beforeEach(() => {
 			mockDocumentWithAttendees = {
 				...mockDocument,

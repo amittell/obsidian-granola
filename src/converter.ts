@@ -427,7 +427,7 @@ export class ProseMirrorConverter {
 		if (!this.settings.content.useCustomFilenameTemplate) {
 			const createdDate = new Date(doc.created_at);
 			const dateFormat = this.settings.content.datePrefixFormat;
-			
+
 			// Original behavior: add date prefix if format is not NONE
 			if (dateFormat === DatePrefixFormat.NONE) {
 				return sanitizedTitle;
