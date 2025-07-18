@@ -491,6 +491,7 @@ export class ProseMirrorConverter {
 			case DatePrefixFormat.DOT_DATE:
 				return `${year}.${month}.${day}`;
 			case DatePrefixFormat.NONE:
+				return ''; // No date prefix
 			default:
 				return `${year}-${month}-${day}`; // Default to ISO
 		}
@@ -1472,12 +1473,14 @@ export class ProseMirrorConverter {
 				continue;
 			}
 
-			// Convert name to tag format
-			// "John Smith" -> "john-smith"
+			// Convert name to tag format with proper Unicode normalization
+			// "José García" -> "jose-garcia", "John Smith" -> "john-smith"
 			const tagName = trimmedPerson
+				.normalize('NFD') // Decompose accented characters
+				.replace(/[\u0300-\u036f]/g, '') // Remove diacritic marks (accents)
 				.toLowerCase()
-				.replace(/[^a-z0-9\s-]/g, '') // Remove special characters
 				.replace(/\s+/g, '-') // Replace spaces with hyphens
+				.replace(/[^a-z0-9-]/g, '') // Remove remaining special characters
 				.replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
 				.replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 

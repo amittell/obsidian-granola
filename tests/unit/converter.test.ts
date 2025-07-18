@@ -993,7 +993,7 @@ describe('ProseMirrorConverter', () => {
 			expect(result.frontmatter.tags).toEqual([
 				'person/john-obrien',
 				'person/mary-jane-watson',
-				'person/jos-garca',
+				'person/jose-garcia',
 			]);
 		});
 

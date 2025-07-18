@@ -574,10 +574,8 @@ export default class GranolaImporterPlugin extends Plugin {
 
 		// Migration: If user has custom template but no toggle setting, enable it
 		if (
-			savedData &&
-			savedData.content &&
-			savedData.content.filenameTemplate &&
-			savedData.content.filenameTemplate !== '{title}' &&
+			savedData?.content?.filenameTemplate &&
+			savedData.content.filenameTemplate !== '{created_date} - {title}' &&
 			savedData.content.useCustomFilenameTemplate === undefined
 		) {
 			this.settings.content.useCustomFilenameTemplate = true;

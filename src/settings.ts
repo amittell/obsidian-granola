@@ -251,7 +251,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 			new Setting(containerEl)
 				.setName('Filename template')
 				.setDesc(
-					'Customize how files are named. Available variables: {title}, {id}, {created_date}, {updated_date}, {created_time}, {updated_time}'
+					'Customize how files are named. Available variables: {title}, {id}, {created_date}, {updated_date}, {created_time}, {updated_time}, {created_datetime}, {updated_datetime}'
 				)
 				.addText(text => {
 					text.setPlaceholder('{created_date} - {title}')
