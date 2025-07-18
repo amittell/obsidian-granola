@@ -183,7 +183,3 @@ MIT License - see LICENSE file for details
 
 - Report issues: [GitHub Issues](https://github.com/amittell/obsidian-granola/issues)
 - Questions: [GitHub Discussions](https://github.com/amittell/obsidian-granola/discussions)
-
----
-
-Built with ❤️ for the Obsidian community
