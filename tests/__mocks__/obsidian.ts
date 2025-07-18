@@ -14,6 +14,13 @@ export class Plugin {
 	onunload() {}
 	addCommand(command: any) {}
 	addSettingTab(tab: any) {}
+	addRibbonIcon(icon: string, title: string, callback: () => void) {
+		// Mock implementation - return a mock HTMLElement
+		const mockElement = {
+			remove: jest.fn(),
+		};
+		return mockElement;
+	}
 	loadData() {
 		return Promise.resolve({});
 	}

@@ -1,5 +1,5 @@
 import { ProseMirrorDoc, ProseMirrorNode, GranolaDocument } from './api';
-import { Logger, GranolaSettings } from './types';
+import { Logger, GranolaSettings, DatePrefixFormat } from './types';
 
 // Converter Constants
 
@@ -52,6 +52,12 @@ export interface NoteFrontmatter {
 
 	/** Optional: ISO timestamp when the document was last updated (when enhanced frontmatter enabled) */
 	updated?: string;
+
+	/** Optional: Direct URL to the Granola note (when includeGranolaUrl enabled) */
+	granola_url?: string;
+
+	/** Optional: Tags array for attendees and other metadata */
+	tags?: string[];
 }
 
 /**
@@ -405,7 +411,7 @@ export class ProseMirrorConverter {
 	/**
 	 * Generates a filename for the converted document based on settings.
 	 *
-	 * Creates filenames with optional date prefix based on datePrefixFormat setting.
+	 * Creates filenames using a template system that supports variables.
 	 * This allows flexible filename formats while preventing duplicates.
 	 *
 	 * @private
@@ -417,13 +423,91 @@ export class ProseMirrorConverter {
 		const title = this.decodeHtmlEntities(doc.title || `Untitled-${doc.id}`);
 		const sanitizedTitle = this.sanitizeFilename(title);
 
-		// Check if date prefix is disabled
-		if (this.settings.content.datePrefixFormat === 'none') {
-			return sanitizedTitle;
+		// If not using custom template, use the original date-prefix behavior
+		if (!this.settings.content.useCustomFilenameTemplate) {
+			const createdDate = new Date(doc.created_at);
+			const dateFormat = this.settings.content.datePrefixFormat;
+			
+			// Original behavior: add date prefix if format is not NONE
+			if (dateFormat === DatePrefixFormat.NONE) {
+				return sanitizedTitle;
+			} else {
+				const formattedDate = this.formatDate(createdDate, dateFormat);
+				return `${formattedDate} - ${sanitizedTitle}`;
+			}
 		}
 
-		// Generate date prefix using existing method
-		return this.generateDatePrefixedFilename(doc);
+		// Custom template logic
+		const template = this.settings.content.filenameTemplate || '{created_date} - {title}';
+
+		// Create date formatters
+		const createdDate = new Date(doc.created_at);
+		const updatedDate = new Date(doc.updated_at);
+
+		// Format dates according to settings
+		const dateFormat = this.settings.content.datePrefixFormat;
+		const formattedCreatedDate = this.formatDate(createdDate, dateFormat);
+		const formattedUpdatedDate = this.formatDate(updatedDate, dateFormat);
+
+		// Format times
+		const createdTime = this.formatTime(createdDate);
+		const updatedTime = this.formatTime(updatedDate);
+
+		// Replace template variables
+		const filename = template
+			.replace(/{title}/g, sanitizedTitle)
+			.replace(/{id}/g, doc.id)
+			.replace(/{created_date}/g, formattedCreatedDate)
+			.replace(/{updated_date}/g, formattedUpdatedDate)
+			.replace(/{created_time}/g, createdTime)
+			.replace(/{updated_time}/g, updatedTime)
+			.replace(/{created_datetime}/g, `${formattedCreatedDate}_${createdTime}`)
+			.replace(/{updated_datetime}/g, `${formattedUpdatedDate}_${updatedTime}`);
+
+		// Sanitize the final filename
+		return this.sanitizeFilename(filename);
+	}
+
+	/**
+	 * Formats a date according to the specified format setting.
+	 *
+	 * @private
+	 * @param {Date} date - Date to format
+	 * @param {DatePrefixFormat} format - Format setting
+	 * @returns {string} Formatted date string
+	 */
+	private formatDate(date: Date, format: DatePrefixFormat): string {
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+
+		switch (format) {
+			case DatePrefixFormat.ISO_DATE:
+				return `${year}-${month}-${day}`;
+			case DatePrefixFormat.US_DATE:
+				return `${month}-${day}-${year}`;
+			case DatePrefixFormat.EU_DATE:
+				return `${day}-${month}-${year}`;
+			case DatePrefixFormat.DOT_DATE:
+				return `${year}.${month}.${day}`;
+			case DatePrefixFormat.NONE:
+			default:
+				return `${year}-${month}-${day}`; // Default to ISO
+		}
+	}
+
+	/**
+	 * Formats a time as HH-mm-ss.
+	 *
+	 * @private
+	 * @param {Date} date - Date to extract time from
+	 * @returns {string} Formatted time string
+	 */
+	private formatTime(date: Date): string {
+		const hours = String(date.getHours()).padStart(2, '0');
+		const minutes = String(date.getMinutes()).padStart(2, '0');
+		const seconds = String(date.getSeconds()).padStart(2, '0');
+		return `${hours}-${minutes}-${seconds}`;
 	}
 
 	/**
@@ -1348,7 +1432,63 @@ export class ProseMirrorConverter {
 			frontmatter.updated = doc.updated_at;
 		}
 
+		// Add Granola URL if setting is enabled
+		if (this.settings.content.includeGranolaUrl) {
+			frontmatter.granola_url = `https://notes.granola.ai/d/${doc.id}`;
+		}
+
+		// Extract and process attendee tags if enabled
+		if (this.settings.attendeeTags.enabled && doc.people && doc.people.length > 0) {
+			const tags = this.extractAttendeeTags(doc.people);
+			if (tags.length > 0) {
+				frontmatter.tags = tags;
+			}
+		}
+
 		return frontmatter;
+	}
+
+	/**
+	 * Extracts and processes attendee names into tags.
+	 *
+	 * Converts attendee names into tags using the configured template.
+	 * Optionally excludes the user's own name based on settings.
+	 *
+	 * @private
+	 * @param {string[]} people - Array of attendee names from the Granola document
+	 * @returns {string[]} Array of formatted tags
+	 */
+	private extractAttendeeTags(people: string[]): string[] {
+		const tags: string[] = [];
+		const template = this.settings.attendeeTags.tagTemplate || 'person/{name}';
+		const myName = this.settings.attendeeTags.myName?.trim().toLowerCase();
+		const excludeMyName = this.settings.attendeeTags.excludeMyName;
+
+		for (const person of people) {
+			const trimmedPerson = person.trim();
+
+			// Skip if excluding own name and this matches
+			if (excludeMyName && myName && trimmedPerson.toLowerCase() === myName) {
+				continue;
+			}
+
+			// Convert name to tag format
+			// "John Smith" -> "john-smith"
+			const tagName = trimmedPerson
+				.toLowerCase()
+				.replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+				.replace(/\s+/g, '-') // Replace spaces with hyphens
+				.replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+				.replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+
+			if (tagName) {
+				// Apply template
+				const tag = template.replace('{name}', tagName);
+				tags.push(tag);
+			}
+		}
+
+		return [...new Set(tags)]; // Remove duplicates
 	}
 
 	/**
@@ -1398,6 +1538,20 @@ export class ProseMirrorConverter {
 		}
 
 		yamlLines.push(`source: ${frontmatter.source}`);
+
+		// Add Granola URL if present
+		if (frontmatter.granola_url) {
+			yamlLines.push(`granola_url: "${frontmatter.granola_url}"`);
+		}
+
+		// Add tags if present
+		if (frontmatter.tags && frontmatter.tags.length > 0) {
+			yamlLines.push('tags:');
+			frontmatter.tags.forEach(tag => {
+				yamlLines.push(`  - ${tag}`);
+			});
+		}
+
 		yamlLines.push('---', '');
 
 		return yamlLines.join('\n') + markdown;

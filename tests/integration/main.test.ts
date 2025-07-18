@@ -40,6 +40,7 @@ jest.mock('../../src/converter', () => ({
 				source: 'Granola',
 			},
 		}),
+		updateSettings: jest.fn(),
 	})),
 }));
 
@@ -150,6 +151,59 @@ describe('GranolaImporterPlugin Integration', () => {
 
 			// Should not throw, but handle the error gracefully
 			expect(() => plugin.openImportModal()).not.toThrow();
+		});
+	});
+
+	describe('Ribbon Icon', () => {
+		beforeEach(async () => {
+			await plugin.onload();
+		});
+
+		it('should add ribbon icon when enabled in settings', async () => {
+			const addRibbonIconSpy = jest.spyOn(plugin, 'addRibbonIcon');
+
+			// Enable ribbon icon
+			plugin.settings.ui.showRibbonIcon = true;
+			await plugin.saveSettings();
+
+			// Verify ribbon icon was added
+			expect(addRibbonIconSpy).toHaveBeenCalledWith(
+				'download',
+				'Import Granola Notes',
+				expect.any(Function)
+			);
+		});
+
+		it('should remove ribbon icon when disabled in settings', async () => {
+			// Mock ribbon icon element
+			const mockRibbonEl = { remove: jest.fn() };
+			(plugin as any).ribbonIconEl = mockRibbonEl;
+
+			// Disable ribbon icon
+			plugin.settings.ui.showRibbonIcon = false;
+			plugin.refreshRibbonIcon();
+
+			// Verify ribbon icon was removed
+			expect(mockRibbonEl.remove).toHaveBeenCalled();
+			expect((plugin as any).ribbonIconEl).toBeNull();
+		});
+
+		it('should trigger import modal when ribbon icon is clicked', async () => {
+			const openImportModalSpy = jest.spyOn(plugin, 'openImportModal');
+			const addRibbonIconSpy = jest.spyOn(plugin, 'addRibbonIcon');
+
+			// Enable ribbon icon
+			plugin.settings.ui.showRibbonIcon = true;
+			plugin.refreshRibbonIcon();
+
+			// Get the callback from addRibbonIcon
+			const ribbonCallback = addRibbonIconSpy.mock.calls[0][2];
+
+			// Simulate ribbon icon click
+			ribbonCallback();
+
+			// Verify import modal was opened
+			expect(openImportModalSpy).toHaveBeenCalled();
 		});
 	});
 });

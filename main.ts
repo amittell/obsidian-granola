@@ -78,6 +78,13 @@ export default class GranolaImporterPlugin extends Plugin {
 	private importManager!: SelectiveImportManager;
 
 	/**
+	 * Reference to the ribbon icon element.
+	 * Used to add/remove the icon based on settings.
+	 * @private
+	 */
+	private ribbonIconEl: HTMLElement | null = null;
+
+	/**
 	 * Plugin settings with default values and persistence.
 	 * Contains all configuration options for the plugin.
 	 * @public
@@ -165,6 +172,9 @@ export default class GranolaImporterPlugin extends Plugin {
 				},
 			});
 		}
+
+		// Add ribbon icon if enabled in settings
+		this.refreshRibbonIcon();
 	}
 
 	/**
@@ -559,7 +569,17 @@ export default class GranolaImporterPlugin extends Plugin {
 	 * @returns {Promise<void>} Resolves when settings are loaded
 	 */
 	async loadSettings(): Promise<void> {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const savedData = await this.loadData();
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
+		
+		// Migration: If user has custom template but no toggle setting, enable it
+		if (savedData && savedData.content && 
+			savedData.content.filenameTemplate && 
+			savedData.content.filenameTemplate !== '{title}' &&
+			savedData.content.useCustomFilenameTemplate === undefined) {
+			this.settings.content.useCustomFilenameTemplate = true;
+			await this.saveSettings();
+		}
 	}
 
 	/**
@@ -579,6 +599,28 @@ export default class GranolaImporterPlugin extends Plugin {
 		// Update metadata service settings if it exists
 		if (this.metadataService) {
 			this.metadataService.updateSettings(this.settings);
+		}
+
+		// Refresh ribbon icon based on new settings
+		this.refreshRibbonIcon();
+	}
+
+	/**
+	 * Refreshes the ribbon icon based on current settings.
+	 * Adds or removes the icon from the ribbon as needed.
+	 */
+	refreshRibbonIcon(): void {
+		// Remove existing ribbon icon if it exists
+		if (this.ribbonIconEl) {
+			this.ribbonIconEl.remove();
+			this.ribbonIconEl = null;
+		}
+
+		// Add ribbon icon if enabled in settings
+		if (this.settings.ui.showRibbonIcon) {
+			this.ribbonIconEl = this.addRibbonIcon('download', 'Import Granola Notes', () => {
+				this.openImportModal();
+			});
 		}
 	}
 }

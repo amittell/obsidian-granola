@@ -7,14 +7,14 @@ import { DEFAULT_SETTINGS, GranolaSettings } from '../../src/types';
 describe('ProseMirrorConverter', () => {
 	let converter: ProseMirrorConverter;
 	let mockSettings: GranolaSettings;
+	let mockDocument: GranolaDocument;
 
 	beforeEach(() => {
-		mockSettings = { ...DEFAULT_SETTINGS };
+		// Deep clone to ensure nested objects are also cloned
+		mockSettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 		converter = new ProseMirrorConverter(createMockLogger(), mockSettings);
-	});
-
-	describe('convertDocument', () => {
-		const mockDocument: GranolaDocument = {
+		
+		mockDocument = {
 			id: 'test-doc-id',
 			title: 'Test Document',
 			created_at: '2024-01-01T10:00:00Z',
@@ -37,7 +37,9 @@ describe('ProseMirrorConverter', () => {
 			notes_plain: 'Test Heading\nTest content',
 			notes_markdown: '# Test Heading\nTest content',
 		};
+	});
 
+	describe('convertDocument', () => {
 		it('should convert document with complete structure', () => {
 			const result = converter.convertDocument(mockDocument);
 
@@ -788,6 +790,226 @@ describe('ProseMirrorConverter', () => {
 			expect(result.content).toContain(
 				'This document appears to have no extractable content'
 			);
+		});
+	});
+
+	describe('Granola URL in frontmatter', () => {
+		it('should include Granola URL when setting is enabled', () => {
+			mockSettings.content.includeGranolaUrl = true;
+			converter.updateSettings(mockSettings);
+
+			const result = converter.convertDocument(mockDocument);
+
+			expect(result.frontmatter.granola_url).toBe('https://notes.granola.ai/d/test-doc-id');
+			expect(result.content).toContain(
+				'granola_url: "https://notes.granola.ai/d/test-doc-id"'
+			);
+		});
+
+		it('should not include Granola URL when setting is disabled', () => {
+			mockSettings.content.includeGranolaUrl = false;
+			converter.updateSettings(mockSettings);
+
+			const result = converter.convertDocument(mockDocument);
+
+			expect(result.frontmatter.granola_url).toBeUndefined();
+			expect(result.content).not.toContain('granola_url');
+		});
+	});
+
+	describe('Customizable filename templates', () => {
+		it('should use default date prefix format when custom template is disabled', () => {
+			mockSettings.content.useCustomFilenameTemplate = false;
+			mockSettings.content.datePrefixFormat = 'YYYY-MM-DD';
+			converter.updateSettings(mockSettings);
+
+			const result = converter.convertDocument(mockDocument);
+
+			expect(result.filename).toBe('2024-01-01 - Test Document.md');
+		});
+
+		it('should use custom filename template with title when enabled', () => {
+			mockSettings.content.useCustomFilenameTemplate = true;
+			mockSettings.content.filenameTemplate = '{title}';
+			mockSettings.content.datePrefixFormat = 'none';
+			converter.updateSettings(mockSettings);
+
+			const result = converter.convertDocument(mockDocument);
+
+			expect(result.filename).toBe('Test Document.md');
+		});
+
+		it('should use custom filename template with created date', () => {
+			mockSettings.content.useCustomFilenameTemplate = true;
+			mockSettings.content.filenameTemplate = '{created_date} - {title}';
+			mockSettings.content.datePrefixFormat = 'YYYY-MM-DD';
+			converter.updateSettings(mockSettings);
+
+			const result = converter.convertDocument(mockDocument);
+
+			expect(result.filename).toBe('2024-01-01 - Test Document.md');
+		});
+
+		it('should use custom filename template with ID', () => {
+			mockSettings.content.useCustomFilenameTemplate = true;
+			mockSettings.content.filenameTemplate = '{title} ({id})';
+			mockSettings.content.datePrefixFormat = 'none';
+			converter.updateSettings(mockSettings);
+
+			const result = converter.convertDocument(mockDocument);
+
+			expect(result.filename).toBe('Test Document (test-doc-id).md');
+		});
+
+		it('should handle complex filename templates', () => {
+			mockSettings.content.useCustomFilenameTemplate = true;
+			mockSettings.content.filenameTemplate = '{created_date} {created_time} - {title}';
+			mockSettings.content.datePrefixFormat = 'YYYY-MM-DD';
+			converter.updateSettings(mockSettings);
+
+			const result = converter.convertDocument(mockDocument);
+
+			// Time will be in format HH-mm-ss
+			expect(result.filename).toMatch(/^2024-01-01 \d{2}-\d{2}-\d{2} - Test Document\.md$/);
+		});
+
+		it('should handle different date formats in templates', () => {
+			mockSettings.content.useCustomFilenameTemplate = true;
+			mockSettings.content.filenameTemplate = '{created_date} - {title}';
+			mockSettings.content.datePrefixFormat = 'MM-DD-YYYY';
+			converter.updateSettings(mockSettings);
+
+			const result = converter.convertDocument(mockDocument);
+
+			expect(result.filename).toBe('01-01-2024 - Test Document.md');
+		});
+
+		it('should respect no date prefix when custom template is disabled', () => {
+			mockSettings.content.useCustomFilenameTemplate = false;
+			mockSettings.content.datePrefixFormat = 'none';
+			converter.updateSettings(mockSettings);
+
+			const result = converter.convertDocument(mockDocument);
+
+			expect(result.filename).toBe('Test Document.md');
+		});
+	});
+
+	describe('Attendee tag extraction', () => {
+		let mockDocumentWithAttendees: GranolaDocument;
+		
+		beforeEach(() => {
+			mockDocumentWithAttendees = {
+				...mockDocument,
+				people: ['John Smith', 'Jane Doe', 'Bob Johnson'],
+			};
+		});
+
+		it('should extract attendee tags when enabled', () => {
+			mockSettings.attendeeTags.enabled = true;
+			mockSettings.attendeeTags.tagTemplate = 'person/{name}';
+			converter.updateSettings(mockSettings);
+
+			const result = converter.convertDocument(mockDocumentWithAttendees);
+
+			expect(result.frontmatter.tags).toEqual([
+				'person/john-smith',
+				'person/jane-doe',
+				'person/bob-johnson',
+			]);
+			expect(result.content).toContain('tags:\n  - person/john-smith');
+			expect(result.content).toContain('  - person/jane-doe');
+			expect(result.content).toContain('  - person/bob-johnson');
+		});
+
+		it('should not extract tags when disabled', () => {
+			mockSettings.attendeeTags.enabled = false;
+			converter.updateSettings(mockSettings);
+
+			const result = converter.convertDocument(mockDocumentWithAttendees);
+
+			expect(result.frontmatter.tags).toBeUndefined();
+			expect(result.content).not.toContain('tags:');
+		});
+
+		it('should exclude own name when configured', () => {
+			mockSettings.attendeeTags.enabled = true;
+			mockSettings.attendeeTags.excludeMyName = true;
+			mockSettings.attendeeTags.myName = 'John Smith';
+			mockSettings.attendeeTags.tagTemplate = 'person/{name}';
+			converter.updateSettings(mockSettings);
+
+			const result = converter.convertDocument(mockDocumentWithAttendees);
+
+			expect(result.frontmatter.tags).toEqual(['person/jane-doe', 'person/bob-johnson']);
+			expect(result.frontmatter.tags).not.toContain('person/john-smith');
+		});
+
+		it('should handle custom tag templates', () => {
+			mockSettings.attendeeTags.enabled = true;
+			mockSettings.attendeeTags.tagTemplate = 'attendee/{name}';
+			converter.updateSettings(mockSettings);
+
+			const result = converter.convertDocument(mockDocumentWithAttendees);
+
+			expect(result.frontmatter.tags).toEqual([
+				'attendee/john-smith',
+				'attendee/jane-doe',
+				'attendee/bob-johnson',
+			]);
+		});
+
+		it('should handle empty people array', () => {
+			mockSettings.attendeeTags.enabled = true;
+			converter.updateSettings(mockSettings);
+
+			const docWithEmptyPeople: GranolaDocument = { ...mockDocument, people: [] };
+			const result = converter.convertDocument(docWithEmptyPeople);
+
+			expect(result.frontmatter.tags).toBeUndefined();
+		});
+
+		it('should handle missing people field', () => {
+			mockSettings.attendeeTags.enabled = true;
+			converter.updateSettings(mockSettings);
+
+			// mockDocument doesn't have people field
+			const result = converter.convertDocument(mockDocument);
+
+			expect(result.frontmatter.tags).toBeUndefined();
+		});
+
+		it('should normalize names with special characters', () => {
+			mockSettings.attendeeTags.enabled = true;
+			mockSettings.attendeeTags.tagTemplate = 'person/{name}';
+			converter.updateSettings(mockSettings);
+
+			const docWithSpecialNames: GranolaDocument = {
+				...mockDocument,
+				people: ["John O'Brien", 'Mary-Jane Watson', 'José García'],
+			};
+			const result = converter.convertDocument(docWithSpecialNames);
+
+			expect(result.frontmatter.tags).toEqual([
+				'person/john-obrien',
+				'person/mary-jane-watson',
+				'person/jos-garca',
+			]);
+		});
+
+		it('should handle duplicate names', () => {
+			mockSettings.attendeeTags.enabled = true;
+			mockSettings.attendeeTags.tagTemplate = 'person/{name}';
+			converter.updateSettings(mockSettings);
+
+			const docWithDuplicates: GranolaDocument = {
+				...mockDocument,
+				people: ['John Smith', 'Jane Doe', 'John Smith'],
+			};
+			const result = converter.convertDocument(docWithDuplicates);
+
+			// Should deduplicate
+			expect(result.frontmatter.tags).toEqual(['person/john-smith', 'person/jane-doe']);
 		});
 	});
 });
