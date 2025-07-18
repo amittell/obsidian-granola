@@ -453,16 +453,16 @@ export class ProseMirrorConverter {
 		const createdTime = this.formatTime(createdDate);
 		const updatedTime = this.formatTime(updatedDate);
 
-		// Replace template variables
+		// Replace template variables (longer variables first to avoid substring conflicts)
 		const filename = template
-			.replace(/{title}/g, sanitizedTitle)
-			.replace(/{id}/g, doc.id)
+			.replace(/{created_datetime}/g, `${formattedCreatedDate}_${createdTime}`)
+			.replace(/{updated_datetime}/g, `${formattedUpdatedDate}_${updatedTime}`)
 			.replace(/{created_date}/g, formattedCreatedDate)
 			.replace(/{updated_date}/g, formattedUpdatedDate)
 			.replace(/{created_time}/g, createdTime)
 			.replace(/{updated_time}/g, updatedTime)
-			.replace(/{created_datetime}/g, `${formattedCreatedDate}_${createdTime}`)
-			.replace(/{updated_datetime}/g, `${formattedUpdatedDate}_${updatedTime}`);
+			.replace(/{title}/g, sanitizedTitle)
+			.replace(/{id}/g, doc.id);
 
 		// Sanitize the final filename
 		return this.sanitizeFilename(filename);
