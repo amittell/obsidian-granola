@@ -106,15 +106,15 @@ Access plugin settings via: **Settings → Plugin Options → Granola Importer**
 - **Enhanced frontmatter** - Include additional metadata (id, title, updated timestamp)
 - **Include Granola URL** - Add direct link to original Granola note in frontmatter
 - **Use custom filename template** - Enable advanced filename customization:
-  - When disabled (default): Uses traditional date prefix format
-  - When enabled: Use templates with variables:
-    - `{title}` - Document title
-    - `{id}` - Granola document ID
-    - `{created_date}` - Creation date (formatted per date prefix setting)
-    - `{updated_date}` - Last updated date
-    - `{created_time}` - Creation time (HH-mm-ss format)
-    - `{updated_time}` - Last updated time
-    - Example: `{created_date} {created_time} - {title}`
+    - When disabled (default): Uses traditional date prefix format
+    - When enabled: Use templates with variables:
+        - `{title}` - Document title
+        - `{id}` - Granola document ID
+        - `{created_date}` - Creation date (formatted per date prefix setting)
+        - `{updated_date}` - Last updated date
+        - `{created_time}` - Creation time (HH-mm-ss format)
+        - `{updated_time}` - Last updated time
+        - Example: `{created_date} {created_time} - {title}`
 
 ### Action Items Processing
 
@@ -135,8 +135,8 @@ Access plugin settings via: **Settings → Plugin Options → Granola Importer**
 - **Exclude my name** - Exclude your own name from attendee tags
 - **My name** - Your name as it appears in meeting attendee lists
 - **Tag template** - Customize tag format with `{name}` placeholder:
-  - Default: `person/{name}` creates tags like `person/john-smith`
-  - Example: `attendee/{name}` or `meeting/{name}`
+    - Default: `person/{name}` creates tags like `person/john-smith`
+    - Example: `attendee/{name}` or `meeting/{name}`
 
 ## Requirements
 
@@ -214,13 +214,13 @@ MIT License - see LICENSE file for details
 ### v1.1.0 (Latest)
 
 - **New Features:**
-  - Customizable filename templates with date/time variables
-  - Attendee extraction and tagging from meeting participants
-  - Granola URL in frontmatter for cross-referencing
-  - Ribbon icon toggle for quick access
+    - Customizable filename templates with date/time variables
+    - Attendee extraction and tagging from meeting participants
+    - Granola URL in frontmatter for cross-referencing
+    - Ribbon icon toggle for quick access
 - **Improvements:**
-  - Enhanced settings UI with live filename preview
-  - Better handling of special characters in attendee names
+    - Enhanced settings UI with live filename preview
+    - Better handling of special characters in attendee names
 
 ### v1.0.0
 
