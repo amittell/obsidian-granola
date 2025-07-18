@@ -1030,8 +1030,8 @@ describe('GranolaSettingTab class', () => {
 				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
 					text: 'User Interface',
 				});
-				// Should have captured 3 toggle callbacks
-				expect(callbacks.toggleCallbacks.length).toBe(1);
+				// Should have captured toggle callbacks for progress notifications, ribbon icon, and attendee tags
+				expect(callbacks.toggleCallbacks.length).toBe(3);
 			});
 
 			it('should handle progress notifications toggle', async () => {
@@ -1294,17 +1294,20 @@ describe('GranolaSettingTab class', () => {
 			it('should handle all toggle combinations in UI section', async () => {
 				(settingTab as any).addUISection();
 
-				// Should have 3 toggle callbacks
-				expect(callbacks.toggleCallbacks).toHaveLength(1);
+				// Should have toggle callbacks for progress notifications, ribbon icon, and attendee tags
+				expect(callbacks.toggleCallbacks).toHaveLength(3);
 
-				// Test auto-close modal
-				await callbacks.toggleCallbacks[0](true);
-
-				// Test progress notifications
+				// Test progress notifications toggle
 				await callbacks.toggleCallbacks[0](false);
 				expect(mockPlugin.settings.ui.showProgressNotifications).toBe(false);
 
-				// Test select all by default
+				// Test ribbon icon toggle
+				await callbacks.toggleCallbacks[1](true);
+				expect(mockPlugin.settings.ui.showRibbonIcon).toBe(true);
+
+				// Test attendee tags toggle
+				await callbacks.toggleCallbacks[2](false);
+				expect(mockPlugin.settings.attendeeTags.enabled).toBe(false);
 			});
 
 			it('should create proper section headers', () => {

@@ -43,6 +43,9 @@ export interface GranolaDocument {
 	/** User ID of the document owner */
 	user_id: string;
 
+	/** Array of meeting attendees (if available) */
+	people?: string[];
+
 	/** Additional metadata fields */
 	[key: string]: unknown;
 }
