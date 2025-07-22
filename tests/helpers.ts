@@ -84,8 +84,8 @@ export function createMockFetch(
 	return jest.fn().mockResolvedValue({
 		ok: status >= 200 && status < 300,
 		status,
-		json: jest.fn().mockResolvedValue(response as any),
-		text: jest.fn().mockResolvedValue(JSON.stringify(response) as any),
+		json: jest.fn().mockResolvedValue(response),
+		text: jest.fn().mockResolvedValue(JSON.stringify(response)),
 		headers: new Headers(),
 		redirected: false,
 		statusText: 'OK',
@@ -100,7 +100,7 @@ export function createMockFetch(
 	} as unknown as Response) as jest.MockedFunction<typeof fetch>;
 }
 
-export function expectToThrow(fn: () => any, message?: string | RegExp) {
+export function expectToThrow(fn: () => unknown, message?: string | RegExp) {
 	if (message) {
 		expect(fn).toThrow(message);
 	} else {

@@ -55,7 +55,7 @@ describe('GranolaImporterPlugin Integration', () => {
 		createMockFs();
 
 		// Create plugin instance
-		plugin = new GranolaImporterPlugin(mockApp as any, {
+		plugin = new GranolaImporterPlugin(mockApp, {
 			id: 'granola-importer',
 			name: 'Granola Importer',
 			version: '1.0.0',
@@ -105,9 +105,16 @@ describe('GranolaImporterPlugin Integration', () => {
 			await plugin.onload();
 
 			// Verify plugin components are initialized
-			expect((plugin as any).auth).toBeDefined();
-			expect((plugin as any).api).toBeDefined();
-			expect((plugin as any).converter).toBeDefined();
+			// Use type assertion to access private properties
+			type PluginWithPrivates = GranolaImporterPlugin & {
+				auth: unknown;
+				api: unknown;
+				converter: unknown;
+			};
+			const pluginWithPrivates = plugin as PluginWithPrivates;
+			expect(pluginWithPrivates.auth).toBeDefined();
+			expect(pluginWithPrivates.api).toBeDefined();
+			expect(pluginWithPrivates.converter).toBeDefined();
 		});
 	});
 
@@ -133,9 +140,22 @@ describe('GranolaImporterPlugin Integration', () => {
 			const mockApiInstance = new GranolaAPI();
 			const mockConverterInstance = new ProseMirrorConverter(createMockLogger());
 
-			(plugin as any).auth = mockAuthInstance;
-			(plugin as any).api = mockApiInstance;
-			(plugin as any).converter = mockConverterInstance;
+			// Use Object.defineProperty to set private properties in tests
+			Object.defineProperty(plugin, 'auth', {
+				value: mockAuthInstance,
+				writable: true,
+				configurable: true
+			});
+			Object.defineProperty(plugin, 'api', {
+				value: mockApiInstance,
+				writable: true,
+				configurable: true
+			});
+			Object.defineProperty(plugin, 'converter', {
+				value: mockConverterInstance,
+				writable: true,
+				configurable: true
+			});
 
 			// Since this method creates a complex modal, we'll just verify it doesn't throw
 			expect(() => plugin.openImportModal()).not.toThrow();
@@ -147,7 +167,11 @@ describe('GranolaImporterPlugin Integration', () => {
 			const mockAuthInstance = new GranolaAuth();
 			mockAuthInstance.loadCredentials.mockRejectedValueOnce(new Error('Auth failed'));
 
-			(plugin as any).auth = mockAuthInstance;
+			Object.defineProperty(plugin, 'auth', {
+				value: mockAuthInstance,
+				writable: true,
+				configurable: true
+			});
 
 			// Should not throw, but handle the error gracefully
 			expect(() => plugin.openImportModal()).not.toThrow();
@@ -177,7 +201,11 @@ describe('GranolaImporterPlugin Integration', () => {
 		it('should remove ribbon icon when disabled in settings', async () => {
 			// Mock ribbon icon element
 			const mockRibbonEl = { remove: jest.fn() };
-			(plugin as any).ribbonIconEl = mockRibbonEl;
+			Object.defineProperty(plugin, 'ribbonIconEl', {
+				value: mockRibbonEl,
+				writable: true,
+				configurable: true
+			});
 
 			// Disable ribbon icon
 			plugin.settings.ui.showRibbonIcon = false;
@@ -185,7 +213,9 @@ describe('GranolaImporterPlugin Integration', () => {
 
 			// Verify ribbon icon was removed
 			expect(mockRibbonEl.remove).toHaveBeenCalled();
-			expect((plugin as any).ribbonIconEl).toBeNull();
+			// Use type assertion to check private property
+			type PluginWithRibbon = GranolaImporterPlugin & { ribbonIconEl: unknown };
+			expect((plugin as PluginWithRibbon).ribbonIconEl).toBeNull();
 		});
 
 		it('should trigger import modal when ribbon icon is clicked', async () => {

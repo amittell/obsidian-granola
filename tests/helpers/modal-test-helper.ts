@@ -34,9 +34,22 @@ export class ModalTestHelper<T extends Modal = Modal> {
 		this.mockModalEl = new MockHTMLElement('div');
 
 		// Link elements to modal
-		(this.modal as any).containerEl = this.mockContainerEl;
-		(this.modal as any).contentEl = this.mockContentEl;
-		(this.modal as any).modalEl = this.mockModalEl;
+		// Use Object.defineProperty to set readonly properties in tests
+		Object.defineProperty(this.modal, 'containerEl', {
+			value: this.mockContainerEl,
+			writable: true,
+			configurable: true
+		});
+		Object.defineProperty(this.modal, 'contentEl', {
+			value: this.mockContentEl,
+			writable: true,
+			configurable: true
+		});
+		Object.defineProperty(this.modal, 'modalEl', {
+			value: this.mockModalEl,
+			writable: true,
+			configurable: true
+		});
 	}
 
 	/**
@@ -384,7 +397,7 @@ export class MockHTMLElement {
 	private parent: MockHTMLElement | null = null;
 	private eventListeners: Map<string, Function[]> = new Map();
 	private _textContent: string = '';
-	private _innerHTML: string = '';
+	private _htmlContent: string = '';
 	private _classList: MockClassList;
 	private _style: MockCSSStyleDeclaration;
 
@@ -561,21 +574,13 @@ export class MockHTMLElement {
 
 	set textContent(value: string) {
 		this._textContent = value;
-	}
-
-	get textContent(): string {
-		return this._innerHTML;
-	}
-
-	set textContent(value: string) {
-		this._innerHTML = value;
+		this._htmlContent = value;
 	}
 
 	empty(): void {
 		this.children = [];
 		this._textContent = '';
-		this._innerHTML = '';
-		this.empty();
+		this._htmlContent = '';
 	}
 
 	// Event methods
@@ -612,8 +617,16 @@ export class MockHTMLElement {
 	// Scroll methods
 	scrollIntoView(options?: ScrollIntoViewOptions): void {
 		// Mock implementation - just track that it was called
-		(this as any)._scrollIntoViewCalled = true;
-		(this as any)._scrollIntoViewOptions = options;
+		Object.defineProperty(this, '_scrollIntoViewCalled', {
+			value: true,
+			writable: true,
+			configurable: true
+		});
+		Object.defineProperty(this, '_scrollIntoViewOptions', {
+			value: options,
+			writable: true,
+			configurable: true
+		});
 	}
 
 	// Style and layout
@@ -751,7 +764,8 @@ export const ModalTestPatterns = {
 	 * Tests that modal calls onOpen when opened.
 	 */
 	async testOnOpenCalled<T extends Modal>(helper: ModalTestHelper<T>): Promise<void> {
-		const modal = (helper as any).modal;
+		// Access private modal property using a type assertion to access private member
+		const modal = (helper as ModalTestHelper<T> & { modal: T }).modal;
 		const onOpenSpy = jest.spyOn(modal, 'onOpen');
 
 		await helper.openModal();
@@ -763,7 +777,8 @@ export const ModalTestPatterns = {
 	 * Tests that modal calls onClose when closed.
 	 */
 	async testOnCloseCalled<T extends Modal>(helper: ModalTestHelper<T>): Promise<void> {
-		const modal = (helper as any).modal;
+		// Access private modal property using a type assertion to access private member
+		const modal = (helper as ModalTestHelper<T> & { modal: T }).modal;
 		const onCloseSpy = jest.spyOn(modal, 'onClose');
 
 		await helper.openModal();
