@@ -305,6 +305,7 @@ export class DocumentSelectionModal extends Modal {
 			this.renderDocumentList();
 			this.updateFooterButtons();
 		} catch (error) {
+			console.error('[Granola Importer] Failed to load documents:', error);
 			const message = error instanceof Error ? error.message : 'Unknown error';
 			this.showError(`Failed to load documents: ${message}`);
 		} finally {
@@ -483,6 +484,7 @@ export class DocumentSelectionModal extends Modal {
 
 			this.showImportComplete(result);
 		} catch (error) {
+			console.error('[Granola Importer] Import failed:', error);
 			const message = error instanceof Error ? error.message : 'Unknown error';
 			this.showMainView(); // Restore main view on error
 			this.showError(`Import failed: ${message}`);
@@ -554,9 +556,13 @@ export class DocumentSelectionModal extends Modal {
 		const progressText = this.progressEl.querySelector('.progress-text') as HTMLElement;
 
 		if (progressFill) {
-			progressFill.removeClass(
-				'progress-width-0 progress-width-25 progress-width-50 progress-width-75 progress-width-100'
-			);
+			// Remove all progress width classes individually
+			progressFill.removeClass('progress-width-0');
+			progressFill.removeClass('progress-width-25');
+			progressFill.removeClass('progress-width-50');
+			progressFill.removeClass('progress-width-75');
+			progressFill.removeClass('progress-width-100');
+			
 			if (progress.percentage <= 0) {
 				progressFill.addClass('progress-width-0');
 			} else if (progress.percentage <= 25) {
@@ -617,9 +623,13 @@ export class DocumentSelectionModal extends Modal {
 		progressText.textContent = docProgress.message || statusConfig.defaultMessage;
 
 		// Update progress bar
-		progressFill.removeClass(
-			'progress-width-0 progress-width-25 progress-width-50 progress-width-75 progress-width-100'
-		);
+		// Remove all progress width classes individually
+		progressFill.removeClass('progress-width-0');
+		progressFill.removeClass('progress-width-25');
+		progressFill.removeClass('progress-width-50');
+		progressFill.removeClass('progress-width-75');
+		progressFill.removeClass('progress-width-100');
+		
 		if (docProgress.progress <= 0) {
 			progressFill.addClass('progress-width-0');
 		} else if (docProgress.progress <= 25) {
@@ -1451,6 +1461,9 @@ export class DocumentSelectionModal extends Modal {
 	 * @param {string} message - Error message to show
 	 */
 	private showError(message: string): void {
+		// Log error to console for debugging
+		console.error('[Granola Importer] DocumentSelectionModal error:', message);
+		
 		this.documentListEl.empty();
 		const errorEl = this.documentListEl.createDiv('error-message');
 		errorEl.textContent = message;
