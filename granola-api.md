@@ -37,8 +37,8 @@ X-Client-Version: 5.354.0
 
 ```json
 {
-	"cognito_tokens": "{\"access_token\":\"...\",\"token_type\":\"Bearer\",\"expires_in\":3600,\"refresh_token\":\"...\",\"id_token\":\"...\"}",
-	"user_info": "{\"id\":\"...\",\"email\":\"...\"}"
+  "cognito_tokens": "{\"access_token\":\"...\",\"token_type\":\"Bearer\",\"expires_in\":3600,\"refresh_token\":\"...\",\"id_token\":\"...\"}",
+  "user_info": "{\"id\":\"...\",\"email\":\"...\"}"
 }
 ```
 
@@ -48,9 +48,9 @@ X-Client-Version: 5.354.0
 
 ```json
 {
-	"limit": 100,
-	"offset": 0,
-	"include_last_viewed_panel": true
+  "limit": 100,
+  "offset": 0,
+  "include_last_viewed_panel": true
 }
 ```
 
