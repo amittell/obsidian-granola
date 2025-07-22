@@ -229,7 +229,3 @@ MIT License - see LICENSE file for details
 - Selective import with preview
 - Conflict resolution
 - Action items conversion
-
----
-
-Built with ❤️ for the Obsidian community
