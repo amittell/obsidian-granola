@@ -214,13 +214,13 @@ MIT License - see LICENSE file for details
 ### v1.1.0 (Latest)
 
 - **New Features:**
-  - Customizable filename templates with date/time variables
-  - Attendee extraction and tagging from meeting participants
-  - Granola URL in frontmatter for cross-referencing
-  - Ribbon icon toggle for quick access
+    - Customizable filename templates with date/time variables
+    - Attendee extraction and tagging from meeting participants
+    - Granola URL in frontmatter for cross-referencing
+    - Ribbon icon toggle for quick access
 - **Improvements:**
-  - Enhanced settings UI with live filename preview
-  - Better handling of special characters in attendee names
+    - Enhanced settings UI with live filename preview
+    - Better handling of special characters in attendee names
 
 ### v1.0.0
 

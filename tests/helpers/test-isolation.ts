@@ -78,7 +78,7 @@ export function createMockWithCleanup<T extends (...args: any[]) => any>(
 export function resetGlobalTestState(): void {
 	// Execute any stored cleanup functions
 	if (global.__testCleanupFunctions) {
-		global.__testCleanupFunctions.forEach((cleanup) => {
+		global.__testCleanupFunctions.forEach(cleanup => {
 			try {
 				cleanup();
 			} catch (error) {

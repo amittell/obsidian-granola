@@ -38,17 +38,17 @@ export class ModalTestHelper<T extends Modal = Modal> {
 		Object.defineProperty(this.modal, 'containerEl', {
 			value: this.mockContainerEl,
 			writable: true,
-			configurable: true
+			configurable: true,
 		});
 		Object.defineProperty(this.modal, 'contentEl', {
 			value: this.mockContentEl,
 			writable: true,
-			configurable: true
+			configurable: true,
 		});
 		Object.defineProperty(this.modal, 'modalEl', {
 			value: this.mockModalEl,
 			writable: true,
-			configurable: true
+			configurable: true,
 		});
 	}
 
@@ -620,12 +620,12 @@ export class MockHTMLElement {
 		Object.defineProperty(this, '_scrollIntoViewCalled', {
 			value: true,
 			writable: true,
-			configurable: true
+			configurable: true,
 		});
 		Object.defineProperty(this, '_scrollIntoViewOptions', {
 			value: options,
 			writable: true,
-			configurable: true
+			configurable: true,
 		});
 	}
 

@@ -144,17 +144,17 @@ describe('GranolaImporterPlugin Integration', () => {
 			Object.defineProperty(plugin, 'auth', {
 				value: mockAuthInstance,
 				writable: true,
-				configurable: true
+				configurable: true,
 			});
 			Object.defineProperty(plugin, 'api', {
 				value: mockApiInstance,
 				writable: true,
-				configurable: true
+				configurable: true,
 			});
 			Object.defineProperty(plugin, 'converter', {
 				value: mockConverterInstance,
 				writable: true,
-				configurable: true
+				configurable: true,
 			});
 
 			// Since this method creates a complex modal, we'll just verify it doesn't throw
@@ -170,7 +170,7 @@ describe('GranolaImporterPlugin Integration', () => {
 			Object.defineProperty(plugin, 'auth', {
 				value: mockAuthInstance,
 				writable: true,
-				configurable: true
+				configurable: true,
 			});
 
 			// Should not throw, but handle the error gracefully
@@ -204,7 +204,7 @@ describe('GranolaImporterPlugin Integration', () => {
 			Object.defineProperty(plugin, 'ribbonIconEl', {
 				value: mockRibbonEl,
 				writable: true,
-				configurable: true
+				configurable: true,
 			});
 
 			// Disable ribbon icon
