@@ -10,7 +10,7 @@ import { TFile, Vault } from 'obsidian';
 const mockVault = {
 	getMarkdownFiles: jest.fn(),
 	read: jest.fn(),
-} as unknown as Vault;
+} as Vault;
 
 // Mock TFile
 const createMockFile = (name: string, path: string = name): TFile => {

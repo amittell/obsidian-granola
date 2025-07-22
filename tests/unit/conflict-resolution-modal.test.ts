@@ -12,7 +12,7 @@ const mockApp = {
 	vault: {
 		read: jest.fn(),
 	},
-} as unknown as App;
+} as App;
 
 // Mock TFile
 const mockFile = Object.create(TFile.prototype);
@@ -24,13 +24,13 @@ Object.assign(mockFile, {
 });
 
 // Mock Logger
-const mockLogger = {
+const mockLogger: Logger = {
 	debug: jest.fn(),
 	info: jest.fn(),
 	warn: jest.fn(),
 	error: jest.fn(),
 	updateSettings: jest.fn(),
-} as unknown as Logger;
+};
 
 describe('ConflictResolutionModal', () => {
 	let modal: ConflictResolutionModal;
