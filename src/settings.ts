@@ -275,8 +275,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 
 			// Add preview element
 			const previewEl = containerEl.createDiv('setting-item-description');
-			previewEl.style.marginTop = '0.5em';
-			previewEl.style.fontStyle = 'italic';
+			previewEl.addClass('filename-template-preview');
 			previewEl.id = 'filename-template-preview';
 			this.updateFilenamePreview();
 		}
