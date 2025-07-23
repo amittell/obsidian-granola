@@ -55,6 +55,9 @@ export interface GranolaDocument {
 								fullName?: string;
 							};
 						};
+						company?: {
+							name?: string;
+						};
 					};
 				}>;
 				creator?: {
@@ -62,7 +65,7 @@ export interface GranolaDocument {
 					email?: string;
 				};
 				title?: string;
-		  };
+			};
 
 	/** Additional metadata fields */
 	[key: string]: unknown;
