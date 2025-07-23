@@ -40,6 +40,7 @@ jest.mock('../../src/converter', () => ({
 				source: 'Granola',
 			},
 		}),
+		updateSettings: jest.fn(),
 	})),
 }));
 
@@ -54,7 +55,7 @@ describe('GranolaImporterPlugin Integration', () => {
 		createMockFs();
 
 		// Create plugin instance
-		plugin = new GranolaImporterPlugin(mockApp as any, {
+		plugin = new GranolaImporterPlugin(mockApp, {
 			id: 'granola-importer',
 			name: 'Granola Importer',
 			version: '1.0.0',
@@ -104,9 +105,16 @@ describe('GranolaImporterPlugin Integration', () => {
 			await plugin.onload();
 
 			// Verify plugin components are initialized
-			expect((plugin as any).auth).toBeDefined();
-			expect((plugin as any).api).toBeDefined();
-			expect((plugin as any).converter).toBeDefined();
+			// Use type assertion to access private properties
+			type PluginWithPrivates = GranolaImporterPlugin & {
+				auth: unknown;
+				api: unknown;
+				converter: unknown;
+			};
+			const pluginWithPrivates = plugin as PluginWithPrivates;
+			expect(pluginWithPrivates.auth).toBeDefined();
+			expect(pluginWithPrivates.api).toBeDefined();
+			expect(pluginWithPrivates.converter).toBeDefined();
 		});
 	});
 
@@ -132,9 +140,22 @@ describe('GranolaImporterPlugin Integration', () => {
 			const mockApiInstance = new GranolaAPI();
 			const mockConverterInstance = new ProseMirrorConverter(createMockLogger());
 
-			(plugin as any).auth = mockAuthInstance;
-			(plugin as any).api = mockApiInstance;
-			(plugin as any).converter = mockConverterInstance;
+			// Use Object.defineProperty to set private properties in tests
+			Object.defineProperty(plugin, 'auth', {
+				value: mockAuthInstance,
+				writable: true,
+				configurable: true,
+			});
+			Object.defineProperty(plugin, 'api', {
+				value: mockApiInstance,
+				writable: true,
+				configurable: true,
+			});
+			Object.defineProperty(plugin, 'converter', {
+				value: mockConverterInstance,
+				writable: true,
+				configurable: true,
+			});
 
 			// Since this method creates a complex modal, we'll just verify it doesn't throw
 			expect(() => plugin.openImportModal()).not.toThrow();
@@ -146,10 +167,73 @@ describe('GranolaImporterPlugin Integration', () => {
 			const mockAuthInstance = new GranolaAuth();
 			mockAuthInstance.loadCredentials.mockRejectedValueOnce(new Error('Auth failed'));
 
-			(plugin as any).auth = mockAuthInstance;
+			Object.defineProperty(plugin, 'auth', {
+				value: mockAuthInstance,
+				writable: true,
+				configurable: true,
+			});
 
 			// Should not throw, but handle the error gracefully
 			expect(() => plugin.openImportModal()).not.toThrow();
+		});
+	});
+
+	describe('Ribbon Icon', () => {
+		beforeEach(async () => {
+			await plugin.onload();
+		});
+
+		it('should add ribbon icon when enabled in settings', async () => {
+			const addRibbonIconSpy = jest.spyOn(plugin, 'addRibbonIcon');
+
+			// Enable ribbon icon
+			plugin.settings.ui.showRibbonIcon = true;
+			await plugin.saveSettings();
+
+			// Verify ribbon icon was added
+			expect(addRibbonIconSpy).toHaveBeenCalledWith(
+				'download',
+				'Import Granola Notes',
+				expect.any(Function)
+			);
+		});
+
+		it('should remove ribbon icon when disabled in settings', async () => {
+			// Mock ribbon icon element
+			const mockRibbonEl = { remove: jest.fn() };
+			Object.defineProperty(plugin, 'ribbonIconEl', {
+				value: mockRibbonEl,
+				writable: true,
+				configurable: true,
+			});
+
+			// Disable ribbon icon
+			plugin.settings.ui.showRibbonIcon = false;
+			plugin.refreshRibbonIcon();
+
+			// Verify ribbon icon was removed
+			expect(mockRibbonEl.remove).toHaveBeenCalled();
+			// Use type assertion to check private property
+			type PluginWithRibbon = GranolaImporterPlugin & { ribbonIconEl: unknown };
+			expect((plugin as PluginWithRibbon).ribbonIconEl).toBeNull();
+		});
+
+		it('should trigger import modal when ribbon icon is clicked', async () => {
+			const openImportModalSpy = jest.spyOn(plugin, 'openImportModal');
+			const addRibbonIconSpy = jest.spyOn(plugin, 'addRibbonIcon');
+
+			// Enable ribbon icon
+			plugin.settings.ui.showRibbonIcon = true;
+			plugin.refreshRibbonIcon();
+
+			// Get the callback from addRibbonIcon
+			const ribbonCallback = addRibbonIconSpy.mock.calls[0][2];
+
+			// Simulate ribbon icon click
+			ribbonCallback();
+
+			// Verify import modal was opened
+			expect(openImportModalSpy).toHaveBeenCalled();
 		});
 	});
 });

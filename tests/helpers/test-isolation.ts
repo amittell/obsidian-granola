@@ -2,6 +2,11 @@
  * Test isolation utilities to prevent state leakage between tests
  */
 
+// Define global interface for test cleanup functions
+declare global {
+	var __testCleanupFunctions: Array<() => void> | undefined;
+}
+
 export class TestIsolationManager {
 	private cleanupFunctions: Array<() => void> = [];
 
@@ -53,18 +58,18 @@ export async function waitForAsyncOperations(): Promise<void> {
 	await new Promise(resolve => setImmediate(resolve));
 }
 
-export function createMockWithCleanup<T>(
+export function createMockWithCleanup<T extends (...args: any[]) => any>(
 	mockImplementation: T,
 	cleanup?: () => void
-): jest.MockedFunction<any> {
+): jest.MockedFunction<T> {
 	const mock = jest.fn().mockImplementation(mockImplementation);
 
 	if (cleanup) {
 		// Store cleanup function for later execution
-		if (!(global as any).__testCleanupFunctions) {
-			(global as any).__testCleanupFunctions = [];
+		if (!global.__testCleanupFunctions) {
+			global.__testCleanupFunctions = [];
 		}
-		(global as any).__testCleanupFunctions.push(cleanup);
+		global.__testCleanupFunctions.push(cleanup);
 	}
 
 	return mock;
@@ -72,14 +77,14 @@ export function createMockWithCleanup<T>(
 
 export function resetGlobalTestState(): void {
 	// Execute any stored cleanup functions
-	if ((global as any).__testCleanupFunctions) {
-		(global as any).__testCleanupFunctions.forEach((cleanup: () => void) => {
+	if (global.__testCleanupFunctions) {
+		global.__testCleanupFunctions.forEach(cleanup => {
 			try {
 				cleanup();
 			} catch (error) {
 				console.warn('Global cleanup failed:', error);
 			}
 		});
-		(global as any).__testCleanupFunctions = [];
+		global.__testCleanupFunctions = [];
 	}
 }

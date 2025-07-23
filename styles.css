@@ -46,3 +46,9 @@
 .connection-not-tested {
 	color: var(--text-muted);
 }
+
+/* Filename template preview */
+.filename-template-preview {
+	margin-top: 0.5em;
+	font-style: italic;
+}

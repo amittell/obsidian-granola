@@ -28,7 +28,7 @@ describe('Bundle Integration Tests', () => {
 			const { mockApp } = await import('../__mocks__/obsidian');
 
 			expect(() => {
-				const plugin = new GranolaImporterPlugin(mockApp as any, {
+				const plugin = new GranolaImporterPlugin(mockApp, {
 					id: 'granola-importer',
 					name: 'Granola Importer',
 					version: '1.0.0',
@@ -46,7 +46,7 @@ describe('Bundle Integration Tests', () => {
 			const { default: GranolaImporterPlugin } = await import('../../main');
 			const { mockApp } = await import('../__mocks__/obsidian');
 
-			const plugin = new GranolaImporterPlugin(mockApp as any, {
+			const plugin = new GranolaImporterPlugin(mockApp, {
 				id: 'granola-importer',
 				name: 'Granola Importer',
 				version: '1.0.0',
@@ -61,7 +61,8 @@ describe('Bundle Integration Tests', () => {
 			await expect(plugin.onload()).resolves.not.toThrow();
 
 			// Logger should be properly initialized after onload
-			expect((plugin as any).logger).toBeDefined();
+			// Access private logger property using type assertion
+			expect((plugin as GranolaImporterPlugin & { logger: unknown }).logger).toBeDefined();
 		});
 	});
 });

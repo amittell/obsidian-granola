@@ -556,7 +556,7 @@ export class DOMTestUtils {
 
 		if (options.style) {
 			Object.entries(options.style).forEach(([key, value]) => {
-				(element.style as any)[key] = value;
+				element.style.setProperty(key, value);
 			});
 		}
 

@@ -14,6 +14,11 @@ A lean, beautiful Obsidian plugin that imports your Granola notes with perfect f
 - **Smart conflict resolution** for existing notes
 - **Selective import** with document preview and filtering
 - **Cross-platform support** (macOS, Windows, Linux)
+- **Customizable filename templates** with date/time variables
+- **Attendee tagging** from meeting participants
+- **Direct Granola links** in frontmatter for cross-referencing
+- **Ribbon icon** for quick access
+- **Action items conversion** to Obsidian tasks
 
 ## Installation
 
@@ -46,6 +51,7 @@ npm run build
 1. **Ensure Granola is installed** and you've used it to create notes
 2. **Open Obsidian** and enable the Granola Importer plugin
 3. **Run the import** via Command Palette: `Granola Importer: Import Granola Notes`
+4. **Configure settings** (optional) to customize import behavior
 
 ### Import Process
 
@@ -54,19 +60,55 @@ When you run the import command, the plugin will:
 1. **Authenticate** - Automatically detect and use your Granola credentials
 2. **Fetch Documents** - Retrieve all your Granola notes
 3. **Document Selection** - Open an interactive modal where you can:
-    - Preview document titles and metadata
-    - Select/deselect individual documents
-    - Use "Select All" or "Deselect All" buttons
-    - See document counts and import status
+   - Preview document titles and metadata
+   - Select/deselect individual documents
+   - Use "Select All" or "Deselect All" buttons
+   - See document counts and import status
 4. **Import Selected** - Click "Import Selected" to begin the import
 5. **Conflict Resolution** - If documents already exist, you'll see options to:
-    - Skip the existing document
-    - Update with newer content from Granola
-    - Create a new file with a different name
+   - Skip the existing document
+   - Update with newer content from Granola
+   - Create a new file with a different name
 6. **Progress Tracking** - Watch real-time progress with:
-    - Document-by-document status updates
-    - Success/failure indicators
-    - Detailed error messages if issues occur
+   - Document-by-document status updates
+   - Success/failure indicators
+   - Detailed error messages if issues occur
+
+### Common Use Cases
+
+#### Daily Meeting Notes
+
+Configure the plugin to organize your daily meetings:
+
+1. Set **Import folder** to "Meetings/Daily"
+2. Use **Custom filename template**: `{created_date} - {title}`
+3. Enable **Convert action items to tasks**
+4. Result: Notes like "2025-07-23 - Team Standup.md" with tasks ready to track
+
+#### Project-Based Organization
+
+Organize notes by project using attendee tags:
+
+1. Enable **Extract attendee tags**
+2. Set **Tag template** to `project/{name}`
+3. After import, find all meetings with specific people using tag search
+4. Example: Search for `#project/john-smith` to find all John's meetings
+
+#### Meeting Series Tracking
+
+Track recurring meetings with consistent naming:
+
+1. Use **Custom filename template**: `{title} - {created_datetime}`
+2. Result: "Weekly Sync - 2025-07-23_10-00-00.md" for easy chronological sorting
+
+#### Action Item Workflow
+
+Transform meeting notes into actionable tasks:
+
+1. Enable **Convert action items to tasks**
+2. Enable **Add task tag** with custom tag like `#meeting-tasks`
+3. After import, use Obsidian's task queries to find all pending items
+4. Example query: `task from #meeting-tasks`
 
 ## Plugin Settings
 
@@ -85,33 +127,72 @@ Access plugin settings via: **Settings → Plugin Options → Granola Importer**
 ### Import Behavior
 
 - **Duplicate handling** - Choose default action for existing documents:
-    - Skip existing documents
-    - Update existing with newer content
-    - Always ask what to do
+  - Skip existing documents
+  - Update existing with newer content
+  - Always ask what to do
 - **Import folder** - Set default vault location for imported notes (e.g., "Meetings/Granola")
 - **Skip empty documents** - Filter out placeholder documents with no content
 
 ### Content Processing
 
-- **Date prefix format** - Add dates to filenames to prevent duplicates:
-    - YYYY-MM-DD (ISO standard)
-    - MM-DD-YYYY (US format)
-    - DD-MM-YYYY (European format)
-    - YYYY.MM.DD (dot separated)
-    - No date prefix
 - **Enhanced frontmatter** - Include additional metadata (id, title, updated timestamp)
+- **Include Granola URL** - Add direct link to original Granola note in frontmatter
+- **Custom filename templates** - Create personalized naming patterns:
+  - Toggle between simple date prefix or advanced templates
+  - Available variables:
+    - `{title}` - Document title
+    - `{id}` - First 12 characters of Granola document ID
+    - `{created_date}` - Creation date
+    - `{updated_date}` - Last updated date
+    - `{created_time}` - Creation time (HH-mm-ss format)
+    - `{updated_time}` - Last updated time
+    - `{created_datetime}` - Combined date and time
+    - `{updated_datetime}` - Combined updated date and time
+  - Example templates:
+    - `{created_date} - {title}` → "2025-07-23 - Team Meeting"
+    - `Meeting_{created_datetime}_{title}` → "Meeting_2025-07-23_14-30-00_Team Meeting"
+    - `{title} [{id}]` → "Team Meeting [abc123def456]"
 
 ### Action Items Processing
 
-- **Convert action items to tasks** - Transform bullet points under action headers to `- [ ]` format
-    - Recognizes headers like "Action Items", "Follow-ups", "Next Steps", "TODOs"
-    - Preserves assignee information (e.g., "Action Items for Alex")
-- **Add task tag** - Automatically tag notes containing converted tasks
+- **Convert action items to tasks** - Automatically transform meeting action items:
+  - Converts bullet points under action headers to Obsidian task format `- [ ]`
+  - Recognizes various headers: "Action Items", "Follow-ups", "Next Steps", "TODOs"
+  - Preserves assignee information (e.g., "Action Items for Alex")
+  - Works with variations like "Follow up items", "To-dos", "Next actions"
+- **Add task tag** - Optionally add a tag to notes containing tasks
 - **Task tag name** - Customize the tag (default: `#tasks`)
 
 ### User Interface
 
 - **Show progress notifications** - Display toast notifications during import
+- **Show ribbon icon** - Display download icon in left sidebar for quick access
+
+### Attendee Tags
+
+- **Extract attendee tags** - Create tags from meeting participants:
+  - Automatically extracts names from Granola meeting data
+  - Converts names to tag-friendly format (lowercase, hyphenated)
+  - Handles special characters and accented names properly
+- **Exclude my name** - Option to exclude yourself from tags
+- **My name** - Your name as it appears in meeting attendee lists
+- **Include host in attendee tags** - Option to include the meeting host/creator in tags
+- **Tag template** - Customize how attendee tags are formatted:
+  - Available template variables:
+    - `{name}` - Attendee's full name
+    - `{email}` - Attendee's email address
+    - `{domain}` - Domain from email (e.g., example.com)
+    - `{company}` - Attendee's company name
+  - Default template: `person/{name}`
+  - Example templates and results:
+    - `person/{name}` → `person/john-doe`
+    - `{company}/{name}` → `acme-corp/jane-doe`
+    - `person/{name}-{domain}` → `person/john-doe-example-com`
+    - `person/{domain}/{name}` → `person/example-com/jane-doe`
+    - `team/{name}` → `team/john-doe`
+    - `{email}` → `john-doe-example-com`
+  - Note: Tags are added to frontmatter without the # prefix
+  - Note: Email addresses in tags have @ and . replaced with hyphens
 
 ## Requirements
 
@@ -183,3 +264,36 @@ MIT License - see LICENSE file for details
 
 - Report issues: [GitHub Issues](https://github.com/amittell/obsidian-granola/issues)
 - Questions: [GitHub Discussions](https://github.com/amittell/obsidian-granola/discussions)
+
+## Changelog
+
+### v1.1.0 (Latest)
+
+**New Features:**
+
+- **Custom Filename Templates** - Create personalized naming patterns with variables like `{title}`, `{created_date}`, `{id}`, and more
+- **Attendee Tags** - Automatically extract meeting participants and create tags for easy organization
+- **Granola URL in Frontmatter** - Direct links to original Granola notes for cross-referencing
+- **Ribbon Icon** - Quick access to import from the sidebar (toggleable in settings)
+
+**Improvements:**
+
+- Enhanced settings UI with live filename template preview
+- Better handling of special characters in attendee names
+- Support for accented characters in tags (proper Unicode normalization)
+- More flexible tag templates with customizable patterns
+
+**Bug Fixes:**
+
+- Fixed DOMTokenList error when importing documents
+- Improved error logging for better debugging
+- Fixed progress bar class manipulation issues
+
+### v1.0.0
+
+- Initial release with core import functionality
+- Selective import with document preview
+- Smart conflict resolution for existing notes
+- Action items conversion to Obsidian tasks
+- Cross-platform credential detection
+- Progress tracking and notifications

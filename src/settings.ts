@@ -177,26 +177,6 @@ export class GranolaSettingTab extends PluginSettingTab {
 
 		containerEl.createEl('h3', { text: 'Content Processing' });
 
-		// Date prefix format
-		new Setting(containerEl)
-			.setName('Date prefix format')
-			.setDesc(
-				'Format for date prefixes in filenames (prevents duplicate names for recurring meetings)'
-			)
-			.addDropdown(dropdown => {
-				dropdown
-					.addOption(DatePrefixFormat.ISO_DATE, 'YYYY-MM-DD (2025-06-28)')
-					.addOption(DatePrefixFormat.US_DATE, 'MM-DD-YYYY (06-28-2025)')
-					.addOption(DatePrefixFormat.EU_DATE, 'DD-MM-YYYY (28-06-2025)')
-					.addOption(DatePrefixFormat.DOT_DATE, 'YYYY.MM.DD (2025.06.28)')
-					.addOption(DatePrefixFormat.NONE, 'No date prefix')
-					.setValue(this.plugin.settings.content.datePrefixFormat)
-					.onChange(async value => {
-						this.plugin.settings.content.datePrefixFormat = value as DatePrefixFormat;
-						await this.plugin.saveSettings();
-					});
-			});
-
 		// Enhanced frontmatter toggle
 		new Setting(containerEl)
 			.setName('Enhanced frontmatter')
@@ -211,6 +191,94 @@ export class GranolaSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					});
 			});
+
+		// Granola URL toggle
+		new Setting(containerEl)
+			.setName('Include Granola URL')
+			.setDesc(
+				'Add a direct link to the original Granola note in the frontmatter for easy cross-referencing'
+			)
+			.addToggle(toggle => {
+				toggle
+					.setValue(this.plugin.settings.content.includeGranolaUrl)
+					.onChange(async value => {
+						this.plugin.settings.content.includeGranolaUrl = value;
+						await this.plugin.saveSettings();
+					});
+			});
+
+		// Custom filename template toggle
+		new Setting(containerEl)
+			.setName('Use custom filename template')
+			.setDesc(
+				'Enable custom filename templates with variables instead of date prefix format'
+			)
+			.addToggle(toggle => {
+				toggle
+					.setValue(this.plugin.settings.content.useCustomFilenameTemplate)
+					.onChange(async value => {
+						this.plugin.settings.content.useCustomFilenameTemplate = value;
+						await this.plugin.saveSettings();
+						// Refresh the display to show/hide dependent settings
+						this.display();
+					});
+			});
+
+		// Show either date prefix or filename template based on toggle
+		if (!this.plugin.settings.content.useCustomFilenameTemplate) {
+			// Date prefix format (original behavior)
+			new Setting(containerEl)
+				.setName('Date prefix format')
+				.setDesc(
+					'Format for date prefixes in filenames (prevents duplicate names for recurring meetings)'
+				)
+				.addDropdown(dropdown => {
+					dropdown
+						.addOption(DatePrefixFormat.ISO_DATE, 'YYYY-MM-DD (2025-06-28)')
+						.addOption(DatePrefixFormat.US_DATE, 'MM-DD-YYYY (06-28-2025)')
+						.addOption(DatePrefixFormat.EU_DATE, 'DD-MM-YYYY (28-06-2025)')
+						.addOption(DatePrefixFormat.DOT_DATE, 'YYYY.MM.DD (2025.06.28)')
+						.addOption(DatePrefixFormat.NONE, 'No date prefix')
+						.setValue(this.plugin.settings.content.datePrefixFormat)
+						.onChange(async value => {
+							this.plugin.settings.content.datePrefixFormat =
+								value as DatePrefixFormat;
+							await this.plugin.saveSettings();
+						});
+				});
+		} else {
+			// Filename template (new behavior)
+			new Setting(containerEl)
+				.setName('Filename template')
+				.setDesc(
+					'Customize how files are named. Available variables: {title}, {id}, {created_date}, {updated_date}, {created_time}, {updated_time}, {created_datetime}, {updated_datetime}'
+				)
+				.addText(text => {
+					text.setPlaceholder('{created_date} - {title}')
+						.setValue(this.plugin.settings.content.filenameTemplate)
+						.onChange(async value => {
+							this.plugin.settings.content.filenameTemplate =
+								value || '{created_date} - {title}';
+							await this.plugin.saveSettings();
+							// Update preview
+							this.updateFilenamePreview();
+						});
+				})
+				.addButton(button => {
+					button
+						.setButtonText('Preview')
+						.setCta()
+						.onClick(() => {
+							this.updateFilenamePreview();
+						});
+				});
+
+			// Add preview element
+			const previewEl = containerEl.createDiv('setting-item-description');
+			previewEl.addClass('filename-template-preview');
+			previewEl.id = 'filename-template-preview';
+			this.updateFilenamePreview();
+		}
 
 		// Action items section header
 		containerEl.createEl('h4', { text: 'Action Items Processing' });
@@ -289,6 +357,95 @@ export class GranolaSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					});
 			});
+
+		// Ribbon icon
+		new Setting(containerEl)
+			.setName('Show ribbon icon')
+			.setDesc('Display an icon in the left sidebar for quick access to import')
+			.addToggle(toggle => {
+				toggle.setValue(this.plugin.settings.ui.showRibbonIcon).onChange(async value => {
+					this.plugin.settings.ui.showRibbonIcon = value;
+					await this.plugin.saveSettings();
+				});
+			});
+
+		// Attendee Tags section
+		containerEl.createEl('h3', { text: 'Attendee Tags' });
+
+		// Enable attendee tags
+		new Setting(containerEl)
+			.setName('Extract attendee tags')
+			.setDesc('Automatically create tags from meeting attendee names')
+			.addToggle(toggle => {
+				toggle.setValue(this.plugin.settings.attendeeTags.enabled).onChange(async value => {
+					this.plugin.settings.attendeeTags.enabled = value;
+					await this.plugin.saveSettings();
+					// Refresh the display to show/hide dependent settings
+					this.display();
+				});
+			});
+
+		// Show attendee tag settings only if enabled
+		if (this.plugin.settings.attendeeTags.enabled) {
+			// Exclude my name option
+			new Setting(containerEl)
+				.setName('Exclude my name')
+				.setDesc('Exclude your own name from attendee tags')
+				.addToggle(toggle => {
+					toggle
+						.setValue(this.plugin.settings.attendeeTags.excludeMyName)
+						.onChange(async value => {
+							this.plugin.settings.attendeeTags.excludeMyName = value;
+							await this.plugin.saveSettings();
+							// Refresh display to show/hide name field
+							this.display();
+						});
+				});
+
+			// My name field (only shown if excluding is enabled)
+			if (this.plugin.settings.attendeeTags.excludeMyName) {
+				new Setting(containerEl)
+					.setName('My name')
+					.setDesc('Your name as it appears in meeting attendee lists')
+					.addText(text => {
+						text.setPlaceholder('John Smith')
+							.setValue(this.plugin.settings.attendeeTags.myName)
+							.onChange(async value => {
+								this.plugin.settings.attendeeTags.myName = value;
+								await this.plugin.saveSettings();
+							});
+					});
+			}
+
+			// Include host toggle
+			new Setting(containerEl)
+				.setName('Include host in attendee tags')
+				.setDesc('Include the meeting host/creator in the attendee tags')
+				.addToggle(toggle => {
+					toggle
+						.setValue(this.plugin.settings.attendeeTags.includeHost)
+						.onChange(async value => {
+							this.plugin.settings.attendeeTags.includeHost = value;
+							await this.plugin.saveSettings();
+						});
+				});
+
+			// Tag template
+			new Setting(containerEl)
+				.setName('Tag template')
+				.setDesc(
+					'Template for attendee tags. Available variables: {name}, {email}, {domain}, {company}. Example: person/{name} or {company}/{name}'
+				)
+				.addText(text => {
+					text.setPlaceholder('person/{name}')
+						.setValue(this.plugin.settings.attendeeTags.tagTemplate)
+						.onChange(async value => {
+							this.plugin.settings.attendeeTags.tagTemplate =
+								value || 'person/{name}';
+							await this.plugin.saveSettings();
+						});
+				});
+		}
 	}
 
 	/**
@@ -356,5 +513,70 @@ export class GranolaSettingTab extends PluginSettingTab {
 				cls: 'connection-not-tested',
 			});
 		}
+	}
+
+	/**
+	 * Updates the filename template preview.
+	 */
+	private updateFilenamePreview(): void {
+		const previewEl = this.containerEl.querySelector('#filename-template-preview');
+		if (!previewEl) return;
+
+		const template = this.plugin.settings.content.filenameTemplate || '{title}';
+		const now = new Date();
+
+		// Create sample data
+		const sampleTitle = 'Team Standup Meeting';
+		const sampleId = 'abc123def456';
+
+		// Format dates according to settings
+		const dateFormat = this.plugin.settings.content.datePrefixFormat;
+		const formattedDate = this.formatDateForPreview(now, dateFormat);
+		const formattedTime = this.formatTimeForPreview(now);
+
+		// Replace template variables
+		const preview = template
+			.replace(/{title}/g, sampleTitle)
+			.replace(/{id}/g, sampleId)
+			.replace(/{created_date}/g, formattedDate)
+			.replace(/{updated_date}/g, formattedDate)
+			.replace(/{created_time}/g, formattedTime)
+			.replace(/{updated_time}/g, formattedTime)
+			.replace(/{created_datetime}/g, `${formattedDate}_${formattedTime}`)
+			.replace(/{updated_datetime}/g, `${formattedDate}_${formattedTime}`);
+
+		previewEl.textContent = `Preview: ${preview}.md`;
+	}
+
+	/**
+	 * Formats a date for preview according to the specified format setting.
+	 */
+	private formatDateForPreview(date: Date, format: string): string {
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+
+		switch (format) {
+			case 'YYYY-MM-DD':
+				return `${year}-${month}-${day}`;
+			case 'MM-DD-YYYY':
+				return `${month}-${day}-${year}`;
+			case 'DD-MM-YYYY':
+				return `${day}-${month}-${year}`;
+			case 'YYYY.MM.DD':
+				return `${year}.${month}.${day}`;
+			default:
+				return `${year}-${month}-${day}`;
+		}
+	}
+
+	/**
+	 * Formats a time for preview as HH-mm-ss.
+	 */
+	private formatTimeForPreview(date: Date): string {
+		const hours = String(date.getHours()).padStart(2, '0');
+		const minutes = String(date.getMinutes()).padStart(2, '0');
+		const seconds = String(date.getSeconds()).padStart(2, '0');
+		return `${hours}-${minutes}-${seconds}`;
 	}
 }

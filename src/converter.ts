@@ -1,5 +1,5 @@
 import { ProseMirrorDoc, ProseMirrorNode, GranolaDocument } from './api';
-import { Logger, GranolaSettings } from './types';
+import { Logger, GranolaSettings, DatePrefixFormat } from './types';
 
 // Converter Constants
 
@@ -52,6 +52,12 @@ export interface NoteFrontmatter {
 
 	/** Optional: ISO timestamp when the document was last updated (when enhanced frontmatter enabled) */
 	updated?: string;
+
+	/** Optional: Direct URL to the Granola note (when includeGranolaUrl enabled) */
+	granola_url?: string;
+
+	/** Optional: Tags array for attendees and other metadata */
+	tags?: string[];
 }
 
 /**
@@ -405,7 +411,7 @@ export class ProseMirrorConverter {
 	/**
 	 * Generates a filename for the converted document based on settings.
 	 *
-	 * Creates filenames with optional date prefix based on datePrefixFormat setting.
+	 * Creates filenames using a template system that supports variables.
 	 * This allows flexible filename formats while preventing duplicates.
 	 *
 	 * @private
@@ -417,13 +423,92 @@ export class ProseMirrorConverter {
 		const title = this.decodeHtmlEntities(doc.title || `Untitled-${doc.id}`);
 		const sanitizedTitle = this.sanitizeFilename(title);
 
-		// Check if date prefix is disabled
-		if (this.settings.content.datePrefixFormat === 'none') {
-			return sanitizedTitle;
+		// If not using custom template, use the original date-prefix behavior
+		if (!this.settings.content.useCustomFilenameTemplate) {
+			const createdDate = new Date(doc.created_at);
+			const dateFormat = this.settings.content.datePrefixFormat;
+
+			// Original behavior: add date prefix if format is not NONE
+			if (dateFormat === DatePrefixFormat.NONE) {
+				return sanitizedTitle;
+			} else {
+				const formattedDate = this.formatDate(createdDate, dateFormat);
+				return `${formattedDate} - ${sanitizedTitle}`;
+			}
 		}
 
-		// Generate date prefix using existing method
-		return this.generateDatePrefixedFilename(doc);
+		// Custom template logic
+		const template = this.settings.content.filenameTemplate || '{created_date} - {title}';
+
+		// Create date formatters
+		const createdDate = new Date(doc.created_at);
+		const updatedDate = new Date(doc.updated_at);
+
+		// Format dates according to settings
+		const dateFormat = this.settings.content.datePrefixFormat;
+		const formattedCreatedDate = this.formatDate(createdDate, dateFormat);
+		const formattedUpdatedDate = this.formatDate(updatedDate, dateFormat);
+
+		// Format times
+		const createdTime = this.formatTime(createdDate);
+		const updatedTime = this.formatTime(updatedDate);
+
+		// Replace template variables (longer variables first to avoid substring conflicts)
+		const filename = template
+			.replace(/{created_datetime}/g, `${formattedCreatedDate}_${createdTime}`)
+			.replace(/{updated_datetime}/g, `${formattedUpdatedDate}_${updatedTime}`)
+			.replace(/{created_date}/g, formattedCreatedDate)
+			.replace(/{updated_date}/g, formattedUpdatedDate)
+			.replace(/{created_time}/g, createdTime)
+			.replace(/{updated_time}/g, updatedTime)
+			.replace(/{title}/g, sanitizedTitle)
+			.replace(/{id}/g, doc.id);
+
+		// Sanitize the final filename
+		return this.sanitizeFilename(filename);
+	}
+
+	/**
+	 * Formats a date according to the specified format setting.
+	 *
+	 * @private
+	 * @param {Date} date - Date to format
+	 * @param {DatePrefixFormat} format - Format setting
+	 * @returns {string} Formatted date string
+	 */
+	private formatDate(date: Date, format: DatePrefixFormat): string {
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+
+		switch (format) {
+			case DatePrefixFormat.ISO_DATE:
+				return `${year}-${month}-${day}`;
+			case DatePrefixFormat.US_DATE:
+				return `${month}-${day}-${year}`;
+			case DatePrefixFormat.EU_DATE:
+				return `${day}-${month}-${year}`;
+			case DatePrefixFormat.DOT_DATE:
+				return `${year}.${month}.${day}`;
+			case DatePrefixFormat.NONE:
+				return ''; // No date prefix
+			default:
+				return `${year}-${month}-${day}`; // Default to ISO
+		}
+	}
+
+	/**
+	 * Formats a time as HH-mm-ss.
+	 *
+	 * @private
+	 * @param {Date} date - Date to extract time from
+	 * @returns {string} Formatted time string
+	 */
+	private formatTime(date: Date): string {
+		const hours = String(date.getHours()).padStart(2, '0');
+		const minutes = String(date.getMinutes()).padStart(2, '0');
+		const seconds = String(date.getSeconds()).padStart(2, '0');
+		return `${hours}-${minutes}-${seconds}`;
 	}
 
 	/**
@@ -1348,7 +1433,253 @@ export class ProseMirrorConverter {
 			frontmatter.updated = doc.updated_at;
 		}
 
+		// Add Granola URL if setting is enabled
+		if (this.settings.content.includeGranolaUrl) {
+			frontmatter.granola_url = `https://notes.granola.ai/d/${doc.id}`;
+		}
+
+		// Extract and process attendee tags if enabled
+		interface AttendeeData {
+			name: string;
+			email: string | null;
+			company: string | null;
+			isHost?: boolean;
+		}
+
+		let attendeeData: AttendeeData[] = [];
+
+		// Handle different people field formats
+		if (doc.people) {
+			if (Array.isArray(doc.people)) {
+				// Original format: array of strings - convert to object format
+				attendeeData = doc.people.map(name => ({
+					name: name,
+					email: null,
+					company: null,
+				}));
+			} else if (
+				typeof doc.people === 'object' &&
+				doc.people.attendees &&
+				Array.isArray(doc.people.attendees)
+			) {
+				// New format: object with attendees array
+				// First, let's log the full structure to see all available properties
+				if (doc.people.attendees.length > 0) {
+					this.logger.debug(
+						'Full attendee structure:',
+						JSON.stringify(doc.people.attendees[0], null, 2)
+					);
+				}
+
+				// Extract attendee data
+				attendeeData = doc.people.attendees
+					.filter(
+						(attendee: {
+							email?: string;
+							details?: {
+								person?: {
+									name?: {
+										fullName?: string;
+									};
+								};
+								company?: {
+									name?: string;
+								};
+							};
+						}) => attendee?.details?.person?.name?.fullName
+					)
+					.map(
+						(attendee: {
+							email?: string;
+							details?: {
+								person?: {
+									name?: {
+										fullName?: string;
+									};
+								};
+								company?: {
+									name?: string;
+								};
+							};
+						}) => ({
+							name: attendee.details!.person!.name!.fullName!,
+							email: attendee.email || null,
+							company: attendee.details?.company?.name || null,
+						})
+					);
+
+				// Optionally include the host/creator
+				if (this.settings.attendeeTags.includeHost && doc.people.creator) {
+					const creator = doc.people.creator;
+					attendeeData.push({
+						name: creator.name || 'Unknown Host',
+						email: creator.email || null,
+						company: null, // Creator doesn't have company details in the current API
+						isHost: true,
+					});
+				}
+			}
+		}
+
+		const hasPeopleData = attendeeData.length > 0;
+
+		this.logger.debug('Attendee tags settings:', {
+			enabled: this.settings.attendeeTags.enabled,
+			hasPeople: !!doc.people,
+			peopleStructure: doc.people ? (Array.isArray(doc.people) ? 'array' : 'object') : 'none',
+			peopleCount: attendeeData.length,
+			extractedAttendees: attendeeData,
+		});
+
+		if (this.settings.attendeeTags.enabled && hasPeopleData) {
+			const tags = this.extractAttendeeTags(attendeeData);
+			this.logger.debug('Extracted attendee tags:', tags);
+			if (tags.length > 0) {
+				frontmatter.tags = tags;
+			}
+		}
+
 		return frontmatter;
+	}
+
+	/**
+	 * Extracts and processes attendee data into tags.
+	 *
+	 * Converts attendee information into tags using the configured template.
+	 * Supports multiple template variables: {name}, {email}, {domain}, {company}
+	 * Optionally excludes the user's own name based on settings.
+	 *
+	 * @private
+	 * @param {AttendeeData[]} attendees - Array of attendee objects with name, email, company
+	 * @returns {string[]} Array of formatted tags
+	 */
+	private extractAttendeeTags(
+		attendees: Array<{
+			name: string;
+			email: string | null;
+			company: string | null;
+			isHost?: boolean;
+		}>
+	): string[] {
+		const tags: string[] = [];
+		const template = this.settings.attendeeTags.tagTemplate || 'person/{name}';
+		const myName = this.settings.attendeeTags.myName?.trim().toLowerCase();
+		const excludeMyName = this.settings.attendeeTags.excludeMyName;
+
+		this.logger.debug('Extracting attendee tags:', {
+			template,
+			myName,
+			excludeMyName,
+			peopleCount: attendees.length,
+		});
+
+		for (const attendee of attendees) {
+			const name = attendee.name?.trim() || '';
+
+			// Skip if excluding own name and this matches
+			if (excludeMyName && myName && name.toLowerCase() === myName) {
+				this.logger.debug(`Skipping own name: ${name}`);
+				continue;
+			}
+
+			// Skip if host is excluded (only applies if attendee is marked as host)
+			if (attendee.isHost && !this.settings.attendeeTags.includeHost) {
+				continue;
+			}
+
+			// Process template variables
+			let tag = template;
+			let hasRequiredVariables = true;
+
+			// Helper function to normalize strings for tag format
+			const normalizeForTag = (str: string) => {
+				return str
+					.normalize('NFD') // Decompose accented characters
+					.replace(/[\u0300-\u036f]/g, '') // Remove diacritic marks (accents)
+					.toLowerCase()
+					.replace(/\s+/g, '-') // Replace spaces with hyphens
+					.replace(/[^a-z0-9-]/g, '') // Remove remaining special characters
+					.replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+					.replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+			};
+
+			// Replace {name} variable
+			if (tag.includes('{name}')) {
+				if (name) {
+					const normalizedName = normalizeForTag(name);
+					tag = tag.replace(/{name}/g, normalizedName);
+					this.logger.debug(`Replaced {name} with: ${normalizedName}`);
+				} else {
+					// Skip this attendee if name is required but not available
+					hasRequiredVariables = false;
+				}
+			}
+
+			// Replace {email} variable
+			if (tag.includes('{email}')) {
+				this.logger.debug(`Processing {email} variable. Attendee email: ${attendee.email}`);
+				if (attendee.email) {
+					const normalizedEmail = attendee.email.toLowerCase().replace(/[@.]/g, '-');
+					tag = tag.replace(/{email}/g, normalizedEmail);
+					this.logger.debug(`Replaced {email} with: ${normalizedEmail}`);
+				} else {
+					// Skip this attendee if email is required but not available
+					hasRequiredVariables = false;
+					this.logger.debug(`No email found for attendee, skipping`);
+				}
+			}
+
+			// Replace {domain} variable (extract from email)
+			if (tag.includes('{domain}')) {
+				if (attendee.email && attendee.email.includes('@')) {
+					const domain = attendee.email.split('@')[1];
+					const normalizedDomain = domain.toLowerCase().replace(/\./g, '-');
+					tag = tag.replace(/{domain}/g, normalizedDomain);
+					this.logger.debug(`Replaced {domain} with: ${normalizedDomain}`);
+				} else {
+					// Skip this attendee if domain is required but not available
+					hasRequiredVariables = false;
+				}
+			}
+
+			// Replace {company} variable
+			if (tag.includes('{company}')) {
+				if (attendee.company) {
+					const normalizedCompany = normalizeForTag(attendee.company);
+					tag = tag.replace(/{company}/g, normalizedCompany);
+					this.logger.debug(`Replaced {company} with: ${normalizedCompany}`);
+				} else {
+					// Skip this attendee if company is required but not available
+					hasRequiredVariables = false;
+				}
+			}
+
+			// Only add the tag if all required variables were available
+			if (!hasRequiredVariables) {
+				this.logger.debug(
+					`Skipping attendee due to missing required variables: ${JSON.stringify(attendee)}`
+				);
+				continue;
+			}
+
+			// Clean up the tag (remove empty path segments)
+			tag = tag
+				.replace(/\/+/g, '/') // Replace multiple slashes with single
+				.replace(/\/$/, '') // Remove trailing slash
+				.trim();
+
+			// Only add valid tags
+			if (tag) {
+				tags.push(tag);
+				this.logger.debug(`Added tag: ${tag}`);
+			}
+		}
+
+		// Remove duplicates
+		const uniqueTags = [...new Set(tags)];
+		this.logger.debug(`Final unique tags: ${uniqueTags.join(', ')}`);
+
+		return uniqueTags;
 	}
 
 	/**
@@ -1398,6 +1729,22 @@ export class ProseMirrorConverter {
 		}
 
 		yamlLines.push(`source: ${frontmatter.source}`);
+
+		// Add Granola URL if present
+		if (frontmatter.granola_url) {
+			yamlLines.push(`granola_url: "${frontmatter.granola_url}"`);
+		}
+
+		// Add tags if present
+		if (frontmatter.tags && frontmatter.tags.length > 0) {
+			yamlLines.push('tags:');
+			frontmatter.tags.forEach(tag => {
+				// Remove the # prefix for YAML frontmatter
+				const cleanTag = tag.startsWith('#') ? tag.substring(1) : tag;
+				yamlLines.push(`  - ${cleanTag}`);
+			});
+		}
+
 		yamlLines.push('---', '');
 
 		return yamlLines.join('\n') + markdown;

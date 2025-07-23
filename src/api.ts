@@ -43,6 +43,30 @@ export interface GranolaDocument {
 	/** User ID of the document owner */
 	user_id: string;
 
+	/** Array of meeting attendees (if available) - can be string[] or complex object */
+	people?:
+		| string[]
+		| {
+				attendees?: Array<{
+					email?: string;
+					details?: {
+						person?: {
+							name?: {
+								fullName?: string;
+							};
+						};
+						company?: {
+							name?: string;
+						};
+					};
+				}>;
+				creator?: {
+					name?: string;
+					email?: string;
+				};
+				title?: string;
+		  }; // eslint-disable-line no-mixed-spaces-and-tabs
+
 	/** Additional metadata fields */
 	[key: string]: unknown;
 }

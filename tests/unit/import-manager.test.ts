@@ -24,7 +24,7 @@ jest.mock('../../src/ui/conflict-resolution-modal', () => ({
 // Mock dependencies
 const mockApp = {
 	vault: null,
-} as unknown as App;
+} as App;
 
 const mockVault = {
 	create: jest.fn(),
@@ -32,21 +32,21 @@ const mockVault = {
 	read: jest.fn(),
 	delete: jest.fn(),
 	getAbstractFileByPath: jest.fn(),
-} as unknown as Vault;
+} as Vault;
 
-const mockConverter = {
+const mockConverter: ProseMirrorConverter = {
 	convertToMarkdown: jest.fn(),
 	generateFilename: jest.fn(),
 	convertDocument: jest.fn(),
-} as unknown as ProseMirrorConverter;
+};
 
-const mockLogger = {
+const mockLogger: Logger = {
 	debug: jest.fn(),
 	info: jest.fn(),
 	warn: jest.fn(),
 	error: jest.fn(),
 	updateSettings: jest.fn(),
-} as unknown as Logger;
+};
 
 // Mock TFile
 const createMockFile = (name: string, path: string = name): TFile => {

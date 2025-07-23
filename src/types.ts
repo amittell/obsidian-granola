@@ -82,6 +82,12 @@ export interface GranolaSettings {
 		includeEnhancedFrontmatter: boolean;
 		/** Content extraction priority */
 		contentPriority: ContentPriority;
+		/** Include Granola URL in frontmatter */
+		includeGranolaUrl: boolean;
+		/** Use custom filename template instead of date prefix format */
+		useCustomFilenameTemplate: boolean;
+		/** Template for generating filenames */
+		filenameTemplate: string;
 	};
 
 	/** Action items conversion settings */
@@ -98,6 +104,22 @@ export interface GranolaSettings {
 	ui: {
 		/** Show import progress notifications */
 		showProgressNotifications: boolean;
+		/** Show ribbon icon for quick access */
+		showRibbonIcon: boolean;
+	};
+
+	/** Attendee tagging settings */
+	attendeeTags: {
+		/** Enable attendee extraction and tagging */
+		enabled: boolean;
+		/** Exclude your own name from tags */
+		excludeMyName: boolean;
+		/** Your name as it appears in meetings */
+		myName: string;
+		/** Template for attendee tags (use {name} placeholder) */
+		tagTemplate: string;
+		/** Include the meeting host/creator in attendee tags */
+		includeHost: boolean;
 	};
 
 	/** Internal connection state (not user-facing) */
@@ -129,6 +151,9 @@ export const DEFAULT_SETTINGS: GranolaSettings = {
 		datePrefixFormat: DatePrefixFormat.ISO_DATE,
 		includeEnhancedFrontmatter: false,
 		contentPriority: ContentPriority.PANEL_FIRST,
+		includeGranolaUrl: false,
+		useCustomFilenameTemplate: false,
+		filenameTemplate: '{created_date} - {title}',
 	},
 	actionItems: {
 		convertToTasks: false,
@@ -137,6 +162,14 @@ export const DEFAULT_SETTINGS: GranolaSettings = {
 	},
 	ui: {
 		showProgressNotifications: true,
+		showRibbonIcon: true,
+	},
+	attendeeTags: {
+		enabled: false,
+		excludeMyName: true,
+		myName: '',
+		tagTemplate: 'person/{name}',
+		includeHost: false,
 	},
 	connection: {
 		lastValidated: 0,

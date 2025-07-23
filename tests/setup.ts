@@ -1,8 +1,12 @@
 import { jest } from '@jest/globals';
 
 // Define development constants for test environment
-(global as any).__DEV__ = true;
-(global as any).DEBUG = true;
+declare global {
+	var __DEV__: boolean;
+	var DEBUG: boolean;
+}
+global.__DEV__ = true;
+global.DEBUG = true;
 
 // Enhanced DOM environment setup for complex UI testing
 import './helpers/dom-test-utils';
