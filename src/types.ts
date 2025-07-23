@@ -118,6 +118,8 @@ export interface GranolaSettings {
 		myName: string;
 		/** Template for attendee tags (use {name} placeholder) */
 		tagTemplate: string;
+		/** Include the meeting host/creator in attendee tags */
+		includeHost: boolean;
 	};
 
 	/** Internal connection state (not user-facing) */
@@ -167,6 +169,7 @@ export const DEFAULT_SETTINGS: GranolaSettings = {
 		excludeMyName: true,
 		myName: '',
 		tagTemplate: 'person/{name}',
+		includeHost: false,
 	},
 	connection: {
 		lastValidated: 0,

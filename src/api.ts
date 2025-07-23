@@ -43,8 +43,26 @@ export interface GranolaDocument {
 	/** User ID of the document owner */
 	user_id: string;
 
-	/** Array of meeting attendees (if available) */
-	people?: string[];
+	/** Array of meeting attendees (if available) - can be string[] or complex object */
+	people?:
+		| string[]
+		| {
+				attendees?: Array<{
+					email?: string;
+					details?: {
+						person?: {
+							name?: {
+								fullName?: string;
+							};
+						};
+					};
+				}>;
+				creator?: {
+					name?: string;
+					email?: string;
+				};
+				title?: string;
+		  };
 
 	/** Additional metadata fields */
 	[key: string]: unknown;

@@ -1439,8 +1439,101 @@ export class ProseMirrorConverter {
 		}
 
 		// Extract and process attendee tags if enabled
-		if (this.settings.attendeeTags.enabled && doc.people && doc.people.length > 0) {
-			const tags = this.extractAttendeeTags(doc.people);
+		interface AttendeeData {
+			name: string;
+			email: string | null;
+			company: string | null;
+			isHost?: boolean;
+		}
+
+		let attendeeData: AttendeeData[] = [];
+
+		// Handle different people field formats
+		if (doc.people) {
+			if (Array.isArray(doc.people)) {
+				// Original format: array of strings - convert to object format
+				attendeeData = doc.people.map(name => ({
+					name: name,
+					email: null,
+					company: null,
+				}));
+			} else if (
+				typeof doc.people === 'object' &&
+				doc.people.attendees &&
+				Array.isArray(doc.people.attendees)
+			) {
+				// New format: object with attendees array
+				// First, let's log the full structure to see all available properties
+				if (doc.people.attendees.length > 0) {
+					this.logger.debug(
+						'Full attendee structure:',
+						JSON.stringify(doc.people.attendees[0], null, 2)
+					);
+				}
+
+				// Extract attendee data
+				attendeeData = doc.people.attendees
+					.filter(
+						(attendee: {
+							email?: string;
+							details?: {
+								person?: {
+									name?: {
+										fullName?: string;
+									};
+								};
+								company?: {
+									name?: string;
+								};
+							};
+						}) => attendee?.details?.person?.name?.fullName
+					)
+					.map(
+						(attendee: {
+							email?: string;
+							details?: {
+								person?: {
+									name?: {
+										fullName?: string;
+									};
+								};
+								company?: {
+									name?: string;
+								};
+							};
+						}) => ({
+							name: attendee.details!.person!.name!.fullName!,
+							email: attendee.email || null,
+							company: attendee.details?.company?.name || null,
+						})
+					);
+
+				// Optionally include the host/creator
+				if (this.settings.attendeeTags.includeHost && doc.people.creator) {
+					const creator = doc.people.creator;
+					attendeeData.push({
+						name: creator.name || 'Unknown Host',
+						email: creator.email || null,
+						company: null, // Creator doesn't have company details in the current API
+						isHost: true,
+					});
+				}
+			}
+		}
+
+		const hasPeopleData = attendeeData.length > 0;
+
+		this.logger.debug('Attendee tags settings:', {
+			enabled: this.settings.attendeeTags.enabled,
+			hasPeople: !!doc.people,
+			peopleStructure: doc.people ? (Array.isArray(doc.people) ? 'array' : 'object') : 'none',
+			peopleCount: attendeeData.length,
+			extractedAttendees: attendeeData,
+		});
+
+		if (this.settings.attendeeTags.enabled && hasPeopleData) {
+			const tags = this.extractAttendeeTags(attendeeData);
+			this.logger.debug('Extracted attendee tags:', tags);
 			if (tags.length > 0) {
 				frontmatter.tags = tags;
 			}
@@ -1450,48 +1543,148 @@ export class ProseMirrorConverter {
 	}
 
 	/**
-	 * Extracts and processes attendee names into tags.
+	 * Extracts and processes attendee data into tags.
 	 *
-	 * Converts attendee names into tags using the configured template.
+	 * Converts attendee information into tags using the configured template.
+	 * Supports multiple template variables: {name}, {email}, {domain}, {company}
 	 * Optionally excludes the user's own name based on settings.
 	 *
 	 * @private
-	 * @param {string[]} people - Array of attendee names from the Granola document
+	 * @param {AttendeeData[]} attendees - Array of attendee objects with name, email, company
 	 * @returns {string[]} Array of formatted tags
 	 */
-	private extractAttendeeTags(people: string[]): string[] {
+	private extractAttendeeTags(
+		attendees: Array<{
+			name: string;
+			email: string | null;
+			company: string | null;
+			isHost?: boolean;
+		}>
+	): string[] {
 		const tags: string[] = [];
 		const template = this.settings.attendeeTags.tagTemplate || 'person/{name}';
 		const myName = this.settings.attendeeTags.myName?.trim().toLowerCase();
 		const excludeMyName = this.settings.attendeeTags.excludeMyName;
 
-		for (const person of people) {
-			const trimmedPerson = person.trim();
+		this.logger.debug('Extracting attendee tags:', {
+			template,
+			myName,
+			excludeMyName,
+			peopleCount: attendees.length,
+		});
+
+		for (const attendee of attendees) {
+			const name = attendee.name?.trim() || '';
 
 			// Skip if excluding own name and this matches
-			if (excludeMyName && myName && trimmedPerson.toLowerCase() === myName) {
+			if (excludeMyName && myName && name.toLowerCase() === myName) {
+				this.logger.debug(`Skipping own name: ${name}`);
 				continue;
 			}
 
-			// Convert name to tag format with proper Unicode normalization
-			// "José García" -> "jose-garcia", "John Smith" -> "john-smith"
-			const tagName = trimmedPerson
-				.normalize('NFD') // Decompose accented characters
-				.replace(/[\u0300-\u036f]/g, '') // Remove diacritic marks (accents)
-				.toLowerCase()
-				.replace(/\s+/g, '-') // Replace spaces with hyphens
-				.replace(/[^a-z0-9-]/g, '') // Remove remaining special characters
-				.replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-				.replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+			// Skip if host is excluded (only applies if attendee is marked as host)
+			if (attendee.isHost && !this.settings.attendeeTags.includeHost) {
+				continue;
+			}
 
-			if (tagName) {
-				// Apply template
-				const tag = template.replace('{name}', tagName);
+			// Process template variables
+			let tag = template;
+			let hasRequiredVariables = true;
+
+			// Helper function to normalize strings for tag format
+			const normalizeForTag = (str: string) => {
+				return str
+					.normalize('NFD') // Decompose accented characters
+					.replace(/[\u0300-\u036f]/g, '') // Remove diacritic marks (accents)
+					.toLowerCase()
+					.replace(/\s+/g, '-') // Replace spaces with hyphens
+					.replace(/[^a-z0-9-]/g, '') // Remove remaining special characters
+					.replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+					.replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+			};
+
+			// Replace {name} variable
+			if (tag.includes('{name}')) {
+				if (name) {
+					const normalizedName = normalizeForTag(name);
+					tag = tag.replace(/{name}/g, normalizedName);
+					this.logger.debug(`Replaced {name} with: ${normalizedName}`);
+				} else {
+					// Skip this attendee if name is required but not available
+					hasRequiredVariables = false;
+				}
+			}
+
+			// Replace {email} variable
+			if (tag.includes('{email}')) {
+				this.logger.debug(`Processing {email} variable. Attendee email: ${attendee.email}`);
+				if (attendee.email) {
+					const normalizedEmail = attendee.email.toLowerCase().replace(/[@.]/g, '-');
+					tag = tag.replace(/{email}/g, normalizedEmail);
+					this.logger.debug(`Replaced {email} with: ${normalizedEmail}`);
+				} else {
+					// Skip this attendee if email is required but not available
+					hasRequiredVariables = false;
+					this.logger.debug(`No email found for attendee, skipping`);
+				}
+			}
+
+			// Replace {domain} variable (extract from email)
+			if (tag.includes('{domain}')) {
+				if (attendee.email && attendee.email.includes('@')) {
+					const domain = attendee.email.split('@')[1];
+					const normalizedDomain = domain.toLowerCase().replace(/\./g, '-');
+					tag = tag.replace(/{domain}/g, normalizedDomain);
+					this.logger.debug(`Replaced {domain} with: ${normalizedDomain}`);
+				} else {
+					// Skip this attendee if domain is required but not available
+					hasRequiredVariables = false;
+				}
+			}
+
+			// Replace {company} variable
+			if (tag.includes('{company}')) {
+				if (attendee.company) {
+					const normalizedCompany = normalizeForTag(attendee.company);
+					tag = tag.replace(/{company}/g, normalizedCompany);
+					this.logger.debug(`Replaced {company} with: ${normalizedCompany}`);
+				} else {
+					// Skip this attendee if company is required but not available
+					hasRequiredVariables = false;
+				}
+			}
+
+			// Only add the tag if all required variables were available
+			if (!hasRequiredVariables) {
+				this.logger.debug(
+					`Skipping attendee due to missing required variables: ${JSON.stringify(attendee)}`
+				);
+				continue;
+			}
+
+			// Add the hashtag prefix if not already present
+			if (!tag.startsWith('#')) {
+				tag = `#${tag}`;
+			}
+
+			// Clean up the tag (remove empty path segments)
+			tag = tag
+				.replace(/\/+/g, '/') // Replace multiple slashes with single
+				.replace(/\/$/, '') // Remove trailing slash
+				.replace(/\/#/, '#'); // Fix cases like "/#" to "#"
+
+			// Only add valid tags
+			if (tag && tag !== '#') {
 				tags.push(tag);
+				this.logger.debug(`Added tag: ${tag}`);
 			}
 		}
 
-		return [...new Set(tags)]; // Remove duplicates
+		// Remove duplicates
+		const uniqueTags = [...new Set(tags)];
+		this.logger.debug(`Final unique tags: ${uniqueTags.join(', ')}`);
+
+		return uniqueTags;
 	}
 
 	/**
@@ -1551,7 +1744,9 @@ export class ProseMirrorConverter {
 		if (frontmatter.tags && frontmatter.tags.length > 0) {
 			yamlLines.push('tags:');
 			frontmatter.tags.forEach(tag => {
-				yamlLines.push(`  - ${tag}`);
+				// Remove the # prefix for YAML frontmatter
+				const cleanTag = tag.startsWith('#') ? tag.substring(1) : tag;
+				yamlLines.push(`  - ${cleanTag}`);
 			});
 		}
 

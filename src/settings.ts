@@ -417,11 +417,24 @@ export class GranolaSettingTab extends PluginSettingTab {
 					});
 			}
 
+			// Include host toggle
+			new Setting(containerEl)
+				.setName('Include host in attendee tags')
+				.setDesc('Include the meeting host/creator in the attendee tags')
+				.addToggle(toggle => {
+					toggle
+						.setValue(this.plugin.settings.attendeeTags.includeHost)
+						.onChange(async value => {
+							this.plugin.settings.attendeeTags.includeHost = value;
+							await this.plugin.saveSettings();
+						});
+				});
+
 			// Tag template
 			new Setting(containerEl)
 				.setName('Tag template')
 				.setDesc(
-					'Template for attendee tags. Use {name} as placeholder. Example: person/{name}'
+					'Template for attendee tags. Available variables: {name}, {email}, {domain}, {company}. Example: person/{name} or {company}/{name}'
 				)
 				.addText(text => {
 					text.setPlaceholder('person/{name}')
