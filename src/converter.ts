@@ -1662,19 +1662,14 @@ export class ProseMirrorConverter {
 				continue;
 			}
 
-			// Add the hashtag prefix if not already present
-			if (!tag.startsWith('#')) {
-				tag = `#${tag}`;
-			}
-
 			// Clean up the tag (remove empty path segments)
 			tag = tag
 				.replace(/\/+/g, '/') // Replace multiple slashes with single
 				.replace(/\/$/, '') // Remove trailing slash
-				.replace(/\/#/, '#'); // Fix cases like "/#" to "#"
+				.trim();
 
 			// Only add valid tags
-			if (tag && tag !== '#') {
+			if (tag) {
 				tags.push(tag);
 				this.logger.debug(`Added tag: ${tag}`);
 			}
