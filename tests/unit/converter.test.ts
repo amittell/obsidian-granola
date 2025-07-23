@@ -1011,5 +1011,152 @@ describe('ProseMirrorConverter', () => {
 			// Should deduplicate
 			expect(result.frontmatter.tags).toEqual(['person/john-smith', 'person/jane-doe']);
 		});
+
+		it('should include host when includeHost is true', () => {
+			mockSettings.attendeeTags.enabled = true;
+			mockSettings.attendeeTags.includeHost = true;
+			mockSettings.attendeeTags.tagTemplate = 'person/{name}';
+			converter.updateSettings(mockSettings);
+
+			const docWithHost: GranolaDocument = {
+				...mockDocument,
+				people: {
+					attendees: [
+						{
+							email: 'john@example.com',
+							details: {
+								person: {
+									name: {
+										fullName: 'John Doe',
+									},
+								},
+							},
+						},
+					],
+					creator: {
+						name: 'Host Person',
+						email: 'host@example.com',
+					},
+				},
+			};
+			const result = converter.convertDocument(docWithHost);
+
+			expect(result.frontmatter.tags).toEqual(['person/john-doe', 'person/host-person']);
+		});
+
+		it('should exclude host when includeHost is false', () => {
+			mockSettings.attendeeTags.enabled = true;
+			mockSettings.attendeeTags.includeHost = false;
+			mockSettings.attendeeTags.tagTemplate = 'person/{name}';
+			converter.updateSettings(mockSettings);
+
+			const docWithHost: GranolaDocument = {
+				...mockDocument,
+				people: {
+					attendees: [
+						{
+							email: 'john@example.com',
+							details: {
+								person: {
+									name: {
+										fullName: 'John Doe',
+									},
+								},
+							},
+						},
+					],
+					creator: {
+						name: 'Host Person',
+						email: 'host@example.com',
+					},
+				},
+			};
+			const result = converter.convertDocument(docWithHost);
+
+			// Should only include John Doe, not the host
+			expect(result.frontmatter.tags).toEqual(['person/john-doe']);
+		});
+
+		it('should handle attendee with email template variables', () => {
+			mockSettings.attendeeTags.enabled = true;
+			mockSettings.attendeeTags.tagTemplate = 'person/{name}-{domain}';
+			converter.updateSettings(mockSettings);
+
+			const docWithEmails: GranolaDocument = {
+				...mockDocument,
+				people: {
+					attendees: [
+						{
+							email: 'john@example.com',
+							details: {
+								person: {
+									name: {
+										fullName: 'John Doe',
+									},
+								},
+							},
+						},
+						{
+							email: 'jane@company.org',
+							details: {
+								person: {
+									name: {
+										fullName: 'Jane Smith',
+									},
+								},
+							},
+						},
+					],
+				},
+			};
+			const result = converter.convertDocument(docWithEmails);
+
+			expect(result.frontmatter.tags).toEqual([
+				'person/john-doe-example-com',
+				'person/jane-smith-company-org',
+			]);
+		});
+
+		it('should handle attendee with company template variables', () => {
+			mockSettings.attendeeTags.enabled = true;
+			mockSettings.attendeeTags.tagTemplate = '{company}/{name}';
+			converter.updateSettings(mockSettings);
+
+			const docWithCompany: GranolaDocument = {
+				...mockDocument,
+				people: {
+					attendees: [
+						{
+							email: 'john@example.com',
+							details: {
+								person: {
+									name: {
+										fullName: 'John Doe',
+									},
+								},
+								company: {
+									name: 'Acme Corp',
+								},
+							},
+						},
+						{
+							email: 'jane@example.com',
+							details: {
+								person: {
+									name: {
+										fullName: 'Jane Smith',
+									},
+								},
+								// No company data
+							},
+						},
+					],
+				},
+			};
+			const result = converter.convertDocument(docWithCompany);
+
+			// Should only include John with company, Jane skipped due to missing company
+			expect(result.frontmatter.tags).toEqual(['acme-corp/john-doe']);
+		});
 	});
 });
