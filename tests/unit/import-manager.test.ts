@@ -32,7 +32,8 @@ const mockVault = {
 	read: jest.fn(),
 	delete: jest.fn(),
 	getAbstractFileByPath: jest.fn(),
-} as Vault;
+	createFolder: jest.fn(),
+} as unknown as Vault;
 
 const mockConverter: ProseMirrorConverter = {
 	convertToMarkdown: jest.fn(),
@@ -70,7 +71,12 @@ describe('SelectiveImportManager', () => {
 	let defaultOptions: ImportOptions;
 
 	beforeEach(() => {
-		const mockSettings = { import: { skipEmptyDocuments: true } } as any;
+		const mockSettings = { 
+			import: { 
+				skipEmptyDocuments: true,
+				defaultFolder: ''  // Add default folder as empty string
+			} 
+		} as any;
 		importManager = new SelectiveImportManager(
 			mockApp,
 			mockVault,
@@ -193,6 +199,7 @@ describe('SelectiveImportManager', () => {
 		(mockVault.create as jest.Mock).mockResolvedValue(createMockFile('test-document.md'));
 		(mockVault.modify as jest.Mock).mockResolvedValue(undefined);
 		(mockVault.getAbstractFileByPath as jest.Mock).mockReturnValue(null);
+		(mockVault.createFolder as jest.Mock).mockResolvedValue(undefined);
 	});
 
 	describe('constructor', () => {
@@ -908,7 +915,12 @@ describe('SelectiveImportManager', () => {
 
 		it('should import empty documents when setting is disabled', async () => {
 			// Create import manager with skipEmptyDocuments disabled
-			const settingsWithoutFiltering = { import: { skipEmptyDocuments: false } } as any;
+			const settingsWithoutFiltering = { 
+				import: { 
+					skipEmptyDocuments: false,
+					defaultFolder: ''  // Add default folder
+				} 
+			} as any;
 			const importManagerNoFiltering = new SelectiveImportManager(
 				mockApp,
 				mockVault,

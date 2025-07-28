@@ -459,8 +459,17 @@ export class SelectiveImportManager {
 				message: 'Writing to vault...',
 			});
 
+			// Ensure import folder exists
+			const importFolder = this.settings.import.defaultFolder.trim();
+			if (importFolder) {
+				await this.ensureFolderExists(importFolder);
+			}
+
+			// Get full path with import folder
+			const fullPath = this.getFullPath(convertedNote.filename);
+
 			let file: TFile;
-			const existingFile = this.vault.getAbstractFileByPath(convertedNote.filename);
+			const existingFile = this.vault.getAbstractFileByPath(fullPath);
 
 			if (existingFile && existingFile instanceof TFile) {
 				if (options.strategy === 'skip') {
@@ -478,13 +487,13 @@ export class SelectiveImportManager {
 					await this.vault.modify(existingFile, convertedNote.content);
 					file = existingFile;
 				} else if (options.strategy === 'create_new') {
-					const newFilename = this.generateUniqueFilename(convertedNote.filename);
+					const newFilename = this.generateUniqueFilename(fullPath);
 					file = await this.vault.create(newFilename, convertedNote.content);
 				} else {
 					throw new Error(`Unhandled strategy for existing file: ${options.strategy}`);
 				}
 			} else {
-				file = await this.vault.create(convertedNote.filename, convertedNote.content);
+				file = await this.vault.create(fullPath, convertedNote.content);
 			}
 
 			// Success
@@ -627,11 +636,61 @@ export class SelectiveImportManager {
 	}
 
 	/**
+	 * Gets the full file path including the import folder.
+	 * 
+	 * @private
+	 * @param {string} filename - Base filename
+	 * @returns {string} Full path with import folder
+	 */
+	private getFullPath(filename: string): string {
+		const folder = this.settings.import.defaultFolder.trim();
+		if (!folder) {
+			return filename;
+		}
+		// Ensure folder doesn't end with a slash
+		const cleanFolder = folder.replace(/\/$/, '');
+		return `${cleanFolder}/${filename}`;
+	}
+
+	/**
+	 * Ensures the import folder exists, creating it if necessary.
+	 * 
+	 * @private
+	 * @async
+	 * @param {string} folderPath - Folder path to ensure exists
+	 */
+	private async ensureFolderExists(folderPath: string): Promise<void> {
+		if (!folderPath) return;
+		
+		const folder = this.vault.getAbstractFileByPath(folderPath);
+		if (!folder) {
+			try {
+				await this.vault.createFolder(folderPath);
+			} catch (error) {
+				// Folder might already exist or parent folders need to be created
+				const parts = folderPath.split('/');
+				let currentPath = '';
+				for (const part of parts) {
+					currentPath = currentPath ? `${currentPath}/${part}` : part;
+					const existing = this.vault.getAbstractFileByPath(currentPath);
+					if (!existing) {
+						try {
+							await this.vault.createFolder(currentPath);
+						} catch (e) {
+							// Ignore if folder already exists
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/**
 	 * Generates a unique filename by adding a suffix.
 	 *
 	 * @private
-	 * @param {string} filename - Original filename
-	 * @returns {string} Unique filename
+	 * @param {string} filename - Original filename (may include folder path)
+	 * @returns {string} Unique filename with same folder path
 	 */
 	private generateUniqueFilename(filename: string): string {
 		const baseName = filename.replace(/\.md$/, '');
@@ -731,20 +790,28 @@ export class SelectiveImportManager {
 		convertedNote: { filename: string; content: string },
 		createBackup: boolean
 	): Promise<void> {
-		const existingFile = this.vault.getAbstractFileByPath(convertedNote.filename);
-
+		// Get full path with import folder
+		const fullPath = this.getFullPath(convertedNote.filename);
+		const existingFile = this.vault.getAbstractFileByPath(fullPath);
+		
 		if (existingFile && existingFile instanceof TFile) {
 			if (createBackup) {
-				// Create backup
+				// Create backup in the same folder as the original file
 				const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-				const backupName = `${existingFile.basename}.backup-${timestamp}.md`;
+				const folder = existingFile.parent?.path || '';
+				const backupPath = folder ? `${folder}/${existingFile.basename}.backup-${timestamp}.md` : `${existingFile.basename}.backup-${timestamp}.md`;
 				const content = await this.vault.read(existingFile);
-				await this.vault.create(backupName, content);
+				await this.vault.create(backupPath, content);
 			}
 			await this.vault.modify(existingFile, convertedNote.content);
 		} else {
 			// File doesn't exist anymore, just create it
-			await this.vault.create(convertedNote.filename, convertedNote.content);
+			// Ensure import folder exists
+			const importFolder = this.settings.import.defaultFolder.trim();
+			if (importFolder) {
+				await this.ensureFolderExists(importFolder);
+			}
+			await this.vault.create(fullPath, convertedNote.content);
 		}
 	}
 
@@ -760,7 +827,9 @@ export class SelectiveImportManager {
 		convertedNote: { filename: string; content: string },
 		strategy: 'append' | 'prepend'
 	): Promise<void> {
-		const existingFile = this.vault.getAbstractFileByPath(convertedNote.filename);
+		// Get full path with import folder
+		const fullPath = this.getFullPath(convertedNote.filename);
+		const existingFile = this.vault.getAbstractFileByPath(fullPath);
 
 		if (existingFile && existingFile instanceof TFile) {
 			const existingContent = await this.vault.read(existingFile);
@@ -786,7 +855,12 @@ export class SelectiveImportManager {
 			await this.vault.modify(existingFile, mergedContent);
 		} else {
 			// File doesn't exist, just create it
-			await this.vault.create(convertedNote.filename, convertedNote.content);
+			// Ensure import folder exists
+			const importFolder = this.settings.import.defaultFolder.trim();
+			if (importFolder) {
+				await this.ensureFolderExists(importFolder);
+			}
+			await this.vault.create(fullPath, convertedNote.content);
 		}
 	}
 
@@ -802,6 +876,12 @@ export class SelectiveImportManager {
 		convertedNote: { content: string },
 		newFilename: string
 	): Promise<void> {
+		// Ensure import folder exists and get full path
+		const importFolder = this.settings.import.defaultFolder.trim();
+		if (importFolder) {
+			await this.ensureFolderExists(importFolder);
+		}
+		// Note: newFilename should already include the full path from the conflict resolution dialog
 		await this.vault.create(newFilename, convertedNote.content);
 	}
 
