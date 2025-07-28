@@ -1,7 +1,7 @@
 {
 	"id": "granola-importer",
 	"name": "Granola Importer",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"minAppVersion": "0.15.0",
 	"description": "Import your Granola notes into Obsidian with perfect formatting preservation",
 	"author": "amittell",

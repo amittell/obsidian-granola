@@ -42,7 +42,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture Overview
 
-This is a feature-rich Obsidian plugin (~74KB bundle with 61% compression) that imports Granola notes with perfect formatting preservation. The codebase follows an atomic-level modular design with strict separation of concerns.
+This is a feature-rich Obsidian plugin (~120KB bundle) that imports Granola notes with perfect formatting preservation. The codebase follows an atomic-level modular design with strict separation of concerns.
 
 ### Core Module Structure
 
