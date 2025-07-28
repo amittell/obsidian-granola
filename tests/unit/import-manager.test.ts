@@ -71,11 +71,11 @@ describe('SelectiveImportManager', () => {
 	let defaultOptions: ImportOptions;
 
 	beforeEach(() => {
-		const mockSettings = { 
-			import: { 
+		const mockSettings = {
+			import: {
 				skipEmptyDocuments: true,
-				defaultFolder: ''  // Add default folder as empty string
-			} 
+				defaultFolder: '', // Add default folder as empty string
+			},
 		} as any;
 		importManager = new SelectiveImportManager(
 			mockApp,
@@ -915,11 +915,11 @@ describe('SelectiveImportManager', () => {
 
 		it('should import empty documents when setting is disabled', async () => {
 			// Create import manager with skipEmptyDocuments disabled
-			const settingsWithoutFiltering = { 
-				import: { 
+			const settingsWithoutFiltering = {
+				import: {
 					skipEmptyDocuments: false,
-					defaultFolder: ''  // Add default folder
-				} 
+					defaultFolder: '', // Add default folder
+				},
 			} as any;
 			const importManagerNoFiltering = new SelectiveImportManager(
 				mockApp,

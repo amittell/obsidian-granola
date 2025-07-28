@@ -637,7 +637,7 @@ export class SelectiveImportManager {
 
 	/**
 	 * Gets the full file path including the import folder.
-	 * 
+	 *
 	 * @private
 	 * @param {string} filename - Base filename
 	 * @returns {string} Full path with import folder
@@ -654,14 +654,14 @@ export class SelectiveImportManager {
 
 	/**
 	 * Ensures the import folder exists, creating it if necessary.
-	 * 
+	 *
 	 * @private
 	 * @async
 	 * @param {string} folderPath - Folder path to ensure exists
 	 */
 	private async ensureFolderExists(folderPath: string): Promise<void> {
 		if (!folderPath) return;
-		
+
 		const folder = this.vault.getAbstractFileByPath(folderPath);
 		if (!folder) {
 			try {
@@ -793,13 +793,15 @@ export class SelectiveImportManager {
 		// Get full path with import folder
 		const fullPath = this.getFullPath(convertedNote.filename);
 		const existingFile = this.vault.getAbstractFileByPath(fullPath);
-		
+
 		if (existingFile && existingFile instanceof TFile) {
 			if (createBackup) {
 				// Create backup in the same folder as the original file
 				const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 				const folder = existingFile.parent?.path || '';
-				const backupPath = folder ? `${folder}/${existingFile.basename}.backup-${timestamp}.md` : `${existingFile.basename}.backup-${timestamp}.md`;
+				const backupPath = folder
+					? `${folder}/${existingFile.basename}.backup-${timestamp}.md`
+					: `${existingFile.basename}.backup-${timestamp}.md`;
 				const content = await this.vault.read(existingFile);
 				await this.vault.create(backupPath, content);
 			}
