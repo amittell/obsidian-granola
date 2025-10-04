@@ -24,7 +24,6 @@ import {
 	ImportOptions,
 } from '../services/import-manager';
 import { ProseMirrorConverter } from '../converter';
-import { decodeHtmlEntities } from '../utils/html';
 
 /**
  * Modal for selecting and importing Granola documents.

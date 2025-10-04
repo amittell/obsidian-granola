@@ -4,7 +4,6 @@ import type { GranolaDocument } from '../api';
 import type { DocumentDisplayMetadata } from '../services/document-metadata';
 import type { Logger } from '../types';
 import { extractTextFromProseMirror } from '../utils/prosemirror';
-import { decodeHtmlEntities } from '../utils/html';
 
 /**
  * User's choice for resolving a document conflict.
