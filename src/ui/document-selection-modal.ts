@@ -2033,5 +2033,4 @@ export class DocumentSelectionModal extends Modal {
 			}
 		});
 	}
-
 }

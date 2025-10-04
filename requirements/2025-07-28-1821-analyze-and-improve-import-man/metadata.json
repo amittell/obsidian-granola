@@ -1,0 +1,24 @@
+{
+	"id": "man",
+	"started": "2025-07-28T18:21:49.155Z",
+	"lastUpdated": "2025-07-28T18:31:24.292Z",
+	"status": "completed",
+	"phase": "discovery",
+	"progress": {
+		"discovery": {
+			"answered": 0,
+			"total": 5
+		},
+		"detail": {
+			"answered": 0,
+			"total": 5
+		}
+	},
+	"contextFiles": [],
+	"relatedFeatures": [],
+	"settings": {
+		"discoveryQuestions": 5,
+		"expertQuestions": 5
+	},
+	"endedAt": "2025-07-28T18:31:24.293Z"
+}

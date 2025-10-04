@@ -523,5 +523,4 @@ export class DuplicateDetector {
 			.trim()
 			.substring(0, 100); // Match MAX_FILENAME_LENGTH from converter
 	}
-
 }

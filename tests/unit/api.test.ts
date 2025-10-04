@@ -364,7 +364,6 @@ describe('GranolaAPI', () => {
 		});
 	});
 
-
 	describe('error handling', () => {
 		it('should preserve error types from auth module', async () => {
 			mockAuth.getBearerToken.mockImplementation(() => {

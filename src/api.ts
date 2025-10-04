@@ -404,5 +404,4 @@ export class GranolaAPI {
 
 		throw new Error('Maximum retry attempts exceeded');
 	}
-
 }
