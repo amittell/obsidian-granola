@@ -358,17 +358,6 @@ export class GranolaSettingTab extends PluginSettingTab {
 					});
 			});
 
-		// Ribbon icon
-		new Setting(containerEl)
-			.setName('Show ribbon icon')
-			.setDesc('Display an icon in the left sidebar for quick access to import')
-			.addToggle(toggle => {
-				toggle.setValue(this.plugin.settings.ui.showRibbonIcon).onChange(async value => {
-					this.plugin.settings.ui.showRibbonIcon = value;
-					await this.plugin.saveSettings();
-				});
-			});
-
 		// Attendee Tags section
 		containerEl.createEl('h3', { text: 'Attendee Tags' });
 
