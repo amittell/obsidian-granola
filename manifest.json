@@ -3,9 +3,8 @@
 	"name": "Granola Importer",
 	"version": "1.1.1",
 	"minAppVersion": "0.15.0",
-	"description": "Import your Granola notes into Obsidian with perfect formatting preservation",
+	"description": "Import your Granola notes with perfect formatting preservation",
 	"author": "amittell",
 	"authorUrl": "https://github.com/amittell",
-	"fundingUrl": "https://github.com/amittell/obsidian-granola",
-	"isDesktopOnly": false
+	"isDesktopOnly": true
 }
