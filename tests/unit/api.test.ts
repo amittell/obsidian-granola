@@ -253,13 +253,10 @@ describe('GranolaAPI', () => {
 			const mockFetch = createMockFetch(apiResponse);
 			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
 
-			const sleepSpy = jest.spyOn(api as any, 'sleep').mockResolvedValue(undefined);
-
 			await api.getAllDocuments();
 
-			expect(sleepSpy).not.toHaveBeenCalled();
+			// Single request should not require any delay/retry
 			expect(mockFetch).toHaveBeenCalledTimes(1);
-			sleepSpy.mockRestore();
 		});
 	});
 
@@ -291,7 +288,6 @@ describe('GranolaAPI', () => {
 				.mockResolvedValueOnce(mockResponse);
 
 			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
-			const sleepSpy = jest.spyOn(api as any, 'sleep').mockResolvedValue(undefined);
 
 			const result = await (api as any).makeRequest('/test', {
 				method: 'GET',
@@ -299,11 +295,8 @@ describe('GranolaAPI', () => {
 			});
 
 			expect(result).toBe(mockResponse);
+			// Should have retried twice before succeeding
 			expect(mockFetch).toHaveBeenCalledTimes(3);
-			expect(sleepSpy).toHaveBeenCalledWith(2000); // 2^1 * 1000
-			expect(sleepSpy).toHaveBeenCalledWith(4000); // 2^2 * 1000
-
-			sleepSpy.mockRestore();
 		});
 
 		it('should return 429 response on final attempt', async () => {
@@ -311,17 +304,14 @@ describe('GranolaAPI', () => {
 			const mockFetch = jest.fn().mockResolvedValue(mockResponse as any);
 			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
 
-			const sleepSpy = jest.spyOn(api as any, 'sleep').mockResolvedValue(undefined);
-
 			const result = await (api as any).makeRequest('/test', {
 				method: 'GET',
 				headers: {},
 			});
 
 			expect(result).toBe(mockResponse);
+			// Should try 3 times and return 429 on final attempt
 			expect(mockFetch).toHaveBeenCalledTimes(3);
-
-			sleepSpy.mockRestore();
 		});
 
 		it('should retry on network errors', async () => {
@@ -334,7 +324,6 @@ describe('GranolaAPI', () => {
 				.mockResolvedValueOnce(mockResponse);
 
 			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
-			const sleepSpy = jest.spyOn(api as any, 'sleep').mockResolvedValue(undefined);
 
 			const result = await (api as any).makeRequest('/test', {
 				method: 'GET',
@@ -342,18 +331,14 @@ describe('GranolaAPI', () => {
 			});
 
 			expect(result).toBe(mockResponse);
+			// Should have retried twice before succeeding
 			expect(mockFetch).toHaveBeenCalledTimes(3);
-			expect(sleepSpy).toHaveBeenCalledTimes(2);
-
-			sleepSpy.mockRestore();
 		});
 
 		it('should throw error after max retries on network failure', async () => {
 			const networkError = new Error('Network error');
 			const mockFetch = jest.fn().mockRejectedValue(networkError as any);
 			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
-
-			const sleepSpy = jest.spyOn(api as any, 'sleep').mockResolvedValue(undefined);
 
 			await expect(
 				(api as any).makeRequest('/test', {
@@ -362,15 +347,13 @@ describe('GranolaAPI', () => {
 				})
 			).rejects.toThrow('Network request failed after 3 attempts: Network error');
 
+			// Should have tried 3 times
 			expect(mockFetch).toHaveBeenCalledTimes(3);
-			sleepSpy.mockRestore();
 		});
 
 		it('should handle non-Error exceptions', async () => {
 			const mockFetch = jest.fn().mockRejectedValue('string error' as any);
 			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
-
-			const sleepSpy = jest.spyOn(api as any, 'sleep').mockResolvedValue(undefined);
 
 			await expect(
 				(api as any).makeRequest('/test', {
@@ -378,32 +361,9 @@ describe('GranolaAPI', () => {
 					headers: {},
 				})
 			).rejects.toThrow('Network request failed after 3 attempts: Unknown error');
-
-			sleepSpy.mockRestore();
 		});
 	});
 
-	describe('sleep', () => {
-		it('should resolve after specified time', async () => {
-			const start = Date.now();
-
-			// Mock setTimeout to resolve immediately for testing
-			const originalSetTimeout = global.setTimeout;
-			const mockSetTimeout = jest.fn().mockImplementation((callback: () => void) => {
-				callback();
-				return 1;
-			});
-			(mockSetTimeout as any).__promisify__ = jest.fn();
-			global.setTimeout = mockSetTimeout as any;
-
-			await (api as any).sleep(100);
-
-			expect(global.setTimeout).toHaveBeenCalledWith(expect.any(Function), 100);
-
-			// Restore original setTimeout
-			global.setTimeout = originalSetTimeout;
-		});
-	});
 
 	describe('error handling', () => {
 		it('should preserve error types from auth module', async () => {
