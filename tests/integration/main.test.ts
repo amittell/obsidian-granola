@@ -80,7 +80,7 @@ describe('GranolaImporterPlugin Integration', () => {
 
 			expect(addCommandSpy).toHaveBeenCalledWith({
 				id: 'import-granola-notes',
-				name: 'Import Granola Notes (Selective)',
+				name: 'Import Granola notes',
 				callback: expect.any(Function),
 			});
 
@@ -90,13 +90,13 @@ describe('GranolaImporterPlugin Integration', () => {
 
 			expect(addCommandSpy).toHaveBeenNthCalledWith(2, {
 				id: 'diagnose-empty-granola-documents',
-				name: 'Diagnose Empty Granola Documents',
+				name: 'Diagnose empty Granola documents',
 				callback: expect.any(Function),
 			});
 
 			expect(addCommandSpy).toHaveBeenNthCalledWith(3, {
 				id: 'debug-granola-api',
-				name: 'Debug Granola API Response',
+				name: 'Debug Granola API response',
 				callback: expect.any(Function),
 			});
 		});
@@ -179,52 +179,24 @@ describe('GranolaImporterPlugin Integration', () => {
 	});
 
 	describe('Ribbon Icon', () => {
-		beforeEach(async () => {
-			await plugin.onload();
-		});
-
-		it('should add ribbon icon when enabled in settings', async () => {
+		it('should add ribbon icon on load', async () => {
 			const addRibbonIconSpy = jest.spyOn(plugin, 'addRibbonIcon');
 
-			// Enable ribbon icon
-			plugin.settings.ui.showRibbonIcon = true;
-			await plugin.saveSettings();
+			await plugin.onload();
 
-			// Verify ribbon icon was added
+			// Verify ribbon icon was added during onload
 			expect(addRibbonIconSpy).toHaveBeenCalledWith(
 				'download',
-				'Import Granola Notes',
+				'Import Granola notes',
 				expect.any(Function)
 			);
-		});
-
-		it('should remove ribbon icon when disabled in settings', async () => {
-			// Mock ribbon icon element
-			const mockRibbonEl = { remove: jest.fn() };
-			Object.defineProperty(plugin, 'ribbonIconEl', {
-				value: mockRibbonEl,
-				writable: true,
-				configurable: true,
-			});
-
-			// Disable ribbon icon
-			plugin.settings.ui.showRibbonIcon = false;
-			plugin.refreshRibbonIcon();
-
-			// Verify ribbon icon was removed
-			expect(mockRibbonEl.remove).toHaveBeenCalled();
-			// Use type assertion to check private property
-			type PluginWithRibbon = GranolaImporterPlugin & { ribbonIconEl: unknown };
-			expect((plugin as PluginWithRibbon).ribbonIconEl).toBeNull();
 		});
 
 		it('should trigger import modal when ribbon icon is clicked', async () => {
 			const openImportModalSpy = jest.spyOn(plugin, 'openImportModal');
 			const addRibbonIconSpy = jest.spyOn(plugin, 'addRibbonIcon');
 
-			// Enable ribbon icon
-			plugin.settings.ui.showRibbonIcon = true;
-			plugin.refreshRibbonIcon();
+			await plugin.onload();
 
 			// Get the callback from addRibbonIcon
 			const ribbonCallback = addRibbonIconSpy.mock.calls[0][2];

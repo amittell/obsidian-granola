@@ -146,7 +146,7 @@ export default class GranolaImporterPlugin extends Plugin {
 		// Register command in Obsidian's command palette
 		this.addCommand({
 			id: 'import-granola-notes',
-			name: 'Import Granola Notes (Selective)',
+			name: 'Import Granola notes',
 			callback: () => {
 				this.openImportModal();
 			},
@@ -155,7 +155,7 @@ export default class GranolaImporterPlugin extends Plugin {
 		// Diagnostic command for analyzing empty documents
 		this.addCommand({
 			id: 'diagnose-empty-granola-documents',
-			name: 'Diagnose Empty Granola Documents',
+			name: 'Diagnose empty Granola documents',
 			callback: () => {
 				this.diagnoseEmptyDocuments();
 			},
@@ -166,15 +166,17 @@ export default class GranolaImporterPlugin extends Plugin {
 		if (typeof __DEV__ !== 'undefined' && __DEV__) {
 			this.addCommand({
 				id: 'debug-granola-api',
-				name: 'Debug Granola API Response',
+				name: 'Debug Granola API response',
 				callback: () => {
 					this.debugAPIResponse();
 				},
 			});
 		}
 
-		// Add ribbon icon if enabled in settings
-		this.refreshRibbonIcon();
+		// Add ribbon icon (always show, users can customize via Obsidian settings)
+		this.ribbonIconEl = this.addRibbonIcon('download', 'Import Granola notes', () => {
+			this.openImportModal();
+		});
 	}
 
 	/**
@@ -607,21 +609,10 @@ export default class GranolaImporterPlugin extends Plugin {
 	}
 
 	/**
-	 * Refreshes the ribbon icon based on current settings.
-	 * Adds or removes the icon from the ribbon as needed.
+	 * Refreshes the ribbon icon.
+	 * Note: As of Obsidian v1.1.0, users can customize ribbon items in settings.
 	 */
 	refreshRibbonIcon(): void {
-		// Remove existing ribbon icon if it exists
-		if (this.ribbonIconEl) {
-			this.ribbonIconEl.remove();
-			this.ribbonIconEl = null;
-		}
-
-		// Add ribbon icon if enabled in settings
-		if (this.settings.ui.showRibbonIcon) {
-			this.ribbonIconEl = this.addRibbonIcon('download', 'Import Granola Notes', () => {
-				this.openImportModal();
-			});
-		}
+		// Ribbon icon is added once on load, users manage visibility in Obsidian settings
 	}
 }

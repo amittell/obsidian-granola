@@ -1,6 +1,15 @@
 import { GranolaAuth } from './auth';
 
 /**
+ * Utility function to sleep for a specified number of milliseconds.
+ * @param ms - The number of milliseconds to sleep
+ * @returns A promise that resolves after the specified delay
+ */
+function sleep(ms: number): Promise<void> {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
  * Represents a document from the Granola API.
  *
  * Documents contain ProseMirror JSON content under the 'notes' field that needs to be converted
@@ -375,7 +384,7 @@ export class GranolaAPI {
 
 				if (response.status === 429 && attempt < MAX_RETRY_ATTEMPTS) {
 					const delay = Math.pow(2, attempt) * EXPONENTIAL_BACKOFF_BASE_MS; // Exponential backoff
-					await this.sleep(delay);
+					await sleep(delay);
 					continue;
 				}
 
@@ -389,33 +398,10 @@ export class GranolaAPI {
 				}
 
 				const delay = Math.pow(2, attempt) * EXPONENTIAL_BACKOFF_BASE_MS;
-				await this.sleep(delay);
+				await sleep(delay);
 			}
 		}
 
 		throw new Error('Maximum retry attempts exceeded');
-	}
-
-	/**
-	 * Utility method to pause execution for a specified duration.
-	 *
-	 * Used for implementing delays between API requests to respect
-	 * rate limits and for exponential backoff in retry logic.
-	 *
-	 * @private
-	 * @param {number} ms - Number of milliseconds to sleep
-	 * @returns {Promise<void>} Resolves after the specified delay
-	 *
-	 * @example
-	 * ```typescript
-	 * // Wait 200ms between paginated requests
-	 * await this.sleep(200);
-	 *
-	 * // Exponential backoff: wait 2 seconds on second retry
-	 * await this.sleep(2000);
-	 * ```
-	 */
-	private sleep(ms: number): Promise<void> {
-		return new Promise(resolve => setTimeout(resolve, ms));
 	}
 }
