@@ -104,8 +104,6 @@ export interface GranolaSettings {
 	ui: {
 		/** Show import progress notifications */
 		showProgressNotifications: boolean;
-		/** Show ribbon icon for quick access */
-		showRibbonIcon: boolean;
 	};
 
 	/** Attendee tagging settings */
@@ -162,7 +160,6 @@ export const DEFAULT_SETTINGS: GranolaSettings = {
 	},
 	ui: {
 		showProgressNotifications: true,
-		showRibbonIcon: true,
 	},
 	attendeeTags: {
 		enabled: false,

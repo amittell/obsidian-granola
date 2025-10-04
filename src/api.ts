@@ -1,3 +1,4 @@
+import { sleep } from 'obsidian';
 import { GranolaAuth } from './auth';
 
 /**
@@ -375,7 +376,7 @@ export class GranolaAPI {
 
 				if (response.status === 429 && attempt < MAX_RETRY_ATTEMPTS) {
 					const delay = Math.pow(2, attempt) * EXPONENTIAL_BACKOFF_BASE_MS; // Exponential backoff
-					await this.sleep(delay);
+					await sleep(delay);
 					continue;
 				}
 
@@ -389,7 +390,7 @@ export class GranolaAPI {
 				}
 
 				const delay = Math.pow(2, attempt) * EXPONENTIAL_BACKOFF_BASE_MS;
-				await this.sleep(delay);
+				await sleep(delay);
 			}
 		}
 
@@ -409,13 +410,10 @@ export class GranolaAPI {
 	 * @example
 	 * ```typescript
 	 * // Wait 200ms between paginated requests
-	 * await this.sleep(200);
+	 * await sleep(200);
 	 *
 	 * // Exponential backoff: wait 2 seconds on second retry
-	 * await this.sleep(2000);
+	 * await sleep(2000);
 	 * ```
 	 */
-	private sleep(ms: number): Promise<void> {
-		return new Promise(resolve => setTimeout(resolve, ms));
-	}
 }
