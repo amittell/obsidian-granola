@@ -1,6 +1,6 @@
 import type { GranolaSettings } from '../../types';
 
-export type ServiceIdentifier<T> = string | symbol;
+export type ServiceIdentifier<T> = (string | symbol) & { readonly __service?: T };
 export type ServiceFactory<T> = (container: ServiceContainer) => T | Promise<T>;
 export type SettingsReloadHook = (settings: GranolaSettings, container: ServiceContainer) => void | Promise<void>;
 
