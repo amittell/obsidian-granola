@@ -34,18 +34,33 @@ describe('PluginEvents', () => {
                 const handler = jest.fn();
 
                 scope.on('plugin:initialized', handler);
-                await events.emit('plugin:initialized', undefined);
+                await events.emit('plugin:initialized');
                 expect(handler).toHaveBeenCalledTimes(1);
 
                 scope.dispose();
-                await events.emit('plugin:initialized', undefined);
+                await events.emit('plugin:initialized');
                 expect(handler).toHaveBeenCalledTimes(1);
 
                 const anotherHandler = jest.fn();
                 events.subscribe('cost-tracker:reset', anotherHandler);
                 events.clearAll();
-                await events.emit('cost-tracker:reset', undefined);
+                await events.emit('cost-tracker:reset');
                 expect(anotherHandler).not.toHaveBeenCalled();
+        });
+
+        it('removes scoped subscriptions when manually unsubscribed', async () => {
+                const events = new PluginEvents();
+                const scope = new PluginEventScope(events);
+                const handler = jest.fn();
+
+                const subscription = scope.on('cost-tracker:reset', handler);
+                subscription.unsubscribe();
+
+                await events.emit('cost-tracker:reset');
+
+                expect(handler).not.toHaveBeenCalled();
+
+                scope.dispose();
         });
 });
 

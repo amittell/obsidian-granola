@@ -80,7 +80,7 @@ export class ServiceContainer {
 
                         for (const registration of current.registrations.values()) {
                                 if (registration.onSettingsReload) {
-                                        await registration.onSettingsReload(settings, this);
+                                        await registration.onSettingsReload(settings, current);
                                 }
                         }
                 }
@@ -111,7 +111,7 @@ export class ServiceContainer {
                 }
 
                 if (this.parent) {
-                                return this.parent.lookup(identifier);
+                        return this.parent.lookup(identifier);
                 }
 
                 return undefined;

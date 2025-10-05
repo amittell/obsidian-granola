@@ -156,7 +156,7 @@ export default class GranolaImporterPlugin extends Plugin {
 				new CostTrackerEventsAdapter(this.pluginEvents),
 			];
 
-			await this.pluginEvents.emit('plugin:initialized', undefined);
+                        await this.pluginEvents.emit('plugin:initialized');
 		}
 
 		// Initialize selective import services

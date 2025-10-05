@@ -42,7 +42,12 @@ export class PluginEvents {
                 return subscription;
         }
 
-        async emit<K extends keyof PluginEventMap>(event: K, payload: PluginEventMap[K]): Promise<void> {
+        async emit<K extends keyof PluginEventMap>(
+                event: K,
+                ...[payload]: PluginEventMap[K] extends void
+                        ? [payload?: PluginEventMap[K]]
+                        : [payload: PluginEventMap[K]]
+        ): Promise<void> {
                 const handlerSet = this.handlers.get(event);
                 if (!handlerSet || handlerSet.size === 0) {
                         return;
@@ -51,7 +56,7 @@ export class PluginEvents {
                 const handlers = Array.from(handlerSet) as EventHandler<PluginEventMap[K]>[];
                 await Promise.all(
                         handlers.map(async (handler) => {
-                                await handler(payload);
+                                await handler(payload as PluginEventMap[K]);
                         })
                 );
         }
@@ -95,14 +100,26 @@ export class PluginEventScope {
 
         on<K extends keyof PluginEventMap>(event: K, handler: EventHandler<PluginEventMap[K]>): PluginEventSubscription {
                 const subscription = this.events.subscribe(event, handler);
-                this.subscriptions.add(subscription);
-                return subscription;
+                const scopedSubscription: PluginEventSubscription = {
+                        unsubscribe: () => {
+                                this.subscriptions.delete(scopedSubscription);
+                                subscription.unsubscribe();
+                        },
+                };
+                this.subscriptions.add(scopedSubscription);
+                return scopedSubscription;
         }
 
         once<K extends keyof PluginEventMap>(event: K, handler: EventHandler<PluginEventMap[K]>): PluginEventSubscription {
                 const subscription = this.events.subscribeOnce(event, handler);
-                this.subscriptions.add(subscription);
-                return subscription;
+                const scopedSubscription: PluginEventSubscription = {
+                        unsubscribe: () => {
+                                this.subscriptions.delete(scopedSubscription);
+                                subscription.unsubscribe();
+                        },
+                };
+                this.subscriptions.add(scopedSubscription);
+                return scopedSubscription;
         }
 
         dispose(): void {
