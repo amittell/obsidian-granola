@@ -310,7 +310,7 @@ export class ConflictResolutionModal extends Modal {
 			confirmDiv.remove();
 		});
 
-	new ButtonComponent(buttons)
+		new ButtonComponent(buttons)
 			.setButtonText('Replace file')
 			.setClass('mod-warning')
 			.onClick(() => {
@@ -333,7 +333,7 @@ export class ConflictResolutionModal extends Modal {
 		mergeDiv.setAttribute('data-granola-dialog', 'true');
 		mergeDiv.createEl('h4', { text: '🔗 Choose merge strategy' });
 
-	const appendOption = mergeDiv.createDiv('merge-option');
+		const appendOption = mergeDiv.createDiv('merge-option');
 		new ButtonComponent(appendOption).setButtonText('Append Granola content').onClick(() => {
 			this.resolveWith({ action: 'merge', strategy: 'append' });
 		});
@@ -342,7 +342,7 @@ export class ConflictResolutionModal extends Modal {
 			cls: 'merge-description',
 		});
 
-	const prependOption = mergeDiv.createDiv('merge-option');
+		const prependOption = mergeDiv.createDiv('merge-option');
 		new ButtonComponent(prependOption).setButtonText('Prepend Granola content').onClick(() => {
 			this.resolveWith({ action: 'merge', strategy: 'prepend' });
 		});
@@ -384,7 +384,7 @@ export class ConflictResolutionModal extends Modal {
 			renameDiv.remove();
 		});
 
-	new ButtonComponent(buttons)
+		new ButtonComponent(buttons)
 			.setButtonText('Import with new name')
 			.setCta()
 			.onClick(() => {

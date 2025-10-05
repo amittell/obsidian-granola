@@ -153,7 +153,7 @@ export class GranolaAuth {
 		if (Platform.isMobile) {
 			throw new Error(
 				'Granola Importer is not supported on mobile devices. ' +
-				'Granola is a desktop application and credentials are only available on desktop platforms.'
+					'Granola is a desktop application and credentials are only available on desktop platforms.'
 			);
 		}
 
@@ -211,8 +211,8 @@ export class GranolaAuth {
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 			throw new Error(
 				`Cannot read Granola configuration file at ${path}. ` +
-				'Please ensure Granola is installed and you are logged in. ' +
-				`Error: ${errorMessage}`
+					'Please ensure Granola is installed and you are logged in. ' +
+					`Error: ${errorMessage}`
 			);
 		}
 	}
@@ -246,7 +246,13 @@ export class GranolaAuth {
 
 		switch (platform) {
 			case 'darwin': // macOS
-				return path.join(homedir, 'Library', 'Application Support', 'Granola', 'supabase.json');
+				return path.join(
+					homedir,
+					'Library',
+					'Application Support',
+					'Granola',
+					'supabase.json'
+				);
 			case 'win32': // Windows
 				return path.join(homedir, 'AppData', 'Roaming', 'Granola', 'supabase.json');
 			case 'linux': // Linux

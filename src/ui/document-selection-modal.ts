@@ -204,7 +204,7 @@ export class DocumentSelectionModal extends Modal {
 		const filterContainer = this.controlsEl.createDiv('filter-group');
 		filterContainer.createEl('label', { text: 'Filter by status:' });
 
-	const statusSelect = filterContainer.createEl('select');
+		const statusSelect = filterContainer.createEl('select');
 		statusSelect.createEl('option', { value: '', text: 'All status' });
 		statusSelect.createEl('option', { value: 'NEW', text: 'New documents' });
 		statusSelect.createEl('option', { value: 'UPDATED', text: 'Updated documents' });
@@ -527,7 +527,7 @@ export class DocumentSelectionModal extends Modal {
 		this.progressEl.removeClass('granola-progress-hidden');
 		this.progressEl.addClass('granola-progress-visible');
 
-	this.progressEl.empty();
+		this.progressEl.empty();
 		this.progressEl.createEl('h3', { text: 'Importing documents...' });
 
 		// Progress bar
@@ -539,7 +539,7 @@ export class DocumentSelectionModal extends Modal {
 		// Document progress list
 		this.progressEl.createDiv('document-progress-list');
 
-	// Cancel button
+		// Cancel button
 		new ButtonComponent(this.progressEl).setButtonText('Cancel import').onClick(() => {
 			this.importManager.cancel();
 		});
@@ -731,7 +731,7 @@ export class DocumentSelectionModal extends Modal {
 
 		this.progressEl.empty();
 
-	const summary = this.progressEl.createDiv('import-summary');
+		const summary = this.progressEl.createDiv('import-summary');
 		summary.createEl('h3', { text: 'Import complete!' });
 
 		// Get all document progress for detailed reporting
@@ -771,7 +771,7 @@ export class DocumentSelectionModal extends Modal {
 
 		// If there are imported files, show "Open Imported Notes" button
 		if (importedFiles.length > 0) {
-		new ButtonComponent(buttonsDiv)
+			new ButtonComponent(buttonsDiv)
 				.setButtonText(`Open imported notes (${importedFiles.length})`)
 				.setCta()
 				.onClick(() => {
@@ -836,7 +836,7 @@ export class DocumentSelectionModal extends Modal {
 		const successDocs = allDocProgress.filter(progress => progress.status === 'completed');
 		if (successDocs.length === 0) return;
 
-	const section = container.createDiv('import-section success-section');
+		const section = container.createDiv('import-section success-section');
 		const header = section.createDiv('section-header');
 		header.createEl('h4', { text: `✅ Successfully imported (${successDocs.length})` });
 
@@ -877,7 +877,7 @@ export class DocumentSelectionModal extends Modal {
 		const failedDocs = allDocProgress.filter(progress => progress.status === 'failed');
 		if (failedDocs.length === 0) return;
 
-	const section = container.createDiv('import-section failure-section');
+		const section = container.createDiv('import-section failure-section');
 		const header = section.createDiv('section-header');
 		header.createEl('h4', { text: `❌ Failed documents (${failedDocs.length})` });
 
@@ -927,7 +927,7 @@ export class DocumentSelectionModal extends Modal {
 		const skippedDocs = allDocProgress.filter(progress => progress.status === 'skipped');
 		if (skippedDocs.length === 0) return;
 
-	const section = container.createDiv('import-section skipped-section');
+		const section = container.createDiv('import-section skipped-section');
 		const header = section.createDiv('section-header');
 		header.createEl('h4', { text: `⏭️ Skipped documents (${skippedDocs.length})` });
 
@@ -973,7 +973,7 @@ export class DocumentSelectionModal extends Modal {
 		const emptyDocs = allDocProgress.filter(progress => progress.status === 'empty');
 		if (emptyDocs.length === 0) return;
 
-	const section = container.createDiv('import-section empty-section');
+		const section = container.createDiv('import-section empty-section');
 		const header = section.createDiv('section-header');
 		header.createEl('h4', { text: `📄 Empty documents (${emptyDocs.length})` });
 

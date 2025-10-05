@@ -11,6 +11,7 @@ All changes have been committed and pushed to this branch, ready for review and 
 ## ✅ Critical Issues Fixed
 
 ### 1. API Usage - Replace Custom Implementations with Obsidian APIs
+
 **Status:** ✅ Complete
 
 - **Removed custom sleep function** - Replaced with Obsidian's `requestUrl` built-in retry mechanism
@@ -19,9 +20,11 @@ All changes have been committed and pushed to this branch, ready for review and 
 - **Commit:** "fix: use Obsidian APIs for network retries and YAML generation"
 
 ### 2. Sentence Casing in UI
+
 **Status:** ✅ Complete
 
 Fixed all UI text to follow Obsidian's sentence casing conventions:
+
 - Command names: "Import Granola notes", "Diagnose empty Granola documents"
 - Settings buttons: "Test connection"
 - Modal headings: "Import conflict detected", "Document information", etc.
@@ -29,6 +32,7 @@ Fixed all UI text to follow Obsidian's sentence casing conventions:
 - Maintained proper capitalization for "Granola" brand name
 
 **Files Changed:**
+
 - `main.ts`
 - `src/settings.ts`
 - `src/ui/conflict-resolution-modal.ts`
@@ -37,6 +41,7 @@ Fixed all UI text to follow Obsidian's sentence casing conventions:
 **Commit:** "fix: apply sentence casing to all UI text"
 
 ### 3. Code Deduplication
+
 **Status:** ✅ Complete
 
 - **Removed duplicate `decodeHtmlEntities` function** from `src/converter.ts`
@@ -46,6 +51,7 @@ Fixed all UI text to follow Obsidian's sentence casing conventions:
 **Commit:** "refactor: deduplicate decodeHtmlEntities function"
 
 ### 4. Style Extraction
+
 **Status:** ✅ Complete
 
 - **Moved all inline styles to `styles.css`**
@@ -56,6 +62,7 @@ Fixed all UI text to follow Obsidian's sentence casing conventions:
 - **Performance improvement** - styles load faster and are cached by browser
 
 **Files Changed:**
+
 - `styles.css` (added comprehensive modal styles)
 - `src/ui/conflict-resolution-modal.ts` (removed applyStyles method)
 - `src/ui/document-selection-modal.ts` (simplified applyStyles to class only)
@@ -63,6 +70,7 @@ Fixed all UI text to follow Obsidian's sentence casing conventions:
 **Commit:** "refactor: extract inline styles to styles.css and clean up ribbon icon"
 
 ### 5. Mobile Compatibility
+
 **Status:** ✅ Complete (with graceful degradation)
 
 - **Replaced top-level Node.js imports** with dynamic `require()` calls
@@ -71,11 +79,13 @@ Fixed all UI text to follow Obsidian's sentence casing conventions:
 - **Improved error handling** with context-specific messages
 
 **Why Desktop-Only:**
+
 - Granola is a desktop-only application
 - Credentials are stored in platform-specific system directories
 - No mobile equivalent exists
 
 **Files Changed:**
+
 - `src/auth.ts`
 
 **Commit:** "feat: improve mobile compatibility with platform detection"
@@ -85,6 +95,7 @@ Fixed all UI text to follow Obsidian's sentence casing conventions:
 ## ✅ Optional Improvements Implemented
 
 ### 6. Ribbon Icon Cleanup
+
 **Status:** ✅ Complete
 
 - Removed unnecessary `ribbonIconEl` property
@@ -93,6 +104,7 @@ Fixed all UI text to follow Obsidian's sentence casing conventions:
 - Users can manage visibility via Obsidian's built-in settings
 
 **Files Changed:**
+
 - `main.ts`
 
 **Included in Commit:** "refactor: extract inline styles to styles.css and clean up ribbon icon"
@@ -114,16 +126,19 @@ All validation checks pass:
 ## Code Quality Improvements
 
 ### Performance
+
 - **Faster style loading** - CSS loaded once vs. dynamic injection per modal
 - **Better caching** - Browser can cache external CSS
 - **Reduced runtime overhead** - No DOM manipulation for styles
 
 ### Maintainability
+
 - **Centralized styles** - All styles in one place (`styles.css`)
 - **Eliminated duplication** - Single `decodeHtmlEntities` implementation
 - **Clearer separation of concerns** - HTML structure vs. styling
 
 ### User Experience
+
 - **Consistent UI** - Follows Obsidian conventions (sentence casing)
 - **Better error messages** - Clear mobile compatibility message
 - **Professional appearance** - Matches Obsidian's design language
@@ -133,6 +148,7 @@ All validation checks pass:
 ## Files Modified Summary
 
 ### Core Files
+
 - `main.ts` - Sentence casing, ribbon icon cleanup
 - `src/api.ts` - requestUrl retry, removed custom sleep
 - `src/auth.ts` - Mobile compatibility, dynamic require()
@@ -140,10 +156,12 @@ All validation checks pass:
 - `src/settings.ts` - Sentence casing
 
 ### UI Files
+
 - `src/ui/conflict-resolution-modal.ts` - Sentence casing, removed inline styles
 - `src/ui/document-selection-modal.ts` - Sentence casing, simplified styles
 
 ### Style Files
+
 - `styles.css` - Added 690+ lines of extracted modal styles
 
 ---

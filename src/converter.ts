@@ -322,14 +322,14 @@ export class ProseMirrorConverter {
 			}
 		}
 
-	// Fallback to notes_markdown if ProseMirror conversion failed or is empty
+		// Fallback to notes_markdown if ProseMirror conversion failed or is empty
 		if (!markdown.trim() && doc.notes_markdown?.trim()) {
 			markdown = decodeHtmlEntities(doc.notes_markdown.trim());
 			contentSource = 'markdown';
 			this.logger.debug(`Using notes_markdown fallback, length: ${markdown.length}`);
 		}
 
-	// Final fallback to notes_plain if everything else failed
+		// Final fallback to notes_plain if everything else failed
 		if (!markdown.trim() && doc.notes_plain?.trim()) {
 			markdown = decodeHtmlEntities(doc.notes_plain.trim());
 			contentSource = 'plain';
@@ -359,7 +359,7 @@ export class ProseMirrorConverter {
 				timeSinceUpdate: new Date().getTime() - new Date(doc.updated_at).getTime(),
 			};
 
-		this.logger.warn(
+			this.logger.warn(
 				`WARNING: No content extracted for document ${doc.id} - "${decodeHtmlEntities(doc.title)}"`
 			);
 			this.logger.warn(`Empty document analysis:`, JSON.stringify(emptyAnalysis, null, 2));
@@ -679,7 +679,7 @@ export class ProseMirrorConverter {
 
 		// Use Obsidian's built-in HTML to Markdown converter
 		const markdown = htmlToMarkdown(html);
-		
+
 		// Decode HTML entities in the converted markdown
 		return decodeHtmlEntities(markdown);
 	}
@@ -1130,7 +1130,7 @@ export class ProseMirrorConverter {
 	 * ```
 	 */
 	private convertText(node: ProseMirrorNode): string {
-	let text = node.text || '';
+		let text = node.text || '';
 
 		// Decode HTML entities
 		text = decodeHtmlEntities(text);
@@ -1671,29 +1671,29 @@ export class ProseMirrorConverter {
 		if (frontmatter.title) {
 			frontmatterObj.title = frontmatter.title;
 		}
-		
+
 		frontmatterObj.created = frontmatter.created;
-		
+
 		if (frontmatter.updated) {
 			frontmatterObj.updated = frontmatter.updated;
 		}
-		
+
 		frontmatterObj.source = frontmatter.source;
-		
+
 		if (frontmatter.granola_url) {
 			frontmatterObj.granola_url = frontmatter.granola_url;
 		}
-		
+
 		// Add tags if present, removing # prefix for YAML
 		if (frontmatter.tags && frontmatter.tags.length > 0) {
-			frontmatterObj.tags = frontmatter.tags.map(tag => 
+			frontmatterObj.tags = frontmatter.tags.map(tag =>
 				tag.startsWith('#') ? tag.substring(1) : tag
 			);
 		}
 
 		// Use Obsidian's built-in YAML stringifier
 		const yamlContent = stringifyYaml(frontmatterObj);
-		
+
 		return `---\n${yamlContent}---\n\n${markdown}`;
 	}
 
@@ -1805,7 +1805,6 @@ export class ProseMirrorConverter {
 
 		return result;
 	}
-
 
 	/**
 	 * Sanitizes a document title for use as a safe filename.

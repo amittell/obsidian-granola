@@ -77,7 +77,6 @@ export default class GranolaImporterPlugin extends Plugin {
 	 */
 	private importManager!: SelectiveImportManager;
 
-
 	/**
 	 * Plugin settings with default values and persistence.
 	 * Contains all configuration options for the plugin.
