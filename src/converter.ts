@@ -1,5 +1,7 @@
+import { htmlToMarkdown, stringifyYaml } from 'obsidian';
 import { ProseMirrorDoc, ProseMirrorNode, GranolaDocument } from './api';
 import { Logger, GranolaSettings, DatePrefixFormat } from './types';
+import { decodeHtmlEntities } from './utils/html';
 
 // Converter Constants
 
@@ -167,7 +169,7 @@ export class ProseMirrorConverter {
 		}
 		// Debug logging for content analysis
 		this.logger.debug(
-			`========== Processing document: ${doc.id} - "${this.decodeHtmlEntities(doc.title)}" ==========`
+			`========== Processing document: ${doc.id} - "${decodeHtmlEntities(doc.title)}" ==========`
 		);
 		this.logger.debug(`Document created_at: ${doc.created_at}`);
 		this.logger.debug(`Document updated_at: ${doc.updated_at}`);
@@ -320,16 +322,16 @@ export class ProseMirrorConverter {
 			}
 		}
 
-		// Fallback to notes_markdown if ProseMirror conversion failed or is empty
+	// Fallback to notes_markdown if ProseMirror conversion failed or is empty
 		if (!markdown.trim() && doc.notes_markdown?.trim()) {
-			markdown = this.decodeHtmlEntities(doc.notes_markdown.trim());
+			markdown = decodeHtmlEntities(doc.notes_markdown.trim());
 			contentSource = 'markdown';
 			this.logger.debug(`Using notes_markdown fallback, length: ${markdown.length}`);
 		}
 
-		// Final fallback to notes_plain if everything else failed
+	// Final fallback to notes_plain if everything else failed
 		if (!markdown.trim() && doc.notes_plain?.trim()) {
-			markdown = this.decodeHtmlEntities(doc.notes_plain.trim());
+			markdown = decodeHtmlEntities(doc.notes_plain.trim());
 			contentSource = 'plain';
 			this.logger.debug(`Using notes_plain fallback, length: ${markdown.length}`);
 		}
@@ -357,8 +359,8 @@ export class ProseMirrorConverter {
 				timeSinceUpdate: new Date().getTime() - new Date(doc.updated_at).getTime(),
 			};
 
-			this.logger.warn(
-				`WARNING: No content extracted for document ${doc.id} - "${this.decodeHtmlEntities(doc.title)}"`
+		this.logger.warn(
+				`WARNING: No content extracted for document ${doc.id} - "${decodeHtmlEntities(doc.title)}"`
 			);
 			this.logger.warn(`Empty document analysis:`, JSON.stringify(emptyAnalysis, null, 2));
 
@@ -387,7 +389,7 @@ export class ProseMirrorConverter {
 			);
 
 			// Create a helpful placeholder instead of failing completely
-			markdown = `# ${this.decodeHtmlEntities(doc.title)}\n\n*This document appears to have no extractable content from the Granola API.*\n\n*Possible causes:*\n- Content exists in Granola but wasn't included in the API response\n- Document was created but never had content added\n- Sync issue between Granola desktop app and API\n\n*To fix: Check the original document in Granola and manually copy content if needed.*\n\n---\n*Document ID: ${doc.id}*\n*Created: ${doc.created_at}*\n*Updated: ${doc.updated_at}*`;
+			markdown = `# ${decodeHtmlEntities(doc.title)}\n\n*This document appears to have no extractable content from the Granola API.*\n\n*Possible causes:*\n- Content exists in Granola but wasn't included in the API response\n- Document was created but never had content added\n- Sync issue between Granola desktop app and API\n\n*To fix: Check the original document in Granola and manually copy content if needed.*\n\n---\n*Document ID: ${doc.id}*\n*Created: ${doc.created_at}*\n*Updated: ${doc.updated_at}*`;
 		}
 
 		// Process action items if enabled
@@ -420,7 +422,7 @@ export class ProseMirrorConverter {
 	 */
 	private generateFilename(doc: GranolaDocument): string {
 		// Get sanitized title and decode HTML entities
-		const title = this.decodeHtmlEntities(doc.title || `Untitled-${doc.id}`);
+		const title = decodeHtmlEntities(doc.title || `Untitled-${doc.id}`);
 		const sanitizedTitle = this.sanitizeFilename(title);
 
 		// If not using custom template, use the original date-prefix behavior
@@ -629,7 +631,7 @@ export class ProseMirrorConverter {
 	 */
 	private generateDatePrefixedFilename(doc: GranolaDocument): string {
 		this.logger.debug(`Generating date-prefixed filename for: ${doc.id}`);
-		this.logger.debug(`Original title: "${this.decodeHtmlEntities(doc.title)}"`);
+		this.logger.debug(`Original title: "${decodeHtmlEntities(doc.title)}"`);
 		this.logger.debug(`Created at: ${doc.created_at}`);
 
 		// Extract date from created_at timestamp
@@ -652,7 +654,7 @@ export class ProseMirrorConverter {
 		}
 
 		// Get sanitized title and decode HTML entities
-		const title = this.decodeHtmlEntities(doc.title || `Untitled-${doc.id}`);
+		const title = decodeHtmlEntities(doc.title || `Untitled-${doc.id}`);
 		const sanitizedTitle = this.sanitizeFilename(title);
 
 		// Combine date prefix with title
@@ -664,11 +666,7 @@ export class ProseMirrorConverter {
 	}
 
 	/**
-	 * Converts HTML content to Markdown format.
-	 *
-	 * Handles the conversion of HTML content from Granola's last_viewed_panel
-	 * to clean Markdown format. This method processes common HTML elements
-	 * and converts them to their Markdown equivalents.
+	 * Converts HTML content to Markdown format using Obsidian's API.
 	 *
 	 * @private
 	 * @param {string} html - HTML content to convert
@@ -679,57 +677,11 @@ export class ProseMirrorConverter {
 			return '';
 		}
 
-		// Basic HTML to Markdown conversion
-		const markdown = html
-			// Headers
-			.replace(/<h([1-6])>(.*?)<\/h[1-6]>/g, (_, level, text) => {
-				const hashes = '#'.repeat(parseInt(level));
-				return `${hashes} ${text.trim()}`;
-			})
-			// Strong/Bold
-			.replace(/<(?:strong|b)>(.*?)<\/(?:strong|b)>/g, '**$1**')
-			// Emphasis/Italic
-			.replace(/<(?:em|i)>(.*?)<\/(?:em|i)>/g, '*$1*')
-			// Code
-			.replace(/<code>(.*?)<\/code>/g, '`$1`')
-			// Links
-			.replace(/<a\s+href="([^"]*)"[^>]*>(.*?)<\/a>/g, '[$2]($1)')
-			// Unordered lists
-			.replace(/<ul>/g, '')
-			.replace(/<\/ul>/g, '')
-			.replace(/<li>(.*?)<\/li>/g, '- $1')
-			// Ordered lists (basic conversion)
-			.replace(/<ol>/g, '')
-			.replace(/<\/ol>/g, '')
-			// Line breaks
-			.replace(/<br\s*\/?>/g, '\n')
-			// Paragraphs
-			.replace(/<p>(.*?)<\/p>/g, '$1\n')
-			// Remove remaining HTML tags
-			.replace(/<[^>]*>/g, '')
-			// Clean up whitespace
-			.replace(/\n\s*\n\s*\n/g, '\n\n')
-			.replace(/^\s+|\s+$/g, '')
-			// Fix list formatting
-			.replace(/\n- /g, '\n- ')
-			.replace(/^- /gm, '- ');
-
-		// Handle nested lists by preserving indentation
-		const lines = markdown.split('\n');
-		const indentLevel = 0;
-		const processedLines = lines.map(line => {
-			const trimmedLine = line.trim();
-			if (trimmedLine.startsWith('- ')) {
-				const currentIndent = '  '.repeat(indentLevel);
-				// Detect nesting by checking if this list item has content that looks nested
-				return `${currentIndent}- ${trimmedLine.substring(2)}`;
-			}
-			return line;
-		});
-
-		const result = processedLines.join('\n').trim();
+		// Use Obsidian's built-in HTML to Markdown converter
+		const markdown = htmlToMarkdown(html);
+		
 		// Decode HTML entities in the converted markdown
-		return this.decodeHtmlEntities(result);
+		return decodeHtmlEntities(markdown);
 	}
 
 	/**
@@ -1178,10 +1130,10 @@ export class ProseMirrorConverter {
 	 * ```
 	 */
 	private convertText(node: ProseMirrorNode): string {
-		let text = node.text || '';
+	let text = node.text || '';
 
 		// Decode HTML entities
-		text = this.decodeHtmlEntities(text);
+		text = decodeHtmlEntities(text);
 
 		if (node.marks) {
 			for (const mark of node.marks) {
@@ -1429,7 +1381,7 @@ export class ProseMirrorConverter {
 		if (this.settings.content.includeEnhancedFrontmatter) {
 			frontmatter.id = doc.id;
 			// Decode HTML entities in title
-			frontmatter.title = this.decodeHtmlEntities(doc.title || 'Untitled');
+			frontmatter.title = decodeHtmlEntities(doc.title || 'Untitled');
 			frontmatter.updated = doc.updated_at;
 		}
 
@@ -1709,45 +1661,40 @@ export class ProseMirrorConverter {
 	 * ```
 	 */
 	private generateFileContent(frontmatter: NoteFrontmatter, markdown: string): string {
-		const yamlLines = ['---'];
+		// Prepare frontmatter object for stringifyYaml
+		const frontmatterObj: Record<string, unknown> = {};
 
-		// Add enhanced fields first if present
+		// Add fields in desired order
 		if (frontmatter.id) {
-			yamlLines.push(`id: ${frontmatter.id}`);
+			frontmatterObj.id = frontmatter.id;
 		}
 		if (frontmatter.title) {
-			// Escape quotes in title for YAML
-			const escapedTitle = frontmatter.title.replace(/"/g, '\\"');
-			yamlLines.push(`title: "${escapedTitle}"`);
+			frontmatterObj.title = frontmatter.title;
 		}
-
-		// Always include basic fields
-		yamlLines.push(`created: ${frontmatter.created}`);
-
+		
+		frontmatterObj.created = frontmatter.created;
+		
 		if (frontmatter.updated) {
-			yamlLines.push(`updated: ${frontmatter.updated}`);
+			frontmatterObj.updated = frontmatter.updated;
 		}
-
-		yamlLines.push(`source: ${frontmatter.source}`);
-
-		// Add Granola URL if present
+		
+		frontmatterObj.source = frontmatter.source;
+		
 		if (frontmatter.granola_url) {
-			yamlLines.push(`granola_url: "${frontmatter.granola_url}"`);
+			frontmatterObj.granola_url = frontmatter.granola_url;
 		}
-
-		// Add tags if present
+		
+		// Add tags if present, removing # prefix for YAML
 		if (frontmatter.tags && frontmatter.tags.length > 0) {
-			yamlLines.push('tags:');
-			frontmatter.tags.forEach(tag => {
-				// Remove the # prefix for YAML frontmatter
-				const cleanTag = tag.startsWith('#') ? tag.substring(1) : tag;
-				yamlLines.push(`  - ${cleanTag}`);
-			});
+			frontmatterObj.tags = frontmatter.tags.map(tag => 
+				tag.startsWith('#') ? tag.substring(1) : tag
+			);
 		}
 
-		yamlLines.push('---', '');
-
-		return yamlLines.join('\n') + markdown;
+		// Use Obsidian's built-in YAML stringifier
+		const yamlContent = stringifyYaml(frontmatterObj);
+		
+		return `---\n${yamlContent}---\n\n${markdown}`;
 	}
 
 	/**
@@ -1859,54 +1806,6 @@ export class ProseMirrorConverter {
 		return result;
 	}
 
-	/**
-	 * Decodes common HTML entities to their corresponding characters.
-	 *
-	 * @private
-	 * @param {string} text - Text that may contain HTML entities
-	 * @returns {string} Text with HTML entities decoded
-	 */
-	private decodeHtmlEntities(text: string): string {
-		const htmlEntities: { [key: string]: string } = {
-			'&amp;': '&',
-			'&lt;': '<',
-			'&gt;': '>',
-			'&quot;': '"',
-			'&#39;': "'",
-			'&apos;': "'",
-			'&nbsp;': ' ',
-			'&copy;': '©',
-			'&reg;': '®',
-			'&trade;': '™',
-			'&euro;': '€',
-			'&pound;': '£',
-			'&yen;': '¥',
-			'&cent;': '¢',
-			'&mdash;': '—',
-			'&ndash;': '–',
-			'&hellip;': '…',
-			'&ldquo;': '"',
-			'&rdquo;': '"',
-			'&lsquo;': "'",
-			'&rsquo;': "'",
-		};
-
-		// Replace known HTML entities
-		let decodedText = text;
-		for (const [entity, char] of Object.entries(htmlEntities)) {
-			decodedText = decodedText.replace(new RegExp(entity, 'g'), char);
-		}
-
-		// Handle numeric entities like &#123; or &#x7B;
-		decodedText = decodedText.replace(/&#(\d+);/g, (match, dec) => {
-			return String.fromCharCode(parseInt(dec, 10));
-		});
-		decodedText = decodedText.replace(/&#x([0-9A-Fa-f]+);/g, (match, hex) => {
-			return String.fromCharCode(parseInt(hex, 16));
-		});
-
-		return decodedText;
-	}
 
 	/**
 	 * Sanitizes a document title for use as a safe filename.

@@ -1,15 +1,6 @@
 import { GranolaAuth } from './auth';
 
 /**
- * Utility function to sleep for a specified number of milliseconds.
- * @param ms - The number of milliseconds to sleep
- * @returns A promise that resolves after the specified delay
- */
-function sleep(ms: number): Promise<void> {
-	return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
  * Represents a document from the Granola API.
  *
  * Documents contain ProseMirror JSON content under the 'notes' field that needs to be converted
@@ -384,7 +375,7 @@ export class GranolaAPI {
 
 				if (response.status === 429 && attempt < MAX_RETRY_ATTEMPTS) {
 					const delay = Math.pow(2, attempt) * EXPONENTIAL_BACKOFF_BASE_MS; // Exponential backoff
-					await sleep(delay);
+					await window.sleep(delay);
 					continue;
 				}
 
@@ -398,7 +389,7 @@ export class GranolaAPI {
 				}
 
 				const delay = Math.pow(2, attempt) * EXPONENTIAL_BACKOFF_BASE_MS;
-				await sleep(delay);
+				await window.sleep(delay);
 			}
 		}
 

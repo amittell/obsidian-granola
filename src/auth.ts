@@ -1,6 +1,4 @@
-import { readFile } from 'fs/promises';
-import { join } from 'path';
-import { homedir, platform } from 'os';
+import { Platform } from 'obsidian';
 
 // Authentication Constants
 const JWT_PARTS_COUNT = 3;
@@ -116,11 +114,21 @@ export class GranolaAuth {
 	private credentials: GranolaCredentials | null = null;
 
 	/**
+	 * Base path for Granola configuration files.
+	 * Set dynamically based on the current platform.
+	 * @private
+	 */
+	private configBasePath: string = '';
+
+	/**
 	 * Loads and validates Granola credentials from the platform-specific config file.
 	 *
 	 * This method locates the supabase.json file created by the Granola desktop app,
 	 * reads the credential data, validates the token format and expiration,
 	 * and caches the credentials for subsequent API requests.
+	 *
+	 * Note: On mobile platforms, this will fail as Granola is a desktop-only application.
+	 * The plugin currently only supports desktop platforms.
 	 *
 	 * @async
 	 * @returns {Promise<GranolaCredentials>} The validated credentials
@@ -141,10 +149,21 @@ export class GranolaAuth {
 			return this.credentials;
 		}
 
+		// Check if running on a supported platform
+		if (Platform.isMobile) {
+			throw new Error(
+				'Granola Importer is not supported on mobile devices. ' +
+				'Granola is a desktop application and credentials are only available on desktop platforms.'
+			);
+		}
+
 		const configPath = this.getSupabaseConfigPath();
 
 		try {
-			const configData = await readFile(configPath, 'utf-8');
+			// Read credentials file from the user's home directory
+			// Note: This accesses files outside the vault, which requires Obsidian's
+			// file system APIs. On desktop, we use a workaround with fetch for local files.
+			const configData = await this.readConfigFile(configPath);
 			const config: SupabaseConfig = JSON.parse(configData);
 
 			// Parse the nested cognito_tokens JSON string
@@ -171,6 +190,34 @@ export class GranolaAuth {
 	}
 
 	/**
+	 * Reads the configuration file from the file system.
+	 *
+	 * Uses a workaround to read files from outside the vault on desktop platforms.
+	 * This is necessary because Granola stores credentials in the user's home directory,
+	 * not within the Obsidian vault.
+	 *
+	 * @private
+	 * @param {string} path - Absolute path to the configuration file
+	 * @returns {Promise<string>} The file contents as a string
+	 * @throws {Error} If the file cannot be read
+	 */
+	private async readConfigFile(path: string): Promise<string> {
+		try {
+			// Use Node.js require to access fs module directly on desktop
+			// This is a workaround since Obsidian's DataAdapter is vault-scoped
+			const fs = require('fs');
+			return fs.readFileSync(path, 'utf-8');
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+			throw new Error(
+				`Cannot read Granola configuration file at ${path}. ` +
+				'Please ensure Granola is installed and you are logged in. ' +
+				`Error: ${errorMessage}`
+			);
+		}
+	}
+
+	/**
 	 * Determines the platform-specific path to the Granola configuration file.
 	 *
 	 * The Granola desktop application stores OAuth credentials in different
@@ -190,18 +237,22 @@ export class GranolaAuth {
 	 * ```
 	 */
 	private getSupabaseConfigPath(): string {
-		const os = platform();
-		const home = homedir();
+		// Use Node.js modules to determine paths
+		// This works on Obsidian desktop but not mobile
+		const os = require('os');
+		const path = require('path');
+		const platform = os.platform();
+		const homedir = os.homedir();
 
-		switch (os) {
+		switch (platform) {
 			case 'darwin': // macOS
-				return join(home, 'Library', 'Application Support', 'Granola', 'supabase.json');
+				return path.join(homedir, 'Library', 'Application Support', 'Granola', 'supabase.json');
 			case 'win32': // Windows
-				return join(home, 'AppData', 'Roaming', 'Granola', 'supabase.json');
+				return path.join(homedir, 'AppData', 'Roaming', 'Granola', 'supabase.json');
 			case 'linux': // Linux
-				return join(home, '.config', 'Granola', 'supabase.json');
+				return path.join(homedir, '.config', 'Granola', 'supabase.json');
 			default:
-				throw new Error(`Unsupported platform: ${os}`);
+				throw new Error(`Unsupported platform: ${platform}`);
 		}
 	}
 

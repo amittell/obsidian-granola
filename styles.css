@@ -52,3 +52,693 @@
 	margin-top: 0.5em;
 	font-style: italic;
 }
+
+/* Conflict Resolution Modal */
+.granola-conflict-modal .modal-content {
+	max-width: 900px;
+	max-height: 80vh;
+}
+
+.granola-conflict-modal .conflict-header h2 {
+	margin: 0 0 0.5rem 0;
+	color: var(--text-accent);
+}
+
+.granola-conflict-modal .conflict-status {
+	padding: 0.75rem;
+	border-radius: 6px;
+	background: var(--background-secondary);
+	margin-bottom: 1.5rem;
+}
+
+.granola-conflict-modal .status-conflict {
+	color: var(--color-red);
+	font-weight: bold;
+}
+
+.granola-conflict-modal .status-exists {
+	color: var(--text-muted);
+	font-weight: bold;
+}
+
+.granola-conflict-modal .status-updated {
+	color: var(--color-orange);
+	font-weight: bold;
+}
+
+.granola-conflict-modal .document-info-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 1rem;
+}
+
+.granola-conflict-modal .document-info-table td {
+	padding: 0.5rem;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.granola-conflict-modal .info-label {
+	font-weight: bold;
+	width: 120px;
+}
+
+.granola-conflict-modal .monospace {
+	font-family: var(--font-monospace);
+	font-size: 0.9em;
+}
+
+.granola-conflict-modal .content-comparison {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+	margin: 1rem 0;
+}
+
+.granola-conflict-modal .version-preview {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	padding: 1rem;
+}
+
+.granola-conflict-modal .version-preview h4 {
+	margin: 0 0 0.5rem 0;
+	font-size: 0.9rem;
+}
+
+.granola-conflict-modal .content-preview {
+	background: var(--background-primary-alt);
+	border-radius: 4px;
+	padding: 0.75rem;
+	font-size: 0.85rem;
+	line-height: 1.4;
+	max-height: 150px;
+	overflow-y: auto;
+	white-space: pre-wrap;
+}
+
+.granola-conflict-modal .resolution-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+	margin: 1rem 0;
+}
+
+.granola-conflict-modal .resolution-option {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	padding: 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.granola-conflict-modal .resolution-option h4 {
+	margin: 0;
+	font-size: 1rem;
+}
+
+.granola-conflict-modal .resolution-option p {
+	margin: 0;
+	font-size: 0.9rem;
+	color: var(--text-muted);
+	flex-grow: 1;
+}
+
+.granola-conflict-modal .option-button {
+	margin-top: auto;
+}
+
+.granola-conflict-modal .skip-button {
+	background: var(--interactive-normal);
+}
+
+.granola-conflict-modal .overwrite-button {
+	background: var(--color-orange);
+	color: white;
+}
+
+.granola-conflict-modal .merge-button {
+	background: var(--color-blue);
+	color: white;
+}
+
+.granola-conflict-modal .rename-button {
+	background: var(--color-green);
+	color: white;
+}
+
+.granola-conflict-modal .confirmation-dialog,
+.granola-conflict-modal .merge-dialog,
+.granola-conflict-modal .rename-dialog {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	padding: 1.5rem;
+	margin: 1rem 0;
+}
+
+.granola-conflict-modal .confirmation-buttons,
+.granola-conflict-modal .rename-buttons {
+	display: flex;
+	gap: 0.5rem;
+	justify-content: flex-end;
+	margin-top: 1rem;
+}
+
+.granola-conflict-modal .backup-option {
+	margin: 1rem 0;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.granola-conflict-modal .merge-option {
+	margin: 0.5rem 0;
+	padding: 0.75rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+}
+
+.granola-conflict-modal .merge-description {
+	margin: 0.5rem 0 0 0;
+	font-size: 0.85rem;
+}
+
+.granola-conflict-modal .filename-input-container {
+	display: flex;
+	align-items: center;
+	margin: 1rem 0;
+}
+
+.granola-conflict-modal .filename-input {
+	flex: 1;
+	padding: 0.5rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-primary);
+}
+
+.granola-conflict-modal .filename-extension {
+	margin-left: 0.25rem;
+	color: var(--text-muted);
+}
+
+.granola-conflict-modal .cancel-option {
+	text-align: center;
+	margin-top: 1.5rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+/* Document Selection Modal */
+.granola-import-modal .modal-content {
+	max-width: 800px;
+	max-height: 80vh;
+	display: flex;
+	flex-direction: column;
+}
+
+.granola-import-modal .modal-header h2 {
+	margin: 0 0 1rem 0;
+}
+
+.granola-import-modal .modal-controls {
+	margin-bottom: 1rem;
+	padding-bottom: 1rem;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.granola-import-modal .button-group {
+	display: flex;
+	gap: 0.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.granola-import-modal .filter-group {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.granola-import-modal .search-container {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 1rem;
+	padding-bottom: 1rem;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.granola-import-modal .modal-document-list {
+	flex: 1;
+	overflow-y: auto;
+	margin-bottom: 1rem;
+}
+
+.granola-import-modal .document-list-container {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.granola-import-modal .document-stats {
+	padding: 0.5rem;
+	background: var(--background-secondary);
+	border-radius: 4px;
+	font-size: 0.9rem;
+	margin-bottom: 1rem;
+}
+
+.granola-import-modal .document-item {
+	display: flex;
+	gap: 0.75rem;
+	padding: 1rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-primary);
+}
+
+.granola-import-modal .document-item.status-new {
+	border-left: 4px solid var(--color-green);
+}
+
+.granola-import-modal .document-item.status-updated {
+	border-left: 4px solid var(--color-orange);
+}
+
+.granola-import-modal .document-item.status-conflict {
+	border-left: 4px solid var(--color-red);
+}
+
+.granola-import-modal .document-item.status-exists {
+	border-left: 4px solid var(--text-muted);
+}
+
+.granola-import-modal .document-content {
+	flex: 1;
+}
+
+.granola-import-modal .document-title-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: 0.5rem;
+}
+
+.granola-import-modal .document-title {
+	margin: 0;
+	font-size: 1.1rem;
+}
+
+.granola-import-modal .status-badge {
+	padding: 0.25rem 0.5rem;
+	border-radius: 4px;
+	font-size: 0.75rem;
+	font-weight: bold;
+	text-transform: uppercase;
+}
+
+.granola-import-modal .status-badge.status-new {
+	background: var(--color-green);
+	color: white;
+}
+
+.granola-import-modal .status-badge.status-updated {
+	background: var(--color-orange);
+	color: white;
+}
+
+.granola-import-modal .status-badge.status-conflict {
+	background: var(--color-red);
+	color: white;
+}
+
+.granola-import-modal .status-badge.status-exists {
+	background: var(--text-muted);
+	color: white;
+}
+
+.granola-import-modal .document-meta {
+	display: flex;
+	gap: 1rem;
+	font-size: 0.85rem;
+	color: var(--text-muted);
+	margin-bottom: 0.5rem;
+}
+
+.granola-import-modal .meta-item {
+	white-space: nowrap;
+}
+
+.granola-import-modal .document-preview {
+	font-size: 0.85rem;
+	color: var(--text-muted);
+	line-height: 1.4;
+	margin-bottom: 0.5rem;
+	max-height: 3em;
+	overflow: hidden;
+}
+
+.granola-import-modal .document-reason {
+	font-size: 0.85rem;
+	color: var(--text-warning);
+	background: var(--background-secondary);
+	padding: 0.5rem;
+	border-radius: 4px;
+	margin-top: 0.5rem;
+}
+
+.granola-import-modal .document-progress-indicator {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+	padding: 0.5rem;
+	background: var(--background-secondary);
+	border-radius: 4px;
+}
+
+.granola-import-modal .progress-icon {
+	font-size: 1.2em;
+}
+
+.granola-import-modal .progress-text {
+	flex: 1;
+	font-size: 0.85rem;
+}
+
+.granola-import-modal .progress-bar {
+	flex: 1;
+	height: 8px;
+	background: var(--background-modifier-border);
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.granola-import-modal .progress-fill {
+	height: 100%;
+	background: var(--interactive-accent);
+	transition: width 0.3s ease;
+}
+
+.granola-import-modal .progress-width-0 {
+	width: 0%;
+}
+
+.granola-import-modal .progress-width-25 {
+	width: 25%;
+}
+
+.granola-import-modal .progress-width-50 {
+	width: 50%;
+}
+
+.granola-import-modal .progress-width-75 {
+	width: 75%;
+}
+
+.granola-import-modal .progress-width-100 {
+	width: 100%;
+}
+
+.granola-import-modal .document-item.import-importing {
+	background: var(--background-secondary);
+	border-color: var(--interactive-accent);
+}
+
+.granola-import-modal .document-item.import-completed {
+	background: var(--background-primary-alt);
+}
+
+.granola-import-modal .document-item.import-failed {
+	background: var(--background-primary-alt);
+	border-color: var(--color-red);
+}
+
+.granola-import-modal .document-item.importing-active {
+	animation: pulse 1s ease-in-out 2;
+}
+
+@keyframes pulse {
+	0%, 100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.7;
+	}
+}
+
+.granola-import-modal .modal-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.granola-import-modal .footer-buttons {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.granola-import-modal .progress-container {
+	margin: 1rem 0;
+}
+
+.granola-import-modal .progress-container .progress-bar {
+	height: 12px;
+	margin-bottom: 0.5rem;
+}
+
+.granola-import-modal .progress-container .progress-text {
+	text-align: center;
+	font-size: 0.9rem;
+	color: var(--text-muted);
+}
+
+.granola-import-modal .document-progress-list {
+	margin: 1rem 0;
+}
+
+.granola-import-modal .import-summary {
+	padding: 1rem;
+}
+
+.granola-import-modal .import-summary h3 {
+	margin: 0 0 1rem 0;
+	color: var(--text-accent);
+}
+
+.granola-import-modal .import-stats-overview {
+	margin: 1rem 0;
+}
+
+.granola-import-modal .stats-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 1rem;
+	margin: 1rem 0;
+}
+
+.granola-import-modal .stat-item {
+	padding: 1rem;
+	border-radius: 6px;
+	text-align: center;
+}
+
+.granola-import-modal .stat-item.stat-success {
+	background: color-mix(in srgb, var(--color-green) 20%, transparent);
+	border: 1px solid var(--color-green);
+}
+
+.granola-import-modal .stat-item.stat-failed {
+	background: color-mix(in srgb, var(--color-red) 20%, transparent);
+	border: 1px solid var(--color-red);
+}
+
+.granola-import-modal .stat-item.stat-skipped {
+	background: color-mix(in srgb, var(--color-orange) 20%, transparent);
+	border: 1px solid var(--color-orange);
+}
+
+.granola-import-modal .stat-item.stat-empty {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+}
+
+.granola-import-modal .stat-number {
+	font-size: 2rem;
+	font-weight: bold;
+	margin-bottom: 0.25rem;
+}
+
+.granola-import-modal .stat-label {
+	font-size: 0.85rem;
+	color: var(--text-muted);
+}
+
+.granola-import-modal .import-section {
+	margin: 1.5rem 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.granola-import-modal .section-header {
+	background: var(--background-secondary);
+	padding: 0.75rem 1rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	cursor: pointer;
+}
+
+.granola-import-modal .section-header h4 {
+	margin: 0;
+	font-size: 1rem;
+}
+
+.granola-import-modal .section-toggle {
+	background: none;
+	border: none;
+	cursor: pointer;
+	font-size: 1rem;
+	color: var(--text-normal);
+	padding: 0;
+	width: 24px;
+	height: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.granola-import-modal .section-content {
+	padding: 1rem;
+}
+
+.granola-import-modal .error-category,
+.granola-import-modal .skip-reason-category {
+	margin-bottom: 1.5rem;
+}
+
+.granola-import-modal .error-category h5,
+.granola-import-modal .skip-reason-category h5 {
+	margin: 0 0 0.5rem 0;
+	font-size: 0.95rem;
+}
+
+.granola-import-modal .category-description {
+	margin: 0 0 1rem 0;
+	font-size: 0.85rem;
+	color: var(--text-muted);
+}
+
+.granola-import-modal .success-documents-list,
+.granola-import-modal .error-documents-list,
+.granola-import-modal .skipped-documents-list,
+.granola-import-modal .empty-documents-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.granola-import-modal .success-documents-list li,
+.granola-import-modal .error-documents-list li,
+.granola-import-modal .skipped-documents-list li,
+.granola-import-modal .empty-documents-list li {
+	display: flex;
+	align-items: center;
+	margin-bottom: 0.5rem;
+	padding: 0.5rem;
+	background: var(--background-primary);
+	border-radius: 4px;
+	border-left: 3px solid transparent;
+}
+
+.granola-import-modal .success-documents-list li {
+	border-left-color: var(--color-green);
+}
+
+.granola-import-modal .error-documents-list li {
+	border-left-color: var(--color-red);
+}
+
+.granola-import-modal .skipped-documents-list li {
+	border-left-color: var(--color-orange);
+}
+
+.granola-import-modal .success-doc-title,
+.granola-import-modal .skipped-doc-title {
+	font-weight: 500;
+	flex: 1;
+}
+
+.granola-import-modal .failed-doc-title {
+	font-weight: 500;
+	margin-right: 0.5rem;
+}
+
+.granola-import-modal .failed-doc-error {
+	color: var(--text-muted);
+	font-size: 0.85rem;
+	flex: 1;
+}
+
+.granola-import-modal .skip-reason {
+	color: var(--text-muted);
+	font-size: 0.85rem;
+	margin-left: 0.5rem;
+}
+
+.granola-import-modal .open-doc-button {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border: none;
+	border-radius: 4px;
+	padding: 0.25rem 0.5rem;
+	font-size: 0.75rem;
+	cursor: pointer;
+}
+
+.granola-import-modal .open-doc-button:hover {
+	background: var(--interactive-accent-hover);
+}
+
+.granola-import-modal .recommendations-section h4 {
+	margin: 0 0 1rem 0;
+}
+
+.granola-import-modal .recommendations-list {
+	margin: 0;
+	padding-left: 1.5rem;
+}
+
+.granola-import-modal .recommendations-list li {
+	margin-bottom: 0.75rem;
+	line-height: 1.5;
+	color: var(--text-normal);
+}
+
+.granola-import-modal .import-complete-buttons {
+	margin-top: 2rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--background-modifier-border);
+	display: flex;
+	gap: 0.5rem;
+	justify-content: flex-end;
+}
+
+.granola-import-modal .message,
+.granola-import-modal .error-message {
+	padding: 2rem;
+	text-align: center;
+	color: var(--text-muted);
+}
+
+.granola-import-modal .error-message {
+	color: var(--text-error);
+}
+
+.granola-import-modal .empty-doc-title {
+	font-weight: 500;
+}

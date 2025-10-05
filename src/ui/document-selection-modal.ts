@@ -152,7 +152,7 @@ export class DocumentSelectionModal extends Modal {
 
 		// Header
 		this.headerEl = this.modalContentEl.createDiv('modal-header');
-		this.headerEl.createEl('h2', { text: 'Import Granola Notes' });
+		this.headerEl.createEl('h2', { text: 'Import Granola notes' });
 
 		// Controls section
 		this.controlsEl = this.modalContentEl.createDiv('modal-controls');
@@ -173,7 +173,7 @@ export class DocumentSelectionModal extends Modal {
 		this.footerEl = this.modalContentEl.createDiv('modal-footer');
 		this.setupFooter();
 
-		// Apply CSS
+		// Apply CSS class
 		this.applyStyles();
 	}
 
@@ -187,12 +187,12 @@ export class DocumentSelectionModal extends Modal {
 
 		// Select All button
 		this.selectAllButton = new ButtonComponent(buttonContainer)
-			.setButtonText('Select All')
+			.setButtonText('Select all')
 			.onClick(() => this.selectAll());
 
 		// Select None button
 		this.selectNoneButton = new ButtonComponent(buttonContainer)
-			.setButtonText('Select None')
+			.setButtonText('Select none')
 			.onClick(() => this.selectNone());
 
 		// Refresh button
@@ -204,12 +204,12 @@ export class DocumentSelectionModal extends Modal {
 		const filterContainer = this.controlsEl.createDiv('filter-group');
 		filterContainer.createEl('label', { text: 'Filter by status:' });
 
-		const statusSelect = filterContainer.createEl('select');
-		statusSelect.createEl('option', { value: '', text: 'All Status' });
-		statusSelect.createEl('option', { value: 'NEW', text: 'New Documents' });
-		statusSelect.createEl('option', { value: 'UPDATED', text: 'Updated Documents' });
+	const statusSelect = filterContainer.createEl('select');
+		statusSelect.createEl('option', { value: '', text: 'All status' });
+		statusSelect.createEl('option', { value: 'NEW', text: 'New documents' });
+		statusSelect.createEl('option', { value: 'UPDATED', text: 'Updated documents' });
 		statusSelect.createEl('option', { value: 'CONFLICT', text: 'Conflicts' });
-		statusSelect.createEl('option', { value: 'EXISTS', text: 'Already Exists' });
+		statusSelect.createEl('option', { value: 'EXISTS', text: 'Already exists' });
 
 		statusSelect.addEventListener('change', e => {
 			const target = e.target as HTMLSelectElement;
@@ -249,7 +249,7 @@ export class DocumentSelectionModal extends Modal {
 
 		// Import button
 		this.importButton = new ButtonComponent(buttonContainer)
-			.setButtonText('Import Selected')
+			.setButtonText('Import selected')
 			.setCta()
 			.onClick(() => this.startImport());
 
@@ -527,8 +527,8 @@ export class DocumentSelectionModal extends Modal {
 		this.progressEl.removeClass('granola-progress-hidden');
 		this.progressEl.addClass('granola-progress-visible');
 
-		this.progressEl.empty();
-		this.progressEl.createEl('h3', { text: 'Importing Documents...' });
+	this.progressEl.empty();
+		this.progressEl.createEl('h3', { text: 'Importing documents...' });
 
 		// Progress bar
 		const progressContainer = this.progressEl.createDiv('progress-container');
@@ -539,8 +539,8 @@ export class DocumentSelectionModal extends Modal {
 		// Document progress list
 		this.progressEl.createDiv('document-progress-list');
 
-		// Cancel button
-		new ButtonComponent(this.progressEl).setButtonText('Cancel Import').onClick(() => {
+	// Cancel button
+		new ButtonComponent(this.progressEl).setButtonText('Cancel import').onClick(() => {
 			this.importManager.cancel();
 		});
 	}
@@ -731,8 +731,8 @@ export class DocumentSelectionModal extends Modal {
 
 		this.progressEl.empty();
 
-		const summary = this.progressEl.createDiv('import-summary');
-		summary.createEl('h3', { text: 'Import Complete!' });
+	const summary = this.progressEl.createDiv('import-summary');
+		summary.createEl('h3', { text: 'Import complete!' });
 
 		// Get all document progress for detailed reporting
 		const allDocProgress = this.importManager.getAllDocumentProgress();
@@ -771,8 +771,8 @@ export class DocumentSelectionModal extends Modal {
 
 		// If there are imported files, show "Open Imported Notes" button
 		if (importedFiles.length > 0) {
-			new ButtonComponent(buttonsDiv)
-				.setButtonText(`Open Imported Notes (${importedFiles.length})`)
+		new ButtonComponent(buttonsDiv)
+				.setButtonText(`Open imported notes (${importedFiles.length})`)
 				.setCta()
 				.onClick(() => {
 					this.openImportedFiles(importedFiles);
@@ -800,7 +800,7 @@ export class DocumentSelectionModal extends Modal {
 		if (result.completed > 0) {
 			const successStat = statsGrid.createDiv('stat-item stat-success');
 			successStat.createEl('div', { text: result.completed.toString(), cls: 'stat-number' });
-			successStat.createEl('div', { text: 'Imported Successfully', cls: 'stat-label' });
+			successStat.createEl('div', { text: 'Imported successfully', cls: 'stat-label' });
 		}
 
 		// Failed imports
@@ -821,7 +821,7 @@ export class DocumentSelectionModal extends Modal {
 		if (result.empty > 0) {
 			const emptyStat = statsGrid.createDiv('stat-item stat-empty');
 			emptyStat.createEl('div', { text: result.empty.toString(), cls: 'stat-number' });
-			emptyStat.createEl('div', { text: 'Empty Documents', cls: 'stat-label' });
+			emptyStat.createEl('div', { text: 'Empty documents', cls: 'stat-label' });
 		}
 	}
 
@@ -836,9 +836,9 @@ export class DocumentSelectionModal extends Modal {
 		const successDocs = allDocProgress.filter(progress => progress.status === 'completed');
 		if (successDocs.length === 0) return;
 
-		const section = container.createDiv('import-section success-section');
+	const section = container.createDiv('import-section success-section');
 		const header = section.createDiv('section-header');
-		header.createEl('h4', { text: `✅ Successfully Imported (${successDocs.length})` });
+		header.createEl('h4', { text: `✅ Successfully imported (${successDocs.length})` });
 
 		const toggle = header.createEl('button', { cls: 'section-toggle', text: '▼' });
 		const content = section.createDiv('section-content');
@@ -877,9 +877,9 @@ export class DocumentSelectionModal extends Modal {
 		const failedDocs = allDocProgress.filter(progress => progress.status === 'failed');
 		if (failedDocs.length === 0) return;
 
-		const section = container.createDiv('import-section failure-section');
+	const section = container.createDiv('import-section failure-section');
 		const header = section.createDiv('section-header');
-		header.createEl('h4', { text: `❌ Failed Documents (${failedDocs.length})` });
+		header.createEl('h4', { text: `❌ Failed documents (${failedDocs.length})` });
 
 		const toggle = header.createEl('button', { cls: 'section-toggle', text: '▼' });
 		const content = section.createDiv('section-content');
@@ -927,9 +927,9 @@ export class DocumentSelectionModal extends Modal {
 		const skippedDocs = allDocProgress.filter(progress => progress.status === 'skipped');
 		if (skippedDocs.length === 0) return;
 
-		const section = container.createDiv('import-section skipped-section');
+	const section = container.createDiv('import-section skipped-section');
 		const header = section.createDiv('section-header');
-		header.createEl('h4', { text: `⏭️ Skipped Documents (${skippedDocs.length})` });
+		header.createEl('h4', { text: `⏭️ Skipped documents (${skippedDocs.length})` });
 
 		const toggle = header.createEl('button', { cls: 'section-toggle', text: '▼' });
 		const content = section.createDiv('section-content');
@@ -973,9 +973,9 @@ export class DocumentSelectionModal extends Modal {
 		const emptyDocs = allDocProgress.filter(progress => progress.status === 'empty');
 		if (emptyDocs.length === 0) return;
 
-		const section = container.createDiv('import-section empty-section');
+	const section = container.createDiv('import-section empty-section');
 		const header = section.createDiv('section-header');
-		header.createEl('h4', { text: `📄 Empty Documents (${emptyDocs.length})` });
+		header.createEl('h4', { text: `📄 Empty documents (${emptyDocs.length})` });
 
 		const toggle = header.createEl('button', { cls: 'section-toggle', text: '▼' });
 		const content = section.createDiv('section-content');
@@ -1492,494 +1492,13 @@ export class DocumentSelectionModal extends Modal {
 	}
 
 	/**
-	 * Applies CSS styles to the modal.
+	 * Adds CSS class to the modal for styling.
 	 *
 	 * @private
 	 */
 	private applyStyles(): void {
-		// Basic modal styles
+		// Add modal CSS class for styling from styles.css
 		this.modalEl.addClass('granola-import-modal');
-
-		// Add basic CSS
-		const style = document.createElement('style');
-		style.textContent = `
-			.granola-import-modal .modal-content {
-				max-width: 800px;
-				max-height: 80vh;
-				display: flex;
-				flex-direction: column;
-			}
-			.granola-import-modal .modal-header h2 {
-				margin: 0 0 1rem 0;
-			}
-			.granola-import-modal .modal-controls {
-				margin-bottom: 1rem;
-				padding-bottom: 1rem;
-				border-bottom: 1px solid var(--background-modifier-border);
-			}
-			.granola-import-modal .button-group {
-				display: flex;
-				gap: 0.5rem;
-				margin-bottom: 0.5rem;
-			}
-			.granola-import-modal .filter-group {
-				display: flex;
-				align-items: center;
-				gap: 0.5rem;
-			}
-			.granola-import-modal .search-container {
-				display: flex;
-				align-items: center;
-				gap: 0.5rem;
-				margin-bottom: 1rem;
-				padding-bottom: 1rem;
-				border-bottom: 1px solid var(--background-modifier-border);
-			}
-			.granola-import-modal .modal-document-list {
-				flex: 1;
-				overflow-y: auto;
-				margin-bottom: 1rem;
-			}
-			.granola-import-modal .document-list-container {
-				display: flex;
-				flex-direction: column;
-				gap: 0.5rem;
-			}
-			.granola-import-modal .document-stats {
-				padding: 0.5rem;
-				background: var(--background-secondary);
-				border-radius: 4px;
-				font-size: 0.9rem;
-				margin-bottom: 1rem;
-			}
-			.granola-import-modal .document-item {
-				display: flex;
-				gap: 0.75rem;
-				padding: 1rem;
-				border: 1px solid var(--background-modifier-border);
-				border-radius: 4px;
-				background: var(--background-primary);
-			}
-			.granola-import-modal .document-item.status-new {
-				border-left: 4px solid var(--color-green);
-			}
-			.granola-import-modal .document-item.status-updated {
-				border-left: 4px solid var(--color-orange);
-			}
-			.granola-import-modal .document-item.status-conflict {
-				border-left: 4px solid var(--color-red);
-			}
-			.granola-import-modal .document-item.status-exists {
-				border-left: 4px solid var(--text-muted);
-			}
-			.granola-import-modal .document-content {
-				flex: 1;
-			}
-			.granola-import-modal .document-title-row {
-				display: flex;
-				justify-content: space-between;
-				align-items: flex-start;
-				margin-bottom: 0.5rem;
-			}
-			.granola-import-modal .document-title {
-				margin: 0;
-				font-size: 1.1rem;
-			}
-			.granola-import-modal .status-badge {
-				padding: 0.25rem 0.5rem;
-				border-radius: 4px;
-				font-size: 0.75rem;
-				font-weight: bold;
-				text-transform: uppercase;
-			}
-			.granola-import-modal .status-badge.status-new {
-				background: var(--color-green);
-				color: white;
-			}
-			.granola-import-modal .status-badge.status-updated {
-				background: var(--color-orange);
-				color: white;
-			}
-			.granola-import-modal .status-badge.status-conflict {
-				background: var(--color-red);
-				color: white;
-			}
-			.granola-import-modal .status-badge.status-exists {
-				background: var(--text-muted);
-				color: white;
-			}
-			.granola-import-modal .document-meta {
-				display: flex;
-				gap: 1rem;
-				margin-bottom: 0.5rem;
-				font-size: 0.85rem;
-				color: var(--text-muted);
-			}
-			.granola-import-modal .document-preview {
-				margin: 0.5rem 0;
-				color: var(--text-muted);
-				font-size: 0.9rem;
-				line-height: 1.4;
-			}
-			.granola-import-modal .document-reason {
-				font-size: 0.8rem;
-				color: var(--text-muted);
-				font-style: italic;
-			}
-			.granola-import-modal .document-progress-indicator {
-				display: none;
-				align-items: center;
-				gap: 0.5rem;
-				margin-top: 0.75rem;
-				padding: 0.5rem;
-				background: var(--background-secondary);
-				border-radius: 4px;
-				font-size: 0.85rem;
-			}
-			.granola-import-modal .progress-icon {
-				font-size: 1rem;
-				line-height: 1;
-			}
-			.granola-import-modal .progress-text {
-				flex: 1;
-				margin: 0;
-				text-align: left;
-			}
-			.granola-import-modal .document-progress-indicator .progress-bar {
-				width: 80px;
-				height: 6px;
-				background: var(--background-modifier-border);
-				border-radius: 3px;
-				overflow: hidden;
-			}
-			.granola-import-modal .document-progress-indicator .progress-fill {
-				height: 100%;
-				background: var(--interactive-accent);
-				transition: width 0.3s ease;
-				border-radius: 3px;
-			}
-			.granola-import-modal .document-item.import-importing {
-				animation: importingPulse 2s ease-in-out infinite;
-				border-left: 4px solid var(--interactive-accent);
-			}
-			.granola-import-modal .document-item.import-completed {
-				border-left: 4px solid var(--color-green);
-			}
-			.granola-import-modal .document-item.import-failed {
-				border-left: 4px solid var(--color-red);
-			}
-			.granola-import-modal .document-item.import-skipped {
-				border-left: 4px solid var(--text-muted);
-			}
-			.granola-import-modal .document-item.importing-active {
-				animation: importingHighlight 2s ease-in-out;
-				box-shadow: 0 0 0 2px var(--interactive-accent);
-			}
-			@keyframes importingPulse {
-				0%, 100% { opacity: 1; }
-				50% { opacity: 0.7; }
-			}
-			@keyframes importingHighlight {
-				0%, 100% { transform: scale(1); }
-				50% { transform: scale(1.02); }
-			}
-			.granola-import-modal .modal-footer {
-				border-top: 1px solid var(--background-modifier-border);
-				padding-top: 1rem;
-			}
-			.granola-import-modal .footer-buttons {
-				display: flex;
-				justify-content: flex-end;
-				gap: 0.5rem;
-			}
-			.granola-import-modal .progress-container {
-				margin: 1rem 0;
-			}
-			.granola-import-modal .progress-bar {
-				width: 100%;
-				height: 20px;
-				background: var(--background-secondary);
-				border-radius: 10px;
-				overflow: hidden;
-			}
-			.granola-import-modal .progress-fill {
-				height: 100%;
-				background: var(--interactive-accent);
-				transition: width 0.3s ease;
-			}
-			.granola-import-modal .progress-text {
-				text-align: center;
-				margin-top: 0.5rem;
-				font-size: 0.9rem;
-			}
-			.granola-import-modal .progress-width-0 {
-				width: 0%;
-			}
-			.granola-import-modal .progress-width-25 {
-				width: 25%;
-			}
-			.granola-import-modal .progress-width-50 {
-				width: 50%;
-			}
-			.granola-import-modal .progress-width-75 {
-				width: 75%;
-			}
-			.granola-import-modal .progress-width-100 {
-				width: 100%;
-			}
-			.granola-import-modal .message,
-			.granola-import-modal .error-message {
-				text-align: center;
-				padding: 2rem;
-				font-size: 1rem;
-			}
-			.granola-import-modal .error-message {
-				color: var(--color-red);
-			}
-			.granola-import-modal .import-failures {
-				margin-top: 1rem;
-				padding: 1rem;
-				background: var(--background-secondary);
-				border-radius: 8px;
-				border-left: 4px solid var(--color-red);
-			}
-			.granola-import-modal .import-failures h4 {
-				margin-top: 0;
-				margin-bottom: 0.5rem;
-				color: var(--color-red);
-			}
-			.granola-import-modal .failed-documents-list {
-				margin: 0;
-				padding-left: 1.5rem;
-				max-height: 200px;
-				overflow-y: auto;
-			}
-			.granola-import-modal .failed-documents-list li {
-				margin-bottom: 0.5rem;
-				line-height: 1.5;
-			}
-			.granola-import-modal .failed-doc-title {
-				font-weight: 500;
-			}
-			.granola-import-modal .failed-doc-error {
-				color: var(--text-muted);
-				font-size: 0.9em;
-			}
-			.granola-import-modal .empty-documents-section {
-				margin-top: 1rem;
-				padding: 1rem;
-				background: var(--background-secondary);
-				border-radius: 8px;
-				border-left: 4px solid var(--text-muted);
-			}
-			.granola-import-modal .empty-documents-section h4 {
-				margin-top: 0;
-				margin-bottom: 0.5rem;
-				color: var(--text-muted);
-			}
-			.granola-import-modal .empty-documents-list {
-				margin: 0;
-				padding-left: 1.5rem;
-				max-height: 150px;
-				overflow-y: auto;
-			}
-			.granola-import-modal .empty-documents-list li {
-				margin-bottom: 0.25rem;
-				color: var(--text-muted);
-			}
-			.granola-import-modal .import-stats-overview {
-				margin: 1rem 0;
-				padding: 1rem;
-				background: var(--background-secondary);
-				border-radius: 8px;
-			}
-			.granola-import-modal .stats-grid {
-				display: grid;
-				grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-				gap: 1rem;
-			}
-			.granola-import-modal .stat-item {
-				text-align: center;
-				padding: 0.75rem;
-				border-radius: 6px;
-				background: var(--background-primary);
-				border: 1px solid var(--background-modifier-border);
-			}
-			.granola-import-modal .stat-success {
-				border-left: 4px solid var(--color-green);
-			}
-			.granola-import-modal .stat-failed {
-				border-left: 4px solid var(--color-red);
-			}
-			.granola-import-modal .stat-skipped {
-				border-left: 4px solid var(--color-orange);
-			}
-			.granola-import-modal .stat-empty {
-				border-left: 4px solid var(--text-muted);
-			}
-			.granola-import-modal .stat-number {
-				font-size: 1.5rem;
-				font-weight: bold;
-				margin-bottom: 0.25rem;
-			}
-			.granola-import-modal .stat-label {
-				font-size: 0.8rem;
-				color: var(--text-muted);
-				text-transform: uppercase;
-				letter-spacing: 0.5px;
-			}
-			.granola-import-modal .import-section {
-				margin: 1.5rem 0;
-				border: 1px solid var(--background-modifier-border);
-				border-radius: 8px;
-				overflow: hidden;
-			}
-			.granola-import-modal .section-header {
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-				padding: 1rem;
-				background: var(--background-secondary);
-				border-bottom: 1px solid var(--background-modifier-border);
-			}
-			.granola-import-modal .section-header h4 {
-				margin: 0;
-				font-size: 1rem;
-			}
-			.granola-import-modal .section-toggle {
-				background: none;
-				border: none;
-				font-size: 1rem;
-				cursor: pointer;
-				color: var(--text-muted);
-				padding: 0.25rem;
-				border-radius: 3px;
-			}
-			.granola-import-modal .section-toggle:hover {
-				background: var(--background-modifier-hover);
-			}
-			.granola-import-modal .section-content {
-				padding: 1rem;
-			}
-			.granola-import-modal .success-section .section-header {
-				background: rgba(var(--color-green-rgb), 0.1);
-				border-left: 4px solid var(--color-green);
-			}
-			.granola-import-modal .failure-section .section-header {
-				background: rgba(var(--color-red-rgb), 0.1);
-				border-left: 4px solid var(--color-red);
-			}
-			.granola-import-modal .skipped-section .section-header {
-				background: rgba(var(--color-orange-rgb), 0.1);
-				border-left: 4px solid var(--color-orange);
-			}
-			.granola-import-modal .empty-section .section-header {
-				background: var(--background-secondary);
-				border-left: 4px solid var(--text-muted);
-			}
-			.granola-import-modal .recommendations-section {
-				border-left: 4px solid var(--interactive-accent);
-			}
-			.granola-import-modal .error-category,
-			.granola-import-modal .skip-reason-category {
-				margin-bottom: 1.5rem;
-				padding-bottom: 1rem;
-				border-bottom: 1px solid var(--background-modifier-border);
-			}
-			.granola-import-modal .error-category:last-child,
-			.granola-import-modal .skip-reason-category:last-child {
-				border-bottom: none;
-				margin-bottom: 0;
-				padding-bottom: 0;
-			}
-			.granola-import-modal .error-category h5,
-			.granola-import-modal .skip-reason-category h5 {
-				margin: 0 0 0.5rem 0;
-				font-size: 0.9rem;
-				color: var(--text-normal);
-			}
-			.granola-import-modal .category-description {
-				margin: 0 0 1rem 0;
-				font-size: 0.85rem;
-				color: var(--text-muted);
-				font-style: italic;
-			}
-			.granola-import-modal .success-documents-list,
-			.granola-import-modal .error-documents-list,
-			.granola-import-modal .skipped-documents-list {
-				margin: 0;
-				padding-left: 1rem;
-				max-height: 300px;
-				overflow-y: auto;
-			}
-			.granola-import-modal .success-documents-list li,
-			.granola-import-modal .error-documents-list li,
-			.granola-import-modal .skipped-documents-list li {
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-				margin-bottom: 0.5rem;
-				padding: 0.5rem;
-				background: var(--background-primary);
-				border-radius: 4px;
-				border-left: 3px solid transparent;
-			}
-			.granola-import-modal .success-documents-list li {
-				border-left-color: var(--color-green);
-			}
-			.granola-import-modal .error-documents-list li {
-				border-left-color: var(--color-red);
-			}
-			.granola-import-modal .skipped-documents-list li {
-				border-left-color: var(--color-orange);
-			}
-			.granola-import-modal .success-doc-title,
-			.granola-import-modal .skipped-doc-title {
-				font-weight: 500;
-				flex: 1;
-			}
-			.granola-import-modal .failed-doc-title {
-				font-weight: 500;
-				margin-right: 0.5rem;
-			}
-			.granola-import-modal .failed-doc-error {
-				color: var(--text-muted);
-				font-size: 0.85rem;
-				flex: 1;
-			}
-			.granola-import-modal .skip-reason {
-				color: var(--text-muted);
-				font-size: 0.85rem;
-				margin-left: 0.5rem;
-			}
-			.granola-import-modal .open-doc-button {
-				background: var(--interactive-accent);
-				color: var(--text-on-accent);
-				border: none;
-				border-radius: 4px;
-				padding: 0.25rem 0.5rem;
-				font-size: 0.75rem;
-				cursor: pointer;
-			}
-			.granola-import-modal .open-doc-button:hover {
-				background: var(--interactive-accent-hover);
-			}
-			.granola-import-modal .recommendations-list {
-				margin: 0;
-				padding-left: 1.5rem;
-			}
-			.granola-import-modal .recommendations-list li {
-				margin-bottom: 0.75rem;
-				line-height: 1.5;
-				color: var(--text-normal);
-			}
-			.granola-import-modal .import-complete-buttons {
-				margin-top: 2rem;
-				padding-top: 1rem;
-				border-top: 1px solid var(--background-modifier-border);
-			}
-		`;
-		document.head.appendChild(style);
 	}
 
 	/**
@@ -2025,12 +1544,6 @@ export class DocumentSelectionModal extends Modal {
 	 * @private
 	 */
 	private cleanup(): void {
-		// Remove any added styles
-		const existingStyles = document.head.querySelectorAll('style');
-		existingStyles.forEach(style => {
-			if (style.textContent?.includes('.granola-import-modal')) {
-				style.remove();
-			}
-		});
+		// Cleanup if needed (styles are now in styles.css)
 	}
 }
