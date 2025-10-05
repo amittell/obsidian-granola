@@ -351,3 +351,6 @@ window.matchMedia = jest.fn().mockImplementation(query => ({
 	removeEventListener: jest.fn(),
 	dispatchEvent: jest.fn(),
 }));
+
+// Mock Obsidian's window.sleep function for async operations
+(window as any).sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));

@@ -8,20 +8,24 @@ import {
 	mockInvalidTokenFormat,
 } from '../helpers';
 
-// Mock the filesystem and OS modules
-jest.mock('fs/promises', () => ({
-	readFile: jest.fn(),
-	access: jest.fn(),
-	stat: jest.fn(),
+// Mock the fs module (synchronous version used by auth.ts)
+const mockReadFileSync = jest.fn();
+jest.mock('fs', () => ({
+	readFileSync: mockReadFileSync,
 }));
 
+// Mock os module
+const mockPlatform = jest.fn();
+const mockHomedir = jest.fn();
 jest.mock('os', () => ({
-	platform: jest.fn(),
-	homedir: jest.fn(),
+	platform: mockPlatform,
+	homedir: mockHomedir,
 }));
 
+// Mock path module
+const mockJoin = jest.fn();
 jest.mock('path', () => ({
-	join: jest.fn(),
+	join: mockJoin,
 }));
 
 describe('GranolaAuth', () => {
@@ -32,14 +36,10 @@ describe('GranolaAuth', () => {
 		jest.clearAllMocks();
 
 		// Setup mocks with proper values
-		const mockFs = require('fs/promises');
-		const mockOs = require('os');
-		const mockPath = require('path');
-
-		mockFs.readFile.mockResolvedValue(mockSupabaseConfig);
-		mockOs.platform.mockReturnValue('darwin');
-		mockOs.homedir.mockReturnValue('/Users/test');
-		mockPath.join.mockImplementation((...args: string[]) => args.join('/'));
+		mockReadFileSync.mockReturnValue(mockSupabaseConfig);
+		mockPlatform.mockReturnValue('darwin');
+		mockHomedir.mockReturnValue('/Users/test');
+		mockJoin.mockImplementation((...args: string[]) => args.join('/'));
 
 		// Create auth instance
 		auth = new GranolaAuth();
@@ -58,26 +58,24 @@ describe('GranolaAuth', () => {
 		});
 
 		it('should cache credentials on subsequent calls', async () => {
-			const mockFs = require('fs/promises');
-
 			await auth.loadCredentials();
 			await auth.loadCredentials();
 
-			expect(mockFs.readFile).toHaveBeenCalledTimes(1);
+			expect(mockReadFileSync).toHaveBeenCalledTimes(1);
 		});
 
 		it('should throw error if config file is missing', async () => {
-			const mockFs = require('fs/promises');
-			mockFs.readFile.mockRejectedValue(new Error('File not found'));
+			mockReadFileSync.mockImplementation(() => {
+				throw new Error('File not found');
+			});
 
 			await expect(auth.loadCredentials()).rejects.toThrow(
-				'Failed to load Granola credentials'
+				'Cannot read Granola configuration file'
 			);
 		});
 
 		it('should throw error if config file contains invalid JSON', async () => {
-			const mockFs = require('fs/promises');
-			mockFs.readFile.mockResolvedValue('invalid json');
+			mockReadFileSync.mockReturnValue('invalid json');
 
 			await expect(auth.loadCredentials()).rejects.toThrow(
 				'Failed to load Granola credentials'
@@ -85,18 +83,16 @@ describe('GranolaAuth', () => {
 		});
 
 		it('should throw error if required fields are missing', async () => {
-			const mockFs = require('fs/promises');
 			const invalidConfig = {
 				cognito_tokens: JSON.stringify({ access_token: 'test' }), // missing other fields
 				user_info: '{}',
 			};
-			mockFs.readFile.mockResolvedValue(JSON.stringify(invalidConfig));
+			mockReadFileSync.mockReturnValue(JSON.stringify(invalidConfig));
 
 			await expect(auth.loadCredentials()).rejects.toThrow('Missing required field');
 		});
 
 		it('should throw error if token type is not bearer', async () => {
-			const mockFs = require('fs/promises');
 			const invalidConfig = {
 				cognito_tokens: JSON.stringify({
 					...mockCognitoTokens,
@@ -104,29 +100,27 @@ describe('GranolaAuth', () => {
 				}),
 				user_info: '{}',
 			};
-			mockFs.readFile.mockResolvedValue(JSON.stringify(invalidConfig));
+			mockReadFileSync.mockReturnValue(JSON.stringify(invalidConfig));
 
 			await expect(auth.loadCredentials()).rejects.toThrow('Invalid token type');
 		});
 
 		it('should throw error if token format is invalid', async () => {
-			const mockFs = require('fs/promises');
 			const invalidConfig = {
 				cognito_tokens: JSON.stringify(mockInvalidTokenFormat),
 				user_info: '{}',
 			};
-			mockFs.readFile.mockResolvedValue(JSON.stringify(invalidConfig));
+			mockReadFileSync.mockReturnValue(JSON.stringify(invalidConfig));
 
 			await expect(auth.loadCredentials()).rejects.toThrow('Invalid token format');
 		});
 
 		it('should throw error if token is expired', async () => {
-			const mockFs = require('fs/promises');
 			const expiredConfig = {
 				cognito_tokens: JSON.stringify(mockExpiredCognitoTokens),
 				user_info: '{}',
 			};
-			mockFs.readFile.mockResolvedValue(JSON.stringify(expiredConfig));
+			mockReadFileSync.mockReturnValue(JSON.stringify(expiredConfig));
 
 			await expect(auth.loadCredentials()).rejects.toThrow('Access token has expired');
 		});
@@ -134,16 +128,13 @@ describe('GranolaAuth', () => {
 
 	describe('getSupabaseConfigPath', () => {
 		it('should return correct path for macOS', () => {
-			const mockOs = require('os');
-			const mockPath = require('path');
-
-			mockOs.platform.mockReturnValue('darwin');
-			mockOs.homedir.mockReturnValue('/Users/test');
+			mockPlatform.mockReturnValue('darwin');
+			mockHomedir.mockReturnValue('/Users/test');
 
 			// Access the private method through any casting
 			const configPath = (auth as any).getSupabaseConfigPath();
 
-			expect(mockPath.join).toHaveBeenCalledWith(
+			expect(mockJoin).toHaveBeenCalledWith(
 				'/Users/test',
 				'Library',
 				'Application Support',
@@ -153,15 +144,12 @@ describe('GranolaAuth', () => {
 		});
 
 		it('should return correct path for Windows', () => {
-			const mockOs = require('os');
-			const mockPath = require('path');
-
-			mockOs.platform.mockReturnValue('win32');
-			mockOs.homedir.mockReturnValue('C:\\Users\\test');
+			mockPlatform.mockReturnValue('win32');
+			mockHomedir.mockReturnValue('C:\\Users\\test');
 
 			const configPath = (auth as any).getSupabaseConfigPath();
 
-			expect(mockPath.join).toHaveBeenCalledWith(
+			expect(mockJoin).toHaveBeenCalledWith(
 				'C:\\Users\\test',
 				'AppData',
 				'Roaming',
@@ -171,15 +159,12 @@ describe('GranolaAuth', () => {
 		});
 
 		it('should return correct path for Linux', () => {
-			const mockOs = require('os');
-			const mockPath = require('path');
-
-			mockOs.platform.mockReturnValue('linux');
-			mockOs.homedir.mockReturnValue('/home/test');
+			mockPlatform.mockReturnValue('linux');
+			mockHomedir.mockReturnValue('/home/test');
 
 			const configPath = (auth as any).getSupabaseConfigPath();
 
-			expect(mockPath.join).toHaveBeenCalledWith(
+			expect(mockJoin).toHaveBeenCalledWith(
 				'/home/test',
 				'.config',
 				'Granola',
@@ -188,8 +173,7 @@ describe('GranolaAuth', () => {
 		});
 
 		it('should throw error for unsupported platform', () => {
-			const mockOs = require('os');
-			mockOs.platform.mockReturnValue('freebsd');
+			mockPlatform.mockReturnValue('freebsd');
 
 			expect(() => (auth as any).getSupabaseConfigPath()).toThrow('Unsupported platform');
 		});

@@ -50,6 +50,14 @@ export const Platform = {
 	isLinux: process.platform === 'linux',
 };
 
+// Mock window object with Obsidian-specific functions
+if (typeof global !== 'undefined') {
+	(global as any).window = {
+		...((global as any).window || {}),
+		sleep: (ms: number) => new Promise(resolve => setTimeout(resolve, ms)),
+	};
+}
+
 export class Plugin {
 	app: any;
 	manifest: any;
