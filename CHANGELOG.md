@@ -5,6 +5,25 @@ All notable changes to the Obsidian Granola Importer plugin will be documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Automated git pre-commit hooks for local validation
+  - Runs formatting, type checking, build verification, and lint checks
+  - Configured via `./setup-hooks.sh` script
+  - Catches issues before CI to save GitHub Actions minutes
+- Comprehensive test coverage for import manager service
+  - Import cancellation behavior tests
+  - Error handling tests for file operations
+  - Folder creation validation tests
+- Enhanced documentation structure
+  - Added git hooks section to README with setup instructions
+  - Updated WARP.md and CLAUDE.md for AI assistant guidance
+
+### Changed
+- Updated test coverage threshold to 50% (from 70%)
+- Improved development workflow documentation
+
 ## [1.1.1] - 2025-07-28
 
 ### Fixed

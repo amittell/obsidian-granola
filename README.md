@@ -218,6 +218,51 @@ Access plugin settings via: **Settings → Plugin Options → Granola Importer**
 
 ## Development
 
+### Initial Setup
+
+```bash
+git clone https://github.com/amittell/obsidian-granola.git
+cd obsidian-granola
+npm install
+./setup-hooks.sh  # Enable pre-commit hooks
+npm run dev       # Start development
+```
+
+### Git Pre-Commit Hooks
+
+This project uses **automated pre-commit hooks** to catch issues before they reach CI, saving GitHub Actions minutes and preventing common commit errors.
+
+**What runs on every commit:**
+
+- ✨ Prettier formatting check
+- 🔍 TypeScript compilation check
+- 🏗️ Build verification
+- 🧹 Quick lint check (allows up to 20 warnings)
+- 🧪 Critical integration tests
+
+**Setup:**
+
+```bash
+./setup-hooks.sh
+```
+
+This configures git to use the `.githooks` directory for all hook scripts.
+
+**Bypassing hooks** (use sparingly):
+
+```bash
+git commit --no-verify
+```
+
+**Benefits:**
+
+- Catch formatting and build errors immediately
+- Faster feedback loop than waiting for CI
+- Reduce failed CI runs and save GitHub Actions minutes
+- Ensure consistent code quality across all commits
+
+**Note:** The hooks only run on files you're committing, so they're fast (typically 10-30 seconds).
+
 ### Build Commands
 
 - `npm run dev` - Watch mode with hot reload
@@ -240,9 +285,12 @@ Access plugin settings via: **Settings → Plugin Options → Granola Importer**
 
 1. Fork the repository
 2. Create a feature branch
-3. Follow the existing code patterns
-4. Ensure all tests pass: `npm test && npm run lint && npm run build`
-5. Submit a pull request
+3. Run `./setup-hooks.sh` to enable pre-commit hooks (highly recommended)
+4. Follow the existing code patterns
+5. Ensure all tests pass: `npm test && npm run lint && npm run build`
+6. Submit a pull request
+
+**Note:** Pre-commit hooks will automatically run formatting, linting, type checking, and build validation before each commit. This helps catch issues early and keeps the codebase consistent.
 
 ## Technical Details
 

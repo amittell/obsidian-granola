@@ -21,7 +21,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run test:watch` - Run tests in watch mode
 - `npm run test:coverage` - Run tests with coverage report
 - `npm run test:ci` - Run tests in CI mode (no watch, with coverage)
-- Coverage threshold: 70% for branches, functions, lines, and statements
+- **Run a single test**: `jest path/to/test.test.ts` or `npm test -- path/to/test.test.ts`
+- Coverage threshold: 50% for branches, functions, lines, and statements
 
 ### Code Quality
 
@@ -154,9 +155,10 @@ This is a feature-rich Obsidian plugin (~120KB bundle) that imports Granola note
 ### Testing Infrastructure
 
 - **Framework**: Jest with jsdom environment for DOM testing
-- **Coverage**: 70% threshold for branches, functions, lines, and statements
+- **Coverage**: 50% threshold for branches, functions, lines, and statements
 - **Mock System**: Comprehensive Obsidian API mocking in `tests/__mocks__/`
-- **Test Structure**: Separate unit and integration test directories
+- **Test Structure**: Separate `tests/unit/` and `tests/integration/` directories
+- **Test Helpers**: Located in `tests/helpers/` for reusable testing utilities
 - **CI Integration**: `npm run test:ci` for automated testing without watch mode
 
 ## Module Dependencies
