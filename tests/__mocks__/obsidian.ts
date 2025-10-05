@@ -1,6 +1,55 @@
 import { jest } from '@jest/globals';
 import { MockHTMLElement } from '../helpers/modal-test-helper';
 
+// Mock stringifyYaml function - converts object to YAML format
+export function stringifyYaml(obj: any): string {
+	const lines: string[] = [];
+	for (const [key, value] of Object.entries(obj)) {
+		if (value === null || value === undefined) {
+			continue;
+		}
+		if (Array.isArray(value)) {
+			lines.push(`${key}:`);
+			for (const item of value) {
+				lines.push(`  - ${item}`);
+			}
+		} else if (typeof value === 'string') {
+			// Quote strings that need quoting (URLs, titles, strings with quotes)
+			// But don't quote ISO timestamps or simple field values like 'Granola'
+			const needsQuotes =
+				key === 'title' ||
+				value.includes('http') ||
+				value.includes('"') ||
+				(value.includes(':') && !value.match(/^\d{4}-\d{2}-\d{2}T/));
+
+			if (needsQuotes) {
+				// Escape internal quotes
+				const escaped = value.replace(/"/g, '\\"');
+				lines.push(`${key}: "${escaped}"`);
+			} else {
+				lines.push(`${key}: ${value}`);
+			}
+		} else {
+			lines.push(`${key}: ${value}`);
+		}
+	}
+	return lines.join('\n');
+}
+
+// Mock htmlToMarkdown function
+export function htmlToMarkdown(html: string): string {
+	return html;
+}
+
+// Mock Platform object
+export const Platform = {
+	isMobile: false,
+	isDesktop: true,
+	isWin: process.platform === 'win32',
+	isMacOS: process.platform === 'darwin',
+	isLinux: process.platform === 'linux',
+};
+
 export class Plugin {
 	app: any;
 	manifest: any;
