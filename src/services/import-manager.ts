@@ -356,11 +356,15 @@ export class SelectiveImportManager {
 		// importDocuments calls startImport which calls reset(), clearing failedDocuments and
 		// lastImportMetadata. If import throws synchronously before any processing, we restore
 		// the snapshot so users can still export or retry the original failure set.
-		const failedSnapshot = JSON.parse(JSON.stringify(this.failedDocuments));
+		const failedSnapshot = this.failedDocuments.map(record => ({
+			...record,
+			document: this.cloneDocument(record.document),
+			metadata: record.metadata ? this.cloneMetadata(record.metadata) : undefined,
+		}));
 		const lastMetaSnapshot = new Map(
 			Array.from(this.lastImportMetadata.entries()).map(([key, value]) => [
 				key,
-				JSON.parse(JSON.stringify(value)),
+				this.cloneMetadata(value),
 			])
 		);
 

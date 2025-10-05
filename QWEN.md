@@ -141,7 +141,7 @@ The plugin provides intelligent duplicate detection and resolution:
 
 ## Project Structure
 
-```
+```text
 obsidian-granola/
 ├── src/
 │   ├── services/          # Core business logic (import manager, duplicate detection)
