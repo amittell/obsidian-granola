@@ -77,12 +77,6 @@ export default class GranolaImporterPlugin extends Plugin {
 	 */
 	private importManager!: SelectiveImportManager;
 
-	/**
-	 * Reference to the ribbon icon element.
-	 * Used to add/remove the icon based on settings.
-	 * @private
-	 */
-	private ribbonIconEl: HTMLElement | null = null;
 
 	/**
 	 * Plugin settings with default values and persistence.
@@ -173,8 +167,8 @@ export default class GranolaImporterPlugin extends Plugin {
 			});
 		}
 
-		// Add ribbon icon (always show, users can customize via Obsidian settings)
-		this.ribbonIconEl = this.addRibbonIcon('download', 'Import Granola notes', () => {
+		// Add ribbon icon for quick access (users can hide via Obsidian settings)
+		this.addRibbonIcon('download', 'Import Granola notes', () => {
 			this.openImportModal();
 		});
 	}
@@ -603,16 +597,5 @@ export default class GranolaImporterPlugin extends Plugin {
 		if (this.metadataService) {
 			this.metadataService.updateSettings(this.settings);
 		}
-
-		// Refresh ribbon icon based on new settings
-		this.refreshRibbonIcon();
-	}
-
-	/**
-	 * Refreshes the ribbon icon.
-	 * Note: As of Obsidian v1.1.0, users can customize ribbon items in settings.
-	 */
-	refreshRibbonIcon(): void {
-		// Ribbon icon is added once on load, users manage visibility in Obsidian settings
 	}
 }
