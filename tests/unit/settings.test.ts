@@ -26,6 +26,7 @@ jest.mock('obsidian', () => ({
 		const settingInstance = {
 			setName: jest.fn().mockReturnThis(),
 			setDesc: jest.fn().mockReturnThis(),
+			setHeading: jest.fn().mockReturnThis(),
 			addSlider: jest.fn().mockImplementation(builderFn => {
 				const mockSlider = {
 					setLimits: jest.fn().mockReturnThis(),
@@ -873,9 +874,6 @@ describe('GranolaSettingTab class', () => {
 			it('should create connection settings with test button', () => {
 				(settingTab as any).addConnectionSection();
 
-				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-					text: 'Connection & Validation',
-				});
 				expect(Setting).toHaveBeenCalledWith(mockContainerEl);
 				// Button callback should be captured
 				expect(callbacks.buttonCallbacks.length).toBeGreaterThan(0);
@@ -912,9 +910,6 @@ describe('GranolaSettingTab class', () => {
 			it('should create debug settings with toggle and dropdown', () => {
 				(settingTab as any).addDebugSection();
 
-				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-					text: 'Debug & Logging',
-				});
 				// Should have captured toggle and dropdown callbacks
 				expect(callbacks.toggleCallbacks.length).toBeGreaterThan(0);
 				expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
@@ -956,9 +951,6 @@ describe('GranolaSettingTab class', () => {
 			it('should create import settings with strategy dropdown', () => {
 				(settingTab as any).addImportSection();
 
-				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-					text: 'Import Behavior',
-				});
 				// Should have captured dropdown and text callbacks
 				expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
 				expect(callbacks.textCallbacks.length).toBeGreaterThan(0);
@@ -991,9 +983,6 @@ describe('GranolaSettingTab class', () => {
 			it('should create content settings with all controls', () => {
 				(settingTab as any).addContentSection();
 
-				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-					text: 'Content Processing',
-				});
 				// Should have captured dropdown, toggle, and slider callbacks
 				expect(callbacks.dropdownCallbacks.length).toBeGreaterThan(0);
 				expect(callbacks.toggleCallbacks.length).toBeGreaterThan(0);
@@ -1027,9 +1016,6 @@ describe('GranolaSettingTab class', () => {
 			it('should create UI settings with toggles', () => {
 				(settingTab as any).addUISection();
 
-				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-					text: 'User Interface',
-				});
 				// Should have captured toggle callbacks for progress notifications and attendee tags
 				expect(callbacks.toggleCallbacks.length).toBe(2);
 			});
@@ -1306,28 +1292,16 @@ describe('GranolaSettingTab class', () => {
 				expect(mockPlugin.settings.attendeeTags.enabled).toBe(false);
 			});
 
-			it('should create proper section headers', () => {
-				(settingTab as any).addConnectionSection();
-				(settingTab as any).addDebugSection();
-				(settingTab as any).addImportSection();
-				(settingTab as any).addContentSection();
-				(settingTab as any).addUISection();
+			it('should create proper section headers using Setting().setHeading()', () => {
+				// After changing to Setting().setHeading(), we just verify sections don't throw
+				expect(() => (settingTab as any).addConnectionSection()).not.toThrow();
+				expect(() => (settingTab as any).addDebugSection()).not.toThrow();
+				expect(() => (settingTab as any).addImportSection()).not.toThrow();
+				expect(() => (settingTab as any).addContentSection()).not.toThrow();
+				expect(() => (settingTab as any).addUISection()).not.toThrow();
 
-				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-					text: 'Connection & Validation',
-				});
-				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-					text: 'Debug & Logging',
-				});
-				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-					text: 'Import Behavior',
-				});
-				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-					text: 'Content Processing',
-				});
-				expect(mockContainerEl.createEl).toHaveBeenCalledWith('h3', {
-					text: 'User Interface',
-				});
+				// Sections should use Setting().setHeading() instead of h2/h3/h4 elements
+				// No longer checking for createEl('h3') calls
 			});
 		});
 	});

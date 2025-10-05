@@ -17,8 +17,6 @@ export class GranolaSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl('h2', { text: 'Granola Importer Settings' });
-
 		// Connection section
 		this.addConnectionSection();
 
@@ -41,7 +39,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 	private addConnectionSection(): void {
 		const { containerEl } = this;
 
-		containerEl.createEl('h3', { text: 'Connection & Validation' });
+		new Setting(containerEl).setHeading().setName('Connection & Validation');
 
 		// Connection status
 		const statusEl = containerEl.createDiv('connection-status');
@@ -67,7 +65,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 	private addDebugSection(): void {
 		const { containerEl } = this;
 
-		containerEl.createEl('h3', { text: 'Debug & Logging' });
+		new Setting(containerEl).setHeading().setName('Debug & Logging');
 
 		// Debug mode toggle
 		new Setting(containerEl)
@@ -120,7 +118,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 	private addImportSection(): void {
 		const { containerEl } = this;
 
-		containerEl.createEl('h3', { text: 'Import Behavior' });
+		new Setting(containerEl).setHeading().setName('Import Behavior');
 
 		// Default import strategy
 		new Setting(containerEl)
@@ -175,7 +173,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 	private addContentSection(): void {
 		const { containerEl } = this;
 
-		containerEl.createEl('h3', { text: 'Content Processing' });
+		new Setting(containerEl).setHeading().setName('Content Processing');
 
 		// Enhanced frontmatter toggle
 		new Setting(containerEl)
@@ -281,7 +279,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 		}
 
 		// Action items section header
-		containerEl.createEl('h4', { text: 'Action Items Processing' });
+		new Setting(containerEl).setHeading().setName('Action Items Processing');
 
 		// Convert action items to tasks
 		new Setting(containerEl)
@@ -343,7 +341,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 	private addUISection(): void {
 		const { containerEl } = this;
 
-		containerEl.createEl('h3', { text: 'User Interface' });
+		new Setting(containerEl).setHeading().setName('User Interface');
 
 		// Progress notifications
 		new Setting(containerEl)
@@ -359,7 +357,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 			});
 
 		// Attendee Tags section
-		containerEl.createEl('h3', { text: 'Attendee Tags' });
+		new Setting(containerEl).setHeading().setName('Attendee Tags');
 
 		// Enable attendee tags
 		new Setting(containerEl)
