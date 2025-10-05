@@ -54,13 +54,22 @@ export enum ContentPriority {
  * Plugin settings interface with simplified configuration options.
  */
 export interface GranolaSettings {
-	/** Debug and logging settings */
-	debug: {
-		/** Enable debug logging */
-		enabled: boolean;
-		/** Log level threshold */
-		logLevel: LogLevel;
-	};
+        /** Debug and logging settings */
+        debug: {
+                /** Enable debug logging */
+                enabled: boolean;
+                /** Log level threshold */
+                logLevel: LogLevel;
+        };
+
+        /** Experimental plugin feature flags */
+        plugin: {
+                /** Flags that enable in-development functionality */
+                flags: {
+                        /** Toggle for the internal event bus scaffolding */
+                        useEventBus: boolean;
+                };
+        };
 
 	/** Import behavior settings */
 	import: {
@@ -135,10 +144,15 @@ export interface GranolaSettings {
  * Default settings with sensible values.
  */
 export const DEFAULT_SETTINGS: GranolaSettings = {
-	debug: {
-		enabled: false,
-		logLevel: LogLevel.WARN,
-	},
+        debug: {
+                enabled: false,
+                logLevel: LogLevel.WARN,
+        },
+        plugin: {
+                flags: {
+                        useEventBus: false,
+                },
+        },
 	import: {
 		strategy: ImportStrategy.ALWAYS_PROMPT,
 		defaultFolder: '',
