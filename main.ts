@@ -9,9 +9,9 @@ import { DocumentSelectionModal } from './src/ui/document-selection-modal';
 import { GranolaSettings, DEFAULT_SETTINGS, Logger } from './src/types';
 import { ServiceContainer } from './src/core/di/ServiceContainer';
 import {
-        PluginEvents,
-        VaultIndexerEventsAdapter,
-        CostTrackerEventsAdapter,
+	PluginEvents,
+	VaultIndexerEventsAdapter,
+	CostTrackerEventsAdapter,
 } from './src/core/events/PluginEvents';
 import { GranolaSettingTab } from './src/settings';
 
@@ -127,19 +127,19 @@ export default class GranolaImporterPlugin extends Plugin {
 	 * ```
 	 */
 	async onload(): Promise<void> {
-                try {
-                        await this.loadSettings();
-                        this.logger = new Logger(this.settings);
-                        this.logger.debug('Settings loaded and logger initialized');
-                } catch (error) {
+		try {
+			await this.loadSettings();
+			this.logger = new Logger(this.settings);
+			this.logger.debug('Settings loaded and logger initialized');
+		} catch (error) {
 			console.error('Fatal error during plugin initialization:', error);
 			throw error;
 		}
 
-                // Initialize core components
-                this.auth = new GranolaAuth();
-                this.api = new GranolaAPI(this.auth);
-                this.converter = new ProseMirrorConverter(this.logger, this.settings);
+		// Initialize core components
+		this.auth = new GranolaAuth();
+		this.api = new GranolaAPI(this.auth);
+		this.converter = new ProseMirrorConverter(this.logger, this.settings);
 
 		if (this.settings.plugin?.flags?.useEventBus) {
 			this.serviceContainer = new ServiceContainer();
@@ -148,7 +148,10 @@ export default class GranolaImporterPlugin extends Plugin {
 			const pluginEventsKey = Symbol.for('granola.plugin.events');
 			const pluginInstanceKey = Symbol.for('granola.plugin.instance');
 
-			this.serviceContainer.registerSingleton(pluginEventsKey, async () => this.pluginEvents!);
+			this.serviceContainer.registerSingleton(
+				pluginEventsKey,
+				async () => this.pluginEvents!
+			);
 			this.serviceContainer.registerSingleton(pluginInstanceKey, async () => this);
 
 			this.eventAdapters = [
@@ -156,7 +159,7 @@ export default class GranolaImporterPlugin extends Plugin {
 				new CostTrackerEventsAdapter(this.pluginEvents),
 			];
 
-                        await this.pluginEvents.emit('plugin:initialized');
+			await this.pluginEvents.emit('plugin:initialized');
 		}
 
 		// Initialize selective import services
@@ -226,7 +229,7 @@ export default class GranolaImporterPlugin extends Plugin {
 	 */
 	onunload(): void {
 		// Clean up resources when plugin is disabled
-		this.eventAdapters.forEach((adapter) => adapter.dispose());
+		this.eventAdapters.forEach(adapter => adapter.dispose());
 		this.eventAdapters = [];
 		this.pluginEvents?.clearAll();
 		this.serviceContainer?.clearScoped();
@@ -651,5 +654,5 @@ export default class GranolaImporterPlugin extends Plugin {
 		if (this.serviceContainer) {
 			await this.serviceContainer.reloadSettings(this.settings);
 		}
-        }
+	}
 }
