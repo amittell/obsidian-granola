@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2025-10-05
+
 ### Added
 - Automated git pre-commit hooks for local validation
   - Runs formatting, type checking, build verification, and lint checks
@@ -23,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Updated test coverage threshold to 50% (from 70%)
 - Improved development workflow documentation
+
+### Removed
+- Outdated review tracking documentation files
 
 ## [1.1.1] - 2025-07-28
 
