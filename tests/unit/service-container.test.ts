@@ -81,6 +81,6 @@ describe('ServiceContainer', () => {
                 const scope = container.createScope();
                 await scope.reloadSettings(DEFAULT_SETTINGS);
 
-                expect(reloadHook).toHaveBeenCalledWith(DEFAULT_SETTINGS, scope);
+                expect(reloadHook).toHaveBeenCalledWith(DEFAULT_SETTINGS, container);
         });
 });
