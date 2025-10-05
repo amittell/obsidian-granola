@@ -337,9 +337,7 @@ export class SelectiveImportManager {
 					document: record.document,
 				};
 			})
-			.filter((entry): entry is { metadata: DocumentDisplayMetadata; document: GranolaDocument } =>
-				entry !== null
-			);
+			.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
 		if (retryRecords.length === 0) {
 			throw new Error('Unable to retry failed documents because metadata is unavailable.');
@@ -354,7 +352,26 @@ export class SelectiveImportManager {
 			isRetry: true,
 		};
 
-		return this.importDocuments(retryMetadata, retryDocuments, retryOptions);
+		// Snapshot failed state before retry to prevent loss if importDocuments aborts early.
+		// importDocuments calls startImport which calls reset(), clearing failedDocuments and
+		// lastImportMetadata. If import throws synchronously before any processing, we restore
+		// the snapshot so users can still export or retry the original failure set.
+		const failedSnapshot = JSON.parse(JSON.stringify(this.failedDocuments));
+		const lastMetaSnapshot = new Map(
+			Array.from(this.lastImportMetadata.entries()).map(([key, value]) => [
+				key,
+				JSON.parse(JSON.stringify(value)),
+			])
+		);
+
+		try {
+			return await this.importDocuments(retryMetadata, retryDocuments, retryOptions);
+		} catch (error) {
+			// Restore failed state on synchronous failure before any retry progress
+			this.failedDocuments = failedSnapshot;
+			this.lastImportMetadata = lastMetaSnapshot;
+			throw error;
+		}
 	}
 
 	/**
