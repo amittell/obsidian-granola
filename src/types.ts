@@ -106,6 +106,14 @@ export interface GranolaSettings {
 		showProgressNotifications: boolean;
 	};
 
+	/** Auto-import settings */
+	autoImport: {
+		/** Enable automatic import timer */
+		enabled: boolean;
+		/** Import interval in milliseconds */
+		interval: number;
+	};
+
 	/** Attendee tagging settings */
 	attendeeTags: {
 		/** Enable attendee extraction and tagging */
@@ -160,6 +168,10 @@ export const DEFAULT_SETTINGS: GranolaSettings = {
 	},
 	ui: {
 		showProgressNotifications: true,
+	},
+	autoImport: {
+		enabled: false,
+		interval: 3600000, // 1 hour default
 	},
 	attendeeTags: {
 		enabled: false,
