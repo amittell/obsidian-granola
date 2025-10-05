@@ -38,10 +38,13 @@ const mockMetadataService = {
 } as unknown as DocumentMetadataService;
 
 const mockImportManager = {
-	importDocuments: jest.fn(),
-	cancel: jest.fn(),
-	reset: jest.fn(),
-	getProgress: jest.fn(),
+        importDocuments: jest.fn(),
+        cancel: jest.fn(),
+        reset: jest.fn(),
+        getProgress: jest.fn(),
+        getAllDocumentProgress: jest.fn().mockReturnValue([]),
+        getFailedDocuments: jest.fn().mockReturnValue([]),
+        retryFailedImports: jest.fn(),
 } as unknown as SelectiveImportManager;
 
 const mockConverter = {
@@ -66,11 +69,11 @@ const mockElement = {
 
 // Mock Modal class
 jest.mock('obsidian', () => ({
-	Modal: class MockModal {
-		app: App;
-		contentEl: any;
-		titleEl: any;
-		modalEl: any;
+        Modal: class MockModal {
+                app: App;
+                contentEl: any;
+                titleEl: any;
+                modalEl: any;
 
 		constructor(app: App) {
 			this.app = app;
@@ -85,11 +88,11 @@ jest.mock('obsidian', () => ({
 
 		close() {
 			return this;
-		}
-	},
-	ButtonComponent: class MockButtonComponent {
-		constructor(public container: any) {}
-		setButtonText(text: string) {
+                }
+        },
+        ButtonComponent: class MockButtonComponent {
+                constructor(public container: any) {}
+                setButtonText(text: string) {
 			return this;
 		}
 		setCta() {
@@ -116,8 +119,19 @@ jest.mock('obsidian', () => ({
 		onChange(callback: (value: string) => void) {
 			return this;
 		}
-	},
-	Notice: jest.fn(),
+        },
+        Notice: jest.fn(),
+        Menu: class MockMenu {
+                addItem(callback: (item: any) => void) {
+                        const item = {
+                                setTitle: jest.fn().mockReturnThis(),
+                                onClick: jest.fn().mockReturnThis(),
+                        };
+                        callback(item);
+                        return this;
+                }
+                showAtMouseEvent = jest.fn();
+        },
 }));
 
 describe('DocumentSelectionModal', () => {
