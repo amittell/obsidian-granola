@@ -74,6 +74,16 @@ When you run the import command, the plugin will:
    - Success/failure indicators
    - Detailed error messages if issues occur
 
+#### Recovering Failed Imports
+
+When a document can't be imported, the completion summary now helps you recover quickly:
+
+- **Retry failed imports** with a single click—only the documents that failed are retried, using the same import settings and live progress view.
+- **Export the failure list** for troubleshooting via the new dropdown:
+  - Download a CSV with document ID, title, error reason, and timestamp.
+  - Copy a formatted summary to your clipboard for sharing with support or teammates.
+- **Keep working seamlessly**—successful documents remain available to open immediately while retries and exports focus solely on the failures.
+
 ### Common Use Cases
 
 #### Daily Meeting Notes

@@ -867,6 +867,96 @@ describe('SelectiveImportManager', () => {
 		});
 	});
 
+	describe('failed import recovery features', () => {
+		it('tracks failed documents with metadata and error details', async () => {
+			(mockConverter.convertDocument as jest.Mock).mockImplementation(doc => {
+				if (doc.id === 'doc1') {
+					throw new Error('Conversion failed for doc1');
+				}
+
+				return {
+					filename: `${doc.id}.md`,
+					content: '# Markdown content',
+					frontmatter: { granola_id: doc.id, title: doc.title },
+					isTrulyEmpty: false,
+				};
+			});
+
+			await importManager.importDocuments(mockDocumentMetadata, mockGranolaDocuments, {
+				...defaultOptions,
+				stopOnError: false,
+			});
+
+			const failedRecords = importManager.getFailedDocuments();
+			expect(failedRecords).toHaveLength(1);
+			const failedRecord = failedRecords[0];
+			expect(failedRecord.document.id).toBe('doc1');
+			expect(failedRecord.metadata?.id).toBe('doc1');
+			expect(failedRecord.metadata?.title).toBe('Document 1');
+			expect(failedRecord.error).toContain('Conversion failed');
+			expect(failedRecord.message).toContain('failed');
+			expect(typeof failedRecord.timestamp).toBe('number');
+		});
+
+		it('retries only failed documents using stored context', async () => {
+			let shouldFailDoc1 = true;
+			(mockConverter.convertDocument as jest.Mock).mockImplementation(doc => {
+				if (doc.id === 'doc1' && shouldFailDoc1) {
+					shouldFailDoc1 = false;
+					throw new Error('Initial failure for doc1');
+				}
+
+				return {
+					filename: `${doc.id}.md`,
+					content: '# Markdown content',
+					frontmatter: { granola_id: doc.id, title: doc.title },
+					isTrulyEmpty: false,
+				};
+			});
+
+			await importManager.importDocuments(mockDocumentMetadata, mockGranolaDocuments, {
+				...defaultOptions,
+				stopOnError: false,
+			});
+
+			const failedRecords = importManager.getFailedDocuments();
+			expect(failedRecords).toHaveLength(1);
+			const initialCreateCalls = (mockVault.create as jest.Mock).mock.calls.length;
+
+			const retryProgressUpdates: ImportProgress[] = [];
+			const retryDocumentUpdates: DocumentProgress[] = [];
+
+			const retryResult = await importManager.retryFailedImports({
+				...defaultOptions,
+				onProgress: progress => retryProgressUpdates.push(progress),
+				onDocumentProgress: docProgress => retryDocumentUpdates.push(docProgress),
+			});
+
+			expect(retryResult.total).toBe(1);
+			expect(retryResult.failed).toBe(0);
+			expect(retryResult.completed).toBe(1);
+			expect(importManager.getFailedDocuments()).toHaveLength(0);
+			expect((mockVault.create as jest.Mock).mock.calls.length).toBe(initialCreateCalls + 1);
+			expect(retryProgressUpdates.length).toBeGreaterThan(0);
+			expect(
+				retryDocumentUpdates.some(
+					update => update.id === 'doc1' && update.status === 'completed'
+				)
+			).toBe(true);
+		});
+
+		it('throws when retrying without failed documents', async () => {
+			await importManager.importDocuments(mockDocumentMetadata, mockGranolaDocuments, {
+				...defaultOptions,
+				stopOnError: false,
+			});
+
+			await expect(importManager.retryFailedImports({ ...defaultOptions })).rejects.toThrow(
+				'There are no failed documents to retry.'
+			);
+		});
+	});
+
 	describe('empty document filtering', () => {
 		it('should skip empty documents when setting is enabled', async () => {
 			const emptyDocument: GranolaDocument = {

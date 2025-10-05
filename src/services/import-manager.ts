@@ -66,6 +66,29 @@ export interface DocumentProgress {
 }
 
 /**
+ * Record of a failed document import attempt.
+ */
+export interface FailedDocumentRecord {
+	/** Original document data */
+	document: GranolaDocument;
+
+	/** Display metadata captured at time of failure */
+	metadata?: DocumentDisplayMetadata;
+
+	/** Raw error message */
+	error: string;
+
+	/** User-friendly error description */
+	message: string;
+
+	/** Error category */
+	errorCategory?: ImportErrorCategory;
+
+	/** Timestamp of the failure */
+	timestamp: number;
+}
+
+/**
  * Overall import progress information.
  */
 export interface ImportProgress {
@@ -110,6 +133,9 @@ export interface ImportOptions {
 	/** Whether to stop on first error */
 	stopOnError: boolean;
 
+	/** Whether this import run is retrying failed documents */
+	isRetry?: boolean;
+
 	/** Custom progress callback */
 	onProgress?: (progress: ImportProgress) => void;
 
@@ -148,6 +174,9 @@ export class SelectiveImportManager {
 	private overallProgress: ImportProgress;
 	private progressCallback?: (progress: ImportProgress) => void;
 	private documentProgressCallback?: (docProgress: DocumentProgress) => void;
+	private failedDocuments: FailedDocumentRecord[] = [];
+	private lastImportMetadata: Map<string, DocumentDisplayMetadata> = new Map();
+	private lastImportOptions: ImportOptions = { ...DEFAULT_OPTIONS };
 
 	/**
 	 * Creates a new selective import manager.
@@ -193,7 +222,10 @@ export class SelectiveImportManager {
 		}
 
 		try {
-			this.startImport(selectedDocuments, options);
+			const mergedOptions: ImportOptions = { ...DEFAULT_OPTIONS, ...options };
+			this.lastImportOptions = mergedOptions;
+
+			this.startImport(selectedDocuments, mergedOptions);
 
 			// Data preparation
 			const documentMap = new Map(granolaDocuments.map(doc => [doc.id, doc]));
@@ -201,11 +233,15 @@ export class SelectiveImportManager {
 				.filter(meta => meta.selected && documentMap.has(meta.id))
 				.map(meta => ({ meta, doc: documentMap.get(meta.id)! }));
 
+			this.lastImportMetadata = new Map(
+				importQueue.map(({ meta }) => [meta.id, this.cloneMetadata(meta)])
+			);
+
 			// Update total count based on actual documents to be processed
 			this.overallProgress.total = importQueue.length;
 
 			// Document processing
-			await this.processDocumentQueue(importQueue, options);
+			await this.processDocumentQueue(importQueue, mergedOptions);
 
 			this.completeImport();
 
@@ -263,6 +299,82 @@ export class SelectiveImportManager {
 	}
 
 	/**
+	 * Gets a snapshot of failed document records from the last completed import.
+	 *
+	 * @returns {FailedDocumentRecord[]} Failed document details
+	 */
+	getFailedDocuments(): FailedDocumentRecord[] {
+		return this.failedDocuments.map(record => ({
+			...record,
+			metadata: record.metadata ? this.cloneMetadata(record.metadata) : undefined,
+			document: { ...record.document },
+		}));
+	}
+
+	/**
+	 * Retries importing the documents that previously failed.
+	 *
+	 * @param {ImportOptions} [options] - Import options for the retry attempt
+	 * @returns {Promise<ImportProgress>} Final results of the retry
+	 */
+	async retryFailedImports(options?: ImportOptions): Promise<ImportProgress> {
+		if (this.failedDocuments.length === 0) {
+			throw new Error('There are no failed documents to retry.');
+		}
+
+		const retryRecords = this.failedDocuments
+			.map(record => {
+				const metadata = record.metadata ?? this.lastImportMetadata.get(record.document.id);
+				if (!metadata) {
+					return null;
+				}
+
+				const clonedMetadata = this.cloneMetadata(metadata);
+				clonedMetadata.selected = true;
+
+				return {
+					metadata: clonedMetadata,
+					document: record.document,
+				};
+			})
+			.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+
+		if (retryRecords.length === 0) {
+			throw new Error('Unable to retry failed documents because metadata is unavailable.');
+		}
+
+		const retryMetadata = retryRecords.map(entry => entry.metadata);
+		const retryDocuments = retryRecords.map(entry => entry.document);
+
+		const retryOptions: ImportOptions = {
+			...this.lastImportOptions,
+			...(options ?? {}),
+			isRetry: true,
+		};
+
+		// Snapshot failed state before retry to prevent loss if importDocuments aborts early.
+		// importDocuments calls startImport which calls reset(), clearing failedDocuments and
+		// lastImportMetadata. If import throws synchronously before any processing, we restore
+		// the snapshot so users can still export or retry the original failure set.
+		const failedSnapshot = JSON.parse(JSON.stringify(this.failedDocuments));
+		const lastMetaSnapshot = new Map(
+			Array.from(this.lastImportMetadata.entries()).map(([key, value]) => [
+				key,
+				JSON.parse(JSON.stringify(value)),
+			])
+		);
+
+		try {
+			return await this.importDocuments(retryMetadata, retryDocuments, retryOptions);
+		} catch (error) {
+			// Restore failed state on synchronous failure before any retry progress
+			this.failedDocuments = failedSnapshot;
+			this.lastImportMetadata = lastMetaSnapshot;
+			throw error;
+		}
+	}
+
+	/**
 	 * Resets the import manager state.
 	 * Should be called before starting a new import.
 	 */
@@ -271,6 +383,8 @@ export class SelectiveImportManager {
 		this.isCancelled = false;
 		this.documentProgress.clear();
 		this.overallProgress = this.createInitialProgress();
+		this.failedDocuments = [];
+		this.lastImportMetadata = new Map();
 	}
 
 	/**
@@ -509,17 +623,27 @@ export class SelectiveImportManager {
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 			const errorCategory = this.categorizeError(error);
+			const friendlyMessage = this.getErrorMessage(errorCategory, errorMessage);
 
 			this.updateDocumentProgress(doc.id, {
 				status: 'failed',
 				progress: 100,
-				message: this.getErrorMessage(errorCategory, errorMessage),
+				message: friendlyMessage,
 				error: errorMessage,
 				errorCategory,
 				endTime: Date.now(),
 			});
 
 			this.overallProgress.failed++;
+
+			this.failedDocuments.push({
+				document: doc,
+				metadata: this.lastImportMetadata.get(doc.id),
+				error: errorMessage,
+				message: friendlyMessage,
+				errorCategory,
+				timestamp: Date.now(),
+			});
 
 			if (options.stopOnError) {
 				this.cancel();
@@ -997,5 +1121,19 @@ export class SelectiveImportManager {
 			default:
 				return `Import failed: ${originalMessage}`;
 		}
+	}
+
+	/**
+	 * Clones document metadata to avoid accidental external mutations.
+	 *
+	 * @private
+	 * @param {DocumentDisplayMetadata} metadata - Metadata to clone
+	 * @returns {DocumentDisplayMetadata} Cloned metadata object
+	 */
+	private cloneMetadata(metadata: DocumentDisplayMetadata): DocumentDisplayMetadata {
+		return {
+			...metadata,
+			importStatus: { ...metadata.importStatus },
+		};
 	}
 }
