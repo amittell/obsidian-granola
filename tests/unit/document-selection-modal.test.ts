@@ -42,6 +42,9 @@ const mockImportManager = {
 	cancel: jest.fn(),
 	reset: jest.fn(),
 	getProgress: jest.fn(),
+	getAllDocumentProgress: jest.fn().mockReturnValue([]),
+	getFailedDocuments: jest.fn().mockReturnValue([]),
+	retryFailedImports: jest.fn(),
 } as unknown as SelectiveImportManager;
 
 const mockConverter = {
@@ -118,6 +121,17 @@ jest.mock('obsidian', () => ({
 		}
 	},
 	Notice: jest.fn(),
+	Menu: class MockMenu {
+		addItem(callback: (item: any) => void) {
+			const item = {
+				setTitle: jest.fn().mockReturnThis(),
+				onClick: jest.fn().mockReturnThis(),
+			};
+			callback(item);
+			return this;
+		}
+		showAtMouseEvent = jest.fn();
+	},
 }));
 
 describe('DocumentSelectionModal', () => {
