@@ -98,7 +98,7 @@ export class ConflictResolutionModal extends Modal {
 
 		// Header
 		const header = this.contentEl.createDiv('conflict-header');
-		header.createEl('h2', { text: 'Import Conflict Detected' });
+		header.createEl('h2', { text: 'Import conflict detected' });
 
 		const status = header.createEl('div', { cls: 'conflict-status' });
 		this.setStatusMessage(status);
@@ -158,7 +158,7 @@ export class ConflictResolutionModal extends Modal {
 	}
 
 	private createDocumentInfo(container: HTMLElement): void {
-		container.createEl('h3', { text: 'Document Information' });
+		container.createEl('h3', { text: 'Document information' });
 
 		const table = container.createEl('table', { cls: 'document-info-table' });
 
@@ -192,7 +192,7 @@ export class ConflictResolutionModal extends Modal {
 	}
 
 	private createConflictDetails(container: HTMLElement): void {
-		container.createEl('h3', { text: 'Conflict Details' });
+		container.createEl('h3', { text: 'Conflict details' });
 
 		const detailsBox = container.createDiv('conflict-details-box');
 
@@ -201,21 +201,21 @@ export class ConflictResolutionModal extends Modal {
 
 		// Granola version preview
 		const granolaPreview = comparison.createDiv('version-preview granola-version');
-		granolaPreview.createEl('h4', { text: '📥 Granola Version (Incoming)' });
+		granolaPreview.createEl('h4', { text: '📥 Granola version (incoming)' });
 		const granolaContent = granolaPreview.createEl('div', { cls: 'content-preview' });
 		granolaContent.textContent = this.getGranolaPreview();
 
 		// Existing version preview
 		if (this.existingFile && this.existingContent) {
 			const existingPreview = comparison.createDiv('version-preview existing-version');
-			existingPreview.createEl('h4', { text: '📄 Current Version (In Vault)' });
+			existingPreview.createEl('h4', { text: '📄 Current version (in vault)' });
 			const existingContentEl = existingPreview.createEl('div', { cls: 'content-preview' });
 			existingContentEl.textContent = this.getExistingPreview();
 		}
 	}
 
 	private createResolutionOptions(container: HTMLElement): void {
-		container.createEl('h3', { text: 'Choose Resolution' });
+		container.createEl('h3', { text: 'Choose resolution' });
 
 		const optionsGrid = container.createDiv('resolution-grid');
 
@@ -259,7 +259,7 @@ export class ConflictResolutionModal extends Modal {
 
 		// Cancel option
 		const cancelDiv = container.createDiv('cancel-option');
-		new ButtonComponent(cancelDiv).setButtonText('Cancel Import').onClick(() => this.close());
+		new ButtonComponent(cancelDiv).setButtonText('Cancel import').onClick(() => this.close());
 	}
 
 	private createResolutionOption(
@@ -292,7 +292,7 @@ export class ConflictResolutionModal extends Modal {
 
 		const confirmDiv = this.contentEl.createDiv('confirmation-dialog');
 		confirmDiv.setAttribute('data-granola-dialog', 'true');
-		confirmDiv.createEl('h4', { text: '⚠️ Confirm Replacement' });
+		confirmDiv.createEl('h4', { text: '⚠️ Confirm replacement' });
 		confirmDiv.createEl('p', {
 			text: 'This will permanently replace the existing file. This action cannot be undone.',
 		});
@@ -313,8 +313,8 @@ export class ConflictResolutionModal extends Modal {
 			confirmDiv.remove();
 		});
 
-		new ButtonComponent(buttons)
-			.setButtonText('Replace File')
+	new ButtonComponent(buttons)
+			.setButtonText('Replace file')
 			.setClass('mod-warning')
 			.onClick(() => {
 				this.resolveWith({
@@ -334,10 +334,10 @@ export class ConflictResolutionModal extends Modal {
 
 		const mergeDiv = this.contentEl.createDiv('merge-dialog');
 		mergeDiv.setAttribute('data-granola-dialog', 'true');
-		mergeDiv.createEl('h4', { text: '🔗 Choose Merge Strategy' });
+		mergeDiv.createEl('h4', { text: '🔗 Choose merge strategy' });
 
-		const appendOption = mergeDiv.createDiv('merge-option');
-		new ButtonComponent(appendOption).setButtonText('Append Granola Content').onClick(() => {
+	const appendOption = mergeDiv.createDiv('merge-option');
+		new ButtonComponent(appendOption).setButtonText('Append Granola content').onClick(() => {
 			this.resolveWith({ action: 'merge', strategy: 'append' });
 		});
 		appendOption.createEl('p', {
@@ -345,8 +345,8 @@ export class ConflictResolutionModal extends Modal {
 			cls: 'merge-description',
 		});
 
-		const prependOption = mergeDiv.createDiv('merge-option');
-		new ButtonComponent(prependOption).setButtonText('Prepend Granola Content').onClick(() => {
+	const prependOption = mergeDiv.createDiv('merge-option');
+		new ButtonComponent(prependOption).setButtonText('Prepend Granola content').onClick(() => {
 			this.resolveWith({ action: 'merge', strategy: 'prepend' });
 		});
 		prependOption.createEl('p', {
@@ -370,7 +370,7 @@ export class ConflictResolutionModal extends Modal {
 
 		const renameDiv = this.contentEl.createDiv('rename-dialog');
 		renameDiv.setAttribute('data-granola-dialog', 'true');
-		renameDiv.createEl('h4', { text: '📝 Enter New Filename' });
+		renameDiv.createEl('h4', { text: '📝 Enter new filename' });
 
 		const inputContainer = renameDiv.createDiv('filename-input-container');
 		const input = inputContainer.createEl('input', {
@@ -387,8 +387,8 @@ export class ConflictResolutionModal extends Modal {
 			renameDiv.remove();
 		});
 
-		new ButtonComponent(buttons)
-			.setButtonText('Import with New Name')
+	new ButtonComponent(buttons)
+			.setButtonText('Import with new name')
 			.setCta()
 			.onClick(() => {
 				const newFilename = input.value.trim();

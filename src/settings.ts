@@ -50,8 +50,8 @@ export class GranolaSettingTab extends PluginSettingTab {
 			.setName('Test Granola connection')
 			.setDesc('Verify that the plugin can connect to Granola and access your documents')
 			.addButton(button => {
-				button
-					.setButtonText('Test Connection')
+			button
+					.setButtonText('Test connection')
 					.setCta()
 					.onClick(async () => {
 						await this.validateConnection(statusEl);
