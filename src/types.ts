@@ -104,6 +104,8 @@ export interface GranolaSettings {
 	ui: {
 		/** Show import progress notifications */
 		showProgressNotifications: boolean;
+		/** Show empty documents in the selection modal */
+		showEmptyDocuments: boolean;
 	};
 
 	/** Attendee tagging settings */
@@ -160,6 +162,7 @@ export const DEFAULT_SETTINGS: GranolaSettings = {
 	},
 	ui: {
 		showProgressNotifications: true,
+		showEmptyDocuments: false,
 	},
 	attendeeTags: {
 		enabled: false,
