@@ -32,7 +32,8 @@ jest.mock('../../src/converter', () => ({
 	ProseMirrorConverter: jest.fn().mockImplementation(() => ({
 		convertDocument: jest.fn().mockReturnValue({
 			filename: 'Test Document.md',
-			content: '---\nid: test-doc-id\ntitle: "Test Document"\n---\n\n# Test Document\n\nTest content',
+			content:
+				'---\nid: test-doc-id\ntitle: "Test Document"\n---\n\n# Test Document\n\nTest content',
 			frontmatter: {
 				id: 'test-doc-id',
 				title: 'Test Document',

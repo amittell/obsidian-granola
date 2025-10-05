@@ -354,9 +354,9 @@ describe('ProseMirror Utils - isEmptyDocument', () => {
 				},
 			};
 
-		expect(isEmptyDocument(docWithPriorityContent)).toBe(false);
+			expect(isEmptyDocument(docWithPriorityContent)).toBe(false);
+		});
 	});
-});
 
 	describe('extractTextFromContent', () => {
 		it('should handle null and undefined content', () => {
