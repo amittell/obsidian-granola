@@ -898,6 +898,45 @@ describe('SelectiveImportManager', () => {
 			expect(typeof failedRecord.timestamp).toBe('number');
 		});
 
+		it('returns cloned failed documents to prevent external mutation', async () => {
+			let shouldFailDoc1 = true;
+			(mockConverter.convertDocument as jest.Mock).mockImplementation(doc => {
+				if (doc.id === 'doc1' && shouldFailDoc1) {
+					shouldFailDoc1 = false;
+					throw new Error('Initial failure for doc1');
+				}
+
+				return {
+					filename: `${doc.id}.md`,
+					content: '# Markdown content',
+					frontmatter: { granola_id: doc.id, title: doc.title },
+					isTrulyEmpty: false,
+				};
+			});
+
+			await importManager.importDocuments(mockDocumentMetadata, mockGranolaDocuments, {
+				...defaultOptions,
+				stopOnError: false,
+			});
+
+			const failedSnapshot = importManager.getFailedDocuments();
+			expect(failedSnapshot).toHaveLength(1);
+
+			// Mutate the returned snapshot to ensure internal state is protected
+			failedSnapshot[0].document.title = 'Mutated title';
+			if (failedSnapshot[0].metadata) {
+				failedSnapshot[0].metadata.title = 'Mutated metadata title';
+			}
+
+			const secondSnapshot = importManager.getFailedDocuments();
+			expect(secondSnapshot[0].document.title).toBe('Document 1');
+			expect(secondSnapshot[0].metadata?.title).toBe('Document 1');
+			expect(mockGranolaDocuments[0].title).toBe('Document 1');
+
+			const retryResult = await importManager.retryFailedImports({ ...defaultOptions });
+			expect(retryResult.failed).toBe(0);
+		});
+
 		it('retries only failed documents using stored context', async () => {
 			let shouldFailDoc1 = true;
 			(mockConverter.convertDocument as jest.Mock).mockImplementation(doc => {

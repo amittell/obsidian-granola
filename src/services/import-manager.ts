@@ -307,7 +307,7 @@ export class SelectiveImportManager {
 		return this.failedDocuments.map(record => ({
 			...record,
 			metadata: record.metadata ? this.cloneMetadata(record.metadata) : undefined,
-			document: { ...record.document },
+			document: this.cloneDocument(record.document),
 		}));
 	}
 
@@ -334,7 +334,7 @@ export class SelectiveImportManager {
 
 				return {
 					metadata: clonedMetadata,
-					document: record.document,
+					document: this.cloneDocument(record.document),
 				};
 			})
 			.filter((entry): entry is NonNullable<typeof entry> => entry !== null);
@@ -637,7 +637,7 @@ export class SelectiveImportManager {
 			this.overallProgress.failed++;
 
 			this.failedDocuments.push({
-				document: doc,
+				document: this.cloneDocument(doc),
 				metadata: this.lastImportMetadata.get(doc.id),
 				error: errorMessage,
 				message: friendlyMessage,
@@ -1135,5 +1135,27 @@ export class SelectiveImportManager {
 			...metadata,
 			importStatus: { ...metadata.importStatus },
 		};
+	}
+
+	/**
+	 * Deeply clones a Granola document to protect internal state from external mutations.
+	 * Falls back to JSON serialization when structuredClone is unavailable.
+	 *
+	 * @private
+	 * @param {GranolaDocument} document - Document to clone
+	 * @returns {GranolaDocument} Cloned document
+	 */
+	private cloneDocument(document: GranolaDocument): GranolaDocument {
+		const structuredCloneFn = (
+			globalThis as typeof globalThis & {
+				structuredClone?: <T>(value: T) => T;
+			}
+		).structuredClone;
+
+		if (structuredCloneFn) {
+			return structuredCloneFn(document);
+		}
+
+		return JSON.parse(JSON.stringify(document)) as GranolaDocument;
 	}
 }
