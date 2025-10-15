@@ -7,6 +7,7 @@ import {
 	TFile,
 	WorkspaceLeaf,
 	MarkdownView,
+	Menu,
 } from 'obsidian';
 import { GranolaDocument, GranolaAPI } from '../api';
 import { DuplicateDetector } from '../services/duplicate-detector';
@@ -22,6 +23,7 @@ import {
 	DocumentProgress,
 	DocumentImportStatus,
 	ImportOptions,
+	FailedDocumentRecord,
 } from '../services/import-manager';
 import { ProseMirrorConverter } from '../converter';
 
@@ -736,6 +738,7 @@ export class DocumentSelectionModal extends Modal {
 
 		// Get all document progress for detailed reporting
 		const allDocProgress = this.importManager.getAllDocumentProgress();
+		const failedRecords = this.importManager.getFailedDocuments();
 
 		// Create overview statistics
 		this.createOverviewStats(summary, result);
@@ -769,15 +772,35 @@ export class DocumentSelectionModal extends Modal {
 		// Add buttons for next actions
 		const buttonsDiv = summary.createDiv('import-complete-buttons');
 
-		// If there are imported files, show "Open Imported Notes" button
-		if (importedFiles.length > 0) {
+		if (failedRecords.length > 0) {
 			new ButtonComponent(buttonsDiv)
-				.setButtonText(`Open imported notes (${importedFiles.length})`)
+				.setButtonText(`Retry failed imports (${failedRecords.length})`)
 				.setCta()
 				.onClick(() => {
-					this.openImportedFiles(importedFiles);
-					this.close();
+					void this.retryFailedDocuments();
 				});
+
+			new ButtonComponent(buttonsDiv)
+				.setButtonText('Export failed list')
+				.onClick((event: MouseEvent) => {
+					this.showFailedExportMenu(event);
+				});
+		}
+
+		// If there are imported files, show "Open Imported Notes" button
+		if (importedFiles.length > 0) {
+			const openButton = new ButtonComponent(buttonsDiv).setButtonText(
+				`Open imported notes (${importedFiles.length})`
+			);
+
+			if (failedRecords.length === 0) {
+				openButton.setCta();
+			}
+
+			openButton.onClick(() => {
+				this.openImportedFiles(importedFiles);
+				this.close();
+			});
 		}
 
 		// Always show close button
@@ -914,6 +937,243 @@ export class DocumentSelectionModal extends Modal {
 		});
 
 		this.setupSectionToggle(toggle, content);
+	}
+
+	/**
+	 * Retries documents that failed during the last import attempt.
+	 *
+	 * @private
+	 * @async
+	 */
+	private async retryFailedDocuments(): Promise<void> {
+		const failedRecords = this.importManager.getFailedDocuments();
+		if (failedRecords.length === 0) {
+			new Notice('There are no failed documents to retry.');
+			return;
+		}
+
+		// Highlight failed documents in metadata for consistency with progress view
+		const failedIds = new Set(failedRecords.map(record => record.document.id));
+		this.documentMetadata = this.documentMetadata.map(meta => ({
+			...meta,
+			selected: failedIds.has(meta.id),
+		}));
+
+		try {
+			this.setImporting(true);
+			this.showProgressView();
+
+			const retryOptions: ImportOptions = {
+				strategy: 'skip',
+				stopOnError: false,
+				onProgress: progress => this.updateProgress(progress),
+				onDocumentProgress: docProgress => this.updateDocumentProgress(docProgress),
+				isRetry: true,
+			};
+
+			const result = await this.importManager.retryFailedImports(retryOptions);
+			this.showImportComplete(result);
+		} catch (error) {
+			console.error('[Granola Importer] Retry failed imports error:', error);
+			const message = error instanceof Error ? error.message : 'Unknown error';
+			new Notice(
+				`Retry failed: ${message}. Original failure list preserved for export.`,
+				6000
+			);
+			this.showImportComplete(this.importManager.getProgress());
+		} finally {
+			this.setImporting(false);
+		}
+	}
+
+	/**
+	 * Shows export options for failed documents.
+	 *
+	 * @private
+	 * @param {MouseEvent} event - Click event for positioning the menu
+	 */
+	private showFailedExportMenu(event: MouseEvent): void {
+		const failedRecords = this.importManager.getFailedDocuments();
+		if (failedRecords.length === 0) {
+			new Notice('There are no failed documents to export.');
+			return;
+		}
+
+		const menu = new Menu();
+		menu.addItem(item =>
+			item.setTitle('Download CSV').onClick(() => {
+				this.exportFailedDocumentsAsCSV(failedRecords);
+			})
+		);
+
+		menu.addItem(item =>
+			item.setTitle('Copy summary to clipboard').onClick(() => {
+				void this.copyFailedDocumentsToClipboard(failedRecords);
+			})
+		);
+
+		menu.showAtMouseEvent(event);
+	}
+
+	/**
+	 * Exports failed document details as a CSV file for troubleshooting.
+	 *
+	 * @private
+	 * @param {FailedDocumentRecord[]} records - Failed document records
+	 */
+	private exportFailedDocumentsAsCSV(records: FailedDocumentRecord[]): void {
+		if (records.length === 0) {
+			new Notice('There are no failed documents to export.');
+			return;
+		}
+
+		const csvContent = this.buildFailedDocumentsCsv(records);
+		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = `granola-failed-imports-${new Date().toISOString().replace(/:/g, '-')}.csv`;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+
+		new Notice('Failed import list exported as CSV.');
+	}
+
+	/**
+	 * Copies a formatted summary of failed documents to the clipboard.
+	 *
+	 * @private
+	 * @param {FailedDocumentRecord[]} records - Failed document records
+	 */
+	private async copyFailedDocumentsToClipboard(records: FailedDocumentRecord[]): Promise<void> {
+		if (records.length === 0) {
+			new Notice('There are no failed documents to copy.');
+			return;
+		}
+
+		const summary = this.buildFailedDocumentsSummary(records);
+
+		try {
+			// Try modern Clipboard API first
+			if (navigator?.clipboard?.writeText) {
+				await navigator.clipboard.writeText(summary);
+			} else {
+				// Fallback to deprecated execCommand for older browsers
+				let textarea: HTMLTextAreaElement | null = null;
+				try {
+					textarea = document.createElement('textarea');
+					textarea.value = summary;
+					textarea.className = 'granola-clipboard-fallback';
+					document.body.appendChild(textarea);
+					textarea.focus();
+					textarea.select();
+
+					const successful = document.execCommand('copy');
+					if (!successful) {
+						throw new Error('document.execCommand("copy") failed');
+					}
+				} finally {
+					if (textarea && document.body.contains(textarea)) {
+						document.body.removeChild(textarea);
+					}
+				}
+			}
+
+			new Notice('Failed import summary copied to clipboard.');
+		} catch (error) {
+			console.error('[Granola Importer] Clipboard copy failed:', error);
+			new Notice('Unable to copy failed import summary to clipboard.', 5000);
+		}
+	}
+
+	/**
+	 * Builds CSV content for failed document records.
+	 *
+	 * @private
+	 * @param {FailedDocumentRecord[]} records - Failed document records
+	 * @returns {string} CSV formatted string
+	 */
+	private buildFailedDocumentsCsv(records: FailedDocumentRecord[]): string {
+		const header = '"Document ID","Title","Error Reason","Failed At"';
+		const rows = records.map(record => {
+			const id = this.csvEscape(record.document.id);
+			const title = this.csvEscape(this.getFailedDocumentTitle(record));
+			const reason = this.csvEscape(record.message || record.error || 'Unknown error');
+			const failedAt = this.csvEscape(this.formatFailureTimestamp(record.timestamp));
+			return `"${id}","${title}","${reason}","${failedAt}"`;
+		});
+
+		return [header, ...rows].join('\n');
+	}
+
+	/**
+	 * Builds a troubleshooting-friendly summary for failed documents.
+	 *
+	 * @private
+	 * @param {FailedDocumentRecord[]} records - Failed document records
+	 * @returns {string} Summary text for clipboard export
+	 */
+	private buildFailedDocumentsSummary(records: FailedDocumentRecord[]): string {
+		const lines: string[] = [];
+		lines.push('Granola Failed Import Summary');
+		lines.push(`Generated: ${new Date().toISOString()}`);
+		lines.push(`Total failed documents: ${records.length}`);
+		lines.push('');
+
+		records.forEach(record => {
+			const title = this.getFailedDocumentTitle(record);
+			const reason = record.message || record.error || 'Unknown error';
+			const failedAt = this.formatFailureTimestamp(record.timestamp);
+			lines.push(`• ${title}`);
+			lines.push(`  ID: ${record.document.id}`);
+			lines.push(`  Reason: ${reason}`);
+			lines.push(`  Failed at: ${failedAt}`);
+			lines.push('');
+		});
+
+		return lines.join('\n');
+	}
+
+	/**
+	 * Escapes values for safe inclusion in CSV content.
+	 *
+	 * @private
+	 * @param {string} value - Value to escape
+	 * @returns {string} Escaped value
+	 */
+	private csvEscape(value: string): string {
+		return value.replace(/"/g, '""');
+	}
+
+	/**
+	 * Gets a user-friendly title for a failed document record.
+	 *
+	 * @private
+	 * @param {FailedDocumentRecord} record - Failed document record
+	 * @returns {string} Document title
+	 */
+	private getFailedDocumentTitle(record: FailedDocumentRecord): string {
+		return record.metadata?.title || record.document.title || 'Unknown Document';
+	}
+
+	/**
+	 * Formats the failure timestamp consistently.
+	 *
+	 * @private
+	 * @param {number} timestamp - Failure timestamp (ms since epoch)
+	 * @returns {string} ISO formatted timestamp or placeholder
+	 */
+	private formatFailureTimestamp(timestamp: number): string {
+		if (!Number.isFinite(timestamp)) {
+			return 'Unknown';
+		}
+		try {
+			return new Date(timestamp).toISOString();
+		} catch (error) {
+			return 'Unknown';
+		}
 	}
 
 	/**

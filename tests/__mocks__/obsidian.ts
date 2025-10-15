@@ -36,9 +36,25 @@ export function stringifyYaml(obj: any): string {
 	return lines.join('\n');
 }
 
-// Mock htmlToMarkdown function
+// Mock htmlToMarkdown function - converts HTML to plain text for testing
 export function htmlToMarkdown(html: string): string {
-	return html;
+	if (!html || typeof html !== 'string') {
+		return '';
+	}
+
+	// Basic HTML to text conversion for testing
+	// Remove HTML tags and decode entities
+	return html
+		.replace(/<[^>]*>/g, ' ') // Remove all HTML tags
+		.replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
+		.replace(/&amp;/g, '&') // Handle common HTML entities
+		.replace(/&lt;/g, '<')
+		.replace(/&gt;/g, '>')
+		.replace(/&quot;/g, '"')
+		.replace(/&#39;/g, "'")
+		.replace(/&apos;/g, "'")
+		.replace(/\s+/g, ' ') // Normalize whitespace
+		.trim();
 }
 
 // Mock Platform object

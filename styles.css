@@ -743,3 +743,10 @@
 .granola-import-modal .empty-doc-title {
 	font-weight: 500;
 }
+
+/* Clipboard fallback textarea */
+.granola-clipboard-fallback {
+	position: fixed;
+	opacity: 0;
+	pointer-events: none;
+}

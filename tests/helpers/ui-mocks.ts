@@ -137,7 +137,7 @@ export function createMockModal(): any {
 	return {
 		containerEl: {
 			createEl: jest.fn().mockImplementation((tag, attrs) => ({
-				innerHTML: '',
+				textContent: '',
 				createEl: jest.fn().mockReturnThis(),
 				createDiv: jest.fn().mockReturnThis(),
 				addClass: jest.fn().mockReturnThis(),
