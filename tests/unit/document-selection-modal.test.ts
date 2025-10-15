@@ -61,7 +61,6 @@ const mockElement = {
 	appendChild: jest.fn(),
 	removeChild: jest.fn(),
 	style: {},
-	innerHTML: '',
 	textContent: '',
 	addEventListener: jest.fn(),
 	removeEventListener: jest.fn(),

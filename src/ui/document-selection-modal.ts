@@ -1065,8 +1065,7 @@ export class DocumentSelectionModal extends Modal {
 				try {
 					textarea = document.createElement('textarea');
 					textarea.value = summary;
-					textarea.style.position = 'fixed';
-					textarea.style.opacity = '0';
+					textarea.className = 'granola-clipboard-fallback';
 					document.body.appendChild(textarea);
 					textarea.focus();
 					textarea.select();

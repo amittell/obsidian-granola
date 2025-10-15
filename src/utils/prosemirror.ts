@@ -2,6 +2,7 @@
  * Utility functions for working with ProseMirror documents and other content formats
  */
 
+import { htmlToMarkdown } from 'obsidian';
 import { GranolaDocument } from '../api';
 
 /**
@@ -43,7 +44,8 @@ export function extractTextFromProseMirror(proseMirrorDoc: Record<string, unknow
 }
 
 /**
- * Extracts plain text from HTML string content
+ * Extracts plain text from HTML string content using Obsidian's secure HTML parser.
+ * Uses htmlToMarkdown() to safely parse HTML and then extracts text from the resulting markdown.
  * @param html - HTML string to extract text from
  * @returns Plain text content with HTML tags removed
  */
@@ -52,17 +54,41 @@ export function extractTextFromHtml(html: string): string {
 		return '';
 	}
 
-	return html
-		.replace(/<[^>]*>/g, ' ') // Remove all HTML tags
-		.replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
-		.replace(/&amp;/g, '&') // Handle common HTML entities
-		.replace(/&lt;/g, '<')
-		.replace(/&gt;/g, '>')
-		.replace(/&quot;/g, '"')
-		.replace(/&#39;/g, "'")
-		.replace(/&apos;/g, "'")
-		.replace(/\s+/g, ' ') // Normalize whitespace
-		.trim();
+	// Use Obsidian's built-in HTML to Markdown converter for security
+	// This avoids manual HTML parsing which could be vulnerable to XSS
+	const markdown = htmlToMarkdown(html);
+
+	// Extract plain text from markdown by removing markdown syntax
+	return (
+		markdown
+			// Remove images: ![alt](url)
+			.replace(/!\[.*?\]\(.*?\)/g, '')
+			// Replace links with just the text: [text](url) -> text
+			.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+			// Remove heading markers
+			.replace(/^#{1,6}\s+/gm, '')
+			// Remove bold/italic markers
+			.replace(/\*\*\*(.+?)\*\*\*/g, '$1') // Bold+italic
+			.replace(/\*\*(.+?)\*\*/g, '$1') // Bold
+			.replace(/\*(.+?)\*/g, '$1') // Italic
+			.replace(/___(.+?)___/g, '$1') // Bold+italic
+			.replace(/__(.+?)__/g, '$1') // Bold
+			.replace(/_(.+?)_/g, '$1') // Italic
+			// Remove strikethrough
+			.replace(/~~(.+?)~~/g, '$1')
+			// Remove inline code
+			.replace(/`(.+?)`/g, '$1')
+			// Remove list markers (unordered and ordered)
+			.replace(/^\s*[-*+]\s+/gm, '')
+			.replace(/^\s*\d+\.\s+/gm, '')
+			// Remove blockquote markers
+			.replace(/^>\s+/gm, '')
+			// Remove horizontal rules
+			.replace(/^[-*_]{3,}$/gm, '')
+			// Normalize whitespace
+			.replace(/\s+/g, ' ')
+			.trim()
+	);
 }
 
 /**
