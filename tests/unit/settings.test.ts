@@ -1016,8 +1016,8 @@ describe('GranolaSettingTab class', () => {
 			it('should create UI settings with toggles', () => {
 				(settingTab as any).addUISection();
 
-				// Should have captured toggle callbacks for progress notifications and attendee tags
-				expect(callbacks.toggleCallbacks.length).toBe(2);
+				// Should have captured toggle callbacks for progress notifications, auto-import, and attendee tags
+				expect(callbacks.toggleCallbacks.length).toBe(3);
 			});
 
 			it('should handle progress notifications toggle', async () => {
@@ -1280,15 +1280,19 @@ describe('GranolaSettingTab class', () => {
 			it('should handle all toggle combinations in UI section', async () => {
 				(settingTab as any).addUISection();
 
-				// Should have toggle callbacks for progress notifications and attendee tags
-				expect(callbacks.toggleCallbacks).toHaveLength(2);
+				// Should have toggle callbacks for progress notifications, auto-import, and attendee tags
+				expect(callbacks.toggleCallbacks).toHaveLength(3);
 
 				// Test progress notifications toggle
 				await callbacks.toggleCallbacks[0](false);
 				expect(mockPlugin.settings.ui.showProgressNotifications).toBe(false);
 
-				// Test attendee tags toggle
+				// Test auto-import toggle
 				await callbacks.toggleCallbacks[1](false);
+				expect(mockPlugin.settings.autoImport.enabled).toBe(false);
+
+				// Test attendee tags toggle
+				await callbacks.toggleCallbacks[2](false);
 				expect(mockPlugin.settings.attendeeTags.enabled).toBe(false);
 			});
 
