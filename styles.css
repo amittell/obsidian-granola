@@ -334,6 +334,17 @@
 	border-left: 4px solid var(--text-muted);
 }
 
+.granola-import-modal .document-item.document-empty {
+	opacity: 0.7;
+	background: var(--background-secondary);
+}
+
+.granola-import-modal .empty-document-icon {
+	font-size: 1rem;
+	margin-right: 0.5rem;
+	cursor: help;
+}
+
 .granola-import-modal .document-content {
 	flex: 1;
 }
