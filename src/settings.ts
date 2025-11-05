@@ -39,7 +39,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 	private addConnectionSection(): void {
 		const { containerEl } = this;
 
-		new Setting(containerEl).setHeading().setName('Connection & Validation');
+		new Setting(containerEl).setHeading().setName('Connection & validation');
 
 		// Connection status
 		const statusEl = containerEl.createDiv('connection-status');
@@ -65,7 +65,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 	private addDebugSection(): void {
 		const { containerEl } = this;
 
-		new Setting(containerEl).setHeading().setName('Debug & Logging');
+		new Setting(containerEl).setHeading().setName('Debug & logging');
 
 		// Debug mode toggle
 		new Setting(containerEl)
