@@ -27,28 +27,28 @@
 }
 
 /* Settings Connection Status */
-.connection-testing {
+.granola-connection-testing {
 	color: var(--text-warning);
 }
 
-.connection-success {
+.granola-connection-success {
 	color: var(--text-success);
 }
 
-.connection-failed {
+.granola-connection-failed {
 	color: var(--text-error);
 }
 
-.connection-connected {
+.granola-connection-connected {
 	color: var(--text-success);
 }
 
-.connection-not-tested {
+.granola-connection-not-tested {
 	color: var(--text-muted);
 }
 
 /* Filename template preview */
-.filename-template-preview {
+.granola-filename-template-preview {
 	margin-top: 0.5em;
 	font-style: italic;
 }
