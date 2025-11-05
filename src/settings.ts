@@ -39,7 +39,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 	private addConnectionSection(): void {
 		const { containerEl } = this;
 
-		new Setting(containerEl).setHeading().setName('Connection & Validation');
+		new Setting(containerEl).setHeading().setName('Connection & validation');
 
 		// Connection status
 		const statusEl = containerEl.createDiv('connection-status');
@@ -65,7 +65,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 	private addDebugSection(): void {
 		const { containerEl } = this;
 
-		new Setting(containerEl).setHeading().setName('Debug & Logging');
+		new Setting(containerEl).setHeading().setName('Debug & logging');
 
 		// Debug mode toggle
 		new Setting(containerEl)
@@ -118,7 +118,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 	private addImportSection(): void {
 		const { containerEl } = this;
 
-		new Setting(containerEl).setHeading().setName('Import Behavior');
+		new Setting(containerEl).setHeading().setName('Import behavior');
 
 		// Default import strategy
 		new Setting(containerEl)
@@ -173,7 +173,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 	private addContentSection(): void {
 		const { containerEl } = this;
 
-		new Setting(containerEl).setHeading().setName('Content Processing');
+		new Setting(containerEl).setHeading().setName('Content processing');
 
 		// Enhanced frontmatter toggle
 		new Setting(containerEl)
@@ -279,7 +279,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 		}
 
 		// Action items section header
-		new Setting(containerEl).setHeading().setName('Action Items Processing');
+		new Setting(containerEl).setHeading().setName('Action items processing');
 
 		// Convert action items to tasks
 		new Setting(containerEl)
@@ -341,7 +341,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 	private addUISection(): void {
 		const { containerEl } = this;
 
-		new Setting(containerEl).setHeading().setName('User Interface');
+		new Setting(containerEl).setHeading().setName('User interface');
 
 		// Progress notifications
 		new Setting(containerEl)
@@ -357,7 +357,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 			});
 
 		// Attendee Tags section
-		new Setting(containerEl).setHeading().setName('Attendee Tags');
+		new Setting(containerEl).setHeading().setName('Attendee tags');
 
 		// Enable attendee tags
 		new Setting(containerEl)
