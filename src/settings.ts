@@ -356,6 +356,43 @@ export class GranolaSettingTab extends PluginSettingTab {
 					});
 			});
 
+		// Auto-Import section
+		new Setting(containerEl).setHeading().setName('Auto-Import');
+
+		// Enable auto-import
+		new Setting(containerEl)
+			.setName('Enable auto-import')
+			.setDesc('Automatically import new Granola notes at regular intervals')
+			.addToggle(toggle => {
+				toggle
+					.setValue(this.plugin.settings.autoImport.enabled)
+					.onChange(async value => {
+						this.plugin.settings.autoImport.enabled = value;
+						await this.plugin.saveSettings();
+						// Refresh the display to show/hide interval setting
+						this.display();
+					});
+			});
+
+		// Import interval (only shown when auto-import is enabled)
+		if (this.plugin.settings.autoImport.enabled) {
+			new Setting(containerEl)
+				.setName('Import interval')
+				.setDesc('How often to automatically check for and import new notes')
+				.addDropdown(dropdown => {
+					dropdown
+						.addOption('3600000', 'Every hour')
+						.addOption('14400000', 'Every 4 hours')
+						.addOption('43200000', 'Every 12 hours')
+						.addOption('86400000', 'Once daily')
+						.setValue(this.plugin.settings.autoImport.interval.toString())
+						.onChange(async value => {
+							this.plugin.settings.autoImport.interval = parseInt(value);
+							await this.plugin.saveSettings();
+						});
+				});
+		}
+
 		// Attendee Tags section
 		new Setting(containerEl).setHeading().setName('Attendee tags');
 

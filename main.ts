@@ -92,6 +92,12 @@ export default class GranolaImporterPlugin extends Plugin {
 	logger!: Logger;
 
 	/**
+	 * Auto-import timer ID for periodic imports.
+	 * @private
+	 */
+	private autoImportTimer?: ReturnType<typeof setInterval>;
+
+	/**
 	 * Plugin lifecycle method called when the plugin is loaded.
 	 *
 	 * Initializes the authentication, API, and converter components,
@@ -170,6 +176,9 @@ export default class GranolaImporterPlugin extends Plugin {
 		this.addRibbonIcon('download', 'Import Granola notes', () => {
 			this.openImportModal();
 		});
+
+		// Setup auto-import timer if enabled
+		this.setupAutoImport();
 	}
 
 	/**
@@ -188,7 +197,8 @@ export default class GranolaImporterPlugin extends Plugin {
 	 * ```
 	 */
 	onunload(): void {
-		// Clean up resources when plugin is disabled
+		// Clean up auto-import timer
+		this.cleanupAutoImport();
 	}
 
 	/**
@@ -595,6 +605,93 @@ export default class GranolaImporterPlugin extends Plugin {
 		// Update metadata service settings if it exists
 		if (this.metadataService) {
 			this.metadataService.updateSettings(this.settings);
+		}
+
+		// Restart auto-import timer if settings changed
+		this.setupAutoImport();
+	}
+
+	/**
+	 * Sets up the auto-import timer based on current settings.
+	 * Cleans up any existing timer before creating a new one.
+	 *
+	 * @private
+	 * @returns {void}
+	 */
+	private setupAutoImport(): void {
+		// Clean up existing timer first
+		this.cleanupAutoImport();
+
+		// Only setup timer if auto-import is enabled
+		if (!this.settings.autoImport.enabled) {
+			this.logger.debug('Auto-import is disabled');
+			return;
+		}
+
+		const intervalMs = this.settings.autoImport.interval;
+		this.logger.info(`Setting up auto-import timer with ${intervalMs}ms interval`);
+
+		this.autoImportTimer = setInterval(() => {
+			this.performAutoImport();
+		}, intervalMs);
+
+		this.logger.debug('Auto-import timer started');
+	}
+
+	/**
+	 * Cleans up the auto-import timer.
+	 *
+	 * @private
+	 * @returns {void}
+	 */
+	private cleanupAutoImport(): void {
+		if (this.autoImportTimer) {
+			clearInterval(this.autoImportTimer);
+			this.autoImportTimer = undefined;
+			this.logger.debug('Auto-import timer cleared');
+		}
+	}
+
+	/**
+	 * Performs an automatic import.
+	 * Handles errors gracefully and notifies the user if authentication fails.
+	 *
+	 * @private
+	 * @async
+	 * @returns {Promise<void>} Resolves when auto-import completes or fails
+	 */
+	private async performAutoImport(): Promise<void> {
+		this.logger.info('Starting automatic import');
+
+		try {
+			// Open the import modal to trigger the import process
+			this.openImportModal();
+		} catch (error) {
+			this.logger.error('Auto-import failed:', error);
+
+			// Check if it's an authentication error
+			if (error instanceof Error) {
+				const message = error.message.toLowerCase();
+				if (
+					message.includes('credentials') ||
+					message.includes('unauthorized') ||
+					message.includes('invalid token') ||
+					message.includes('expired')
+				) {
+					// Token likely expired - notify user
+					new Notice(
+						'⚠️ Auto-import failed: Granola credentials expired. Please re-authenticate in the Granola app.',
+						10000
+					);
+					// Disable auto-import to prevent repeated failures
+					this.settings.autoImport.enabled = false;
+					await this.saveSettings();
+					this.logger.warn('Auto-import disabled due to authentication failure');
+				} else {
+					// Other error - log but don't disable auto-import
+					this.logger.warn('Auto-import encountered an error, will retry on next interval');
+				}
+			}
 		}
 	}
 }
