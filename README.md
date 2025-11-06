@@ -324,7 +324,23 @@ MIT License - see LICENSE file for details
 
 ## Changelog
 
-### v1.1.0 (Latest)
+### v1.1.3 (Latest)
+
+**Plugin Submission Review Fixes:**
+
+- Settings headings converted to sentence case per Obsidian guidelines
+- All CSS classes properly namespaced with `granola-` prefix to prevent conflicts
+- Updated documentation to reflect ribbon icon is customizable via Obsidian's built-in settings
+- Fixed heading case consistency in README
+
+**Technical Changes:**
+
+- Namespaced 6 additional CSS classes (`connection-*` → `granola-connection-*`, `filename-template-preview` → `granola-filename-template-preview`)
+- All 141 CSS classes now properly namespaced
+- Zero security vulnerabilities (npm audit)
+- All 451 tests passing
+
+### v1.1.0
 
 **New Features:**
 
