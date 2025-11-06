@@ -173,10 +173,9 @@ Access plugin settings via: **Settings → Plugin Options → Granola Importer**
 - **Add task tag** - Optionally add a tag to notes containing tasks
 - **Task tag name** - Customize the tag (default: `#tasks`)
 
-### User Interface
+### User interface
 
 - **Show progress notifications** - Display toast notifications during import
-- **Show ribbon icon** - Display download icon in left sidebar for quick access
 
 ### Attendee Tags
 
@@ -325,14 +324,30 @@ MIT License - see LICENSE file for details
 
 ## Changelog
 
-### v1.1.0 (Latest)
+### v1.1.3 (Latest)
+
+**Plugin Submission Review Fixes:**
+
+- Settings headings converted to sentence case per Obsidian guidelines
+- All CSS classes properly namespaced with `granola-` prefix to prevent conflicts
+- Updated documentation to reflect ribbon icon is customizable via Obsidian's built-in settings
+- Fixed heading case consistency in README
+
+**Technical Changes:**
+
+- Namespaced 6 additional CSS classes (`connection-*` → `granola-connection-*`, `filename-template-preview` → `granola-filename-template-preview`)
+- All 141 CSS classes now properly namespaced
+- Zero security vulnerabilities (npm audit)
+- All 451 tests passing
+
+### v1.1.0
 
 **New Features:**
 
 - **Custom Filename Templates** - Create personalized naming patterns with variables like `{title}`, `{created_date}`, `{id}`, and more
 - **Attendee Tags** - Automatically extract meeting participants and create tags for easy organization
 - **Granola URL in Frontmatter** - Direct links to original Granola notes for cross-referencing
-- **Ribbon Icon** - Quick access to import from the sidebar (toggleable in settings)
+- **Ribbon icon** - Quick access to import from the sidebar (customizable via Obsidian settings)
 
 **Improvements:**
 

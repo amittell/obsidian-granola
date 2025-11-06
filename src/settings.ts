@@ -273,8 +273,8 @@ export class GranolaSettingTab extends PluginSettingTab {
 
 			// Add preview element
 			const previewEl = containerEl.createDiv('setting-item-description');
-			previewEl.addClass('filename-template-preview');
-			previewEl.id = 'filename-template-preview';
+			previewEl.addClass('granola-filename-template-preview');
+			previewEl.id = 'granola-filename-template-preview';
 			this.updateFilenamePreview();
 		}
 
@@ -442,7 +442,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 		statusEl.empty();
 		statusEl.createEl('span', {
 			text: '🔄 Testing connection...',
-			cls: 'connection-testing',
+			cls: 'granola-connection-testing',
 		});
 
 		try {
@@ -461,7 +461,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 				statusEl.empty();
 				statusEl.createEl('span', {
 					text: '✅ Connected successfully!',
-					cls: 'connection-success',
+					cls: 'granola-connection-success',
 				});
 				new Notice('✅ Granola connection test successful!', 3000);
 			} else {
@@ -475,7 +475,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 			statusEl.empty();
 			statusEl.createEl('span', {
 				text: '❌ Connection failed',
-				cls: 'connection-failed',
+				cls: 'granola-connection-failed',
 			});
 			new Notice(`❌ Connection test failed: ${errorMessage}`, 5000);
 		}
@@ -492,12 +492,12 @@ export class GranolaSettingTab extends PluginSettingTab {
 			const lastCheck = new Date(lastValidated).toLocaleString();
 			statusEl.createEl('span', {
 				text: `✅ Connected (last checked: ${lastCheck})`,
-				cls: 'connection-connected',
+				cls: 'granola-connection-connected',
 			});
 		} else {
 			statusEl.createEl('span', {
 				text: '⚪ Connection not tested',
-				cls: 'connection-not-tested',
+				cls: 'granola-connection-not-tested',
 			});
 		}
 	}
@@ -506,7 +506,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 	 * Updates the filename template preview.
 	 */
 	private updateFilenamePreview(): void {
-		const previewEl = this.containerEl.querySelector('#filename-template-preview');
+		const previewEl = this.containerEl.querySelector('#granola-filename-template-preview');
 		if (!previewEl) return;
 
 		const template = this.plugin.settings.content.filenameTemplate || '{title}';
