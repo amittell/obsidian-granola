@@ -200,7 +200,9 @@ export class DocumentSelectionModal extends Modal {
 		// Refresh button
 		this.refreshButton = new ButtonComponent(buttonContainer)
 			.setButtonText('Refresh')
-			.onClick(() => this.refreshDocuments());
+			.onClick(() => {
+				void this.refreshDocuments();
+			});
 
 		// Status filter dropdown
 		const filterContainer = this.controlsEl.createDiv('filter-group');
@@ -253,7 +255,9 @@ export class DocumentSelectionModal extends Modal {
 		this.importButton = new ButtonComponent(buttonContainer)
 			.setButtonText('Import selected')
 			.setCta()
-			.onClick(() => this.startImport());
+			.onClick(() => {
+				void this.startImport();
+			});
 
 		// Update button states
 		this.updateFooterButtons();
@@ -879,9 +883,11 @@ export class DocumentSelectionModal extends Modal {
 					text: 'Open',
 					cls: 'open-doc-button',
 				});
-				openButton.addEventListener('click', async () => {
-					const leaf = this.app.workspace.getLeaf('tab');
-					await leaf.openFile(doc.file!);
+				openButton.addEventListener('click', () => {
+					void (async () => {
+						const leaf = this.app.workspace.getLeaf('tab');
+						await leaf.openFile(doc.file!);
+					})();
 				});
 			}
 		});
@@ -1056,32 +1062,13 @@ export class DocumentSelectionModal extends Modal {
 		const summary = this.buildFailedDocumentsSummary(records);
 
 		try {
-			// Try modern Clipboard API first
+			// Use modern Clipboard API (required for security and compatibility)
 			if (navigator?.clipboard?.writeText) {
 				await navigator.clipboard.writeText(summary);
+				new Notice('Failed import summary copied to clipboard.');
 			} else {
-				// Fallback to deprecated execCommand for older browsers
-				let textarea: HTMLTextAreaElement | null = null;
-				try {
-					textarea = document.createElement('textarea');
-					textarea.value = summary;
-					textarea.className = 'granola-clipboard-fallback';
-					document.body.appendChild(textarea);
-					textarea.focus();
-					textarea.select();
-
-					const successful = document.execCommand('copy');
-					if (!successful) {
-						throw new Error('document.execCommand("copy") failed');
-					}
-				} finally {
-					if (textarea && document.body.contains(textarea)) {
-						document.body.removeChild(textarea);
-					}
-				}
+				throw new Error('Clipboard API not available in this browser. Please use a modern browser.');
 			}
-
-			new Notice('Failed import summary copied to clipboard.');
 		} catch (error) {
 			console.error('[Granola Importer] Clipboard copy failed:', error);
 			new Notice('Unable to copy failed import summary to clipboard.', 5000);
@@ -1171,7 +1158,7 @@ export class DocumentSelectionModal extends Modal {
 		}
 		try {
 			return new Date(timestamp).toISOString();
-		} catch (error) {
+		} catch {
 			return 'Unknown';
 		}
 	}

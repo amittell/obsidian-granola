@@ -166,7 +166,7 @@ export class GranolaAuth {
 			// Read credentials file from the user's home directory
 			// Note: This accesses files outside the vault, which requires Obsidian's
 			// file system APIs. On desktop, we use a workaround with fetch for local files.
-			const configData = await this.readConfigFile(configPath);
+			const configData = this.readConfigFile(configPath);
 			const config: SupabaseConfig = JSON.parse(configData);
 
 			// Parse the nested cognito_tokens JSON string
@@ -201,10 +201,10 @@ export class GranolaAuth {
 	 *
 	 * @private
 	 * @param {string} path - Absolute path to the configuration file
-	 * @returns {Promise<string>} The file contents as a string
+	 * @returns {string} The file contents as a string
 	 * @throws {Error} If the file cannot be read
 	 */
-	private async readConfigFile(path: string): Promise<string> {
+	private readConfigFile(path: string): string {
 		try {
 			// Use Node.js fs module directly on desktop
 			// This is a workaround since Obsidian's DataAdapter is vault-scoped
@@ -368,20 +368,19 @@ export class GranolaAuth {
 	 * Future implementation will use the refresh_token to obtain new credentials
 	 * from the Granola API without requiring user intervention.
 	 *
-	 * @async
-	 * @returns {Promise<void>} Resolves when token refresh completes
+	 * @returns {void}
 	 * @throws {Error} Currently always throws as refresh is not implemented
 	 *
 	 * @example
 	 * ```typescript
 	 * try {
-	 *   await auth.refreshToken();
+	 *   auth.refreshToken();
 	 * } catch (error) {
 	 *   console.log('Refresh not available, please re-authenticate');
 	 * }
 	 * ```
 	 */
-	async refreshToken(): Promise<void> {
+	refreshToken(): void {
 		if (!this.credentials?.refresh_token) {
 			throw new Error('No refresh token available');
 		}
@@ -394,12 +393,13 @@ export class GranolaAuth {
 			);
 
 			// Future implementation would look like:
-			// const response = await fetch('https://api.granola.ai/auth/refresh', {
+			// const response = await requestUrl({
+			//     url: 'https://api.granola.ai/auth/refresh',
 			//     method: 'POST',
 			//     headers: { 'Content-Type': 'application/json' },
 			//     body: JSON.stringify({ refresh_token: this.credentials.refresh_token })
 			// });
-			// const newTokens = await response.json();
+			// const newTokens = response.json;
 			// this.credentials = { ...this.credentials, ...newTokens };
 		} catch (error) {
 			this.credentials = null; // Clear invalid credentials

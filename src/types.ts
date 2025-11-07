@@ -215,7 +215,7 @@ export class Logger {
 	 */
 	info(message: string, ...args: unknown[]): void {
 		if (this.settings.debug.logLevel >= LogLevel.INFO) {
-			console.info(`[Granola Importer] ${message}`, ...args);
+			console.warn(`[Granola Importer] ${message}`, ...args);
 		}
 	}
 

@@ -649,7 +649,8 @@ export class ProseMirrorConverter {
 				datePrefix = `${year}-${month}-${day}`;
 			}
 		} catch (error) {
-			this.logger.error(`Error parsing date: ${error}`);
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			this.logger.error(`Error parsing date: ${errorMessage}`);
 			datePrefix = 'INVALID-DATE';
 		}
 
@@ -1454,7 +1455,7 @@ export class ProseMirrorConverter {
 								};
 							};
 						}) => ({
-							name: attendee.details!.person!.name!.fullName!,
+							name: attendee.details?.person?.name?.fullName || 'Unknown',
 							email: attendee.email || null,
 							company: attendee.details?.company?.name || null,
 						})

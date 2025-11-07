@@ -485,7 +485,8 @@ export class DuplicateDetector {
 				datePrefix = `${year}-${month}-${day}`;
 			}
 		} catch (error) {
-			console.error(`[Duplicate Detector] Error parsing date: ${error}`);
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			console.error(`[Duplicate Detector] Error parsing date: ${errorMessage}`);
 			datePrefix = 'INVALID-DATE';
 		}
 
