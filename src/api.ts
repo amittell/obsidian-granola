@@ -379,6 +379,11 @@ export class GranolaAPI {
 					throw: false, // Don't throw on non-2xx status codes
 				});
 
+				// Check if response exists (can be undefined on network error)
+				if (!response || response.status === undefined) {
+					throw new Error('Network error: no response received');
+				}
+
 				// Convert requestUrl response to fetch-like Response for compatibility
 				const fetchLikeResponse = {
 					ok: response.status >= 200 && response.status < 300,
