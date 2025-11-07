@@ -118,8 +118,8 @@ export class DocumentMetadataService {
 	): DocumentDisplayMetadata {
 		// Check cache first
 		const cacheKey = `${document.id}-${document.updated_at}`;
-		if (this.metadataCache.has(cacheKey)) {
-			const cached = this.metadataCache.get(cacheKey)!;
+		const cached = this.metadataCache.get(cacheKey);
+		if (cached) {
 			// Update status and selection state (these can change)
 			cached.importStatus = importStatus;
 			return cached;

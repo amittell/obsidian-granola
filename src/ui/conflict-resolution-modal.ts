@@ -62,24 +62,26 @@ export class ConflictResolutionModal extends Modal {
 		});
 	}
 
-	async onOpen(): Promise<void> {
-		// Load existing file content if available
-		if (this.existingFile) {
-			this.logger.debug(`Loading existing file content from: ${this.existingFile.path}`);
-			try {
-				this.existingContent = await this.app.vault.read(this.existingFile);
-				this.logger.debug(
-					`Existing file content loaded: ${this.existingContent.length} characters`
-				);
-			} catch (error) {
-				this.logger.debug('Failed to read existing file:', error);
-				this.logger.warn('Failed to read existing file:', error);
+	onOpen(): void {
+		void (async () => {
+			// Load existing file content if available
+			if (this.existingFile) {
+				this.logger.debug(`Loading existing file content from: ${this.existingFile.path}`);
+				try {
+					this.existingContent = await this.app.vault.read(this.existingFile);
+					this.logger.debug(
+						`Existing file content loaded: ${this.existingContent.length} characters`
+					);
+				} catch (error) {
+					this.logger.debug('Failed to read existing file:', error);
+					this.logger.warn('Failed to read existing file:', error);
+				}
+			} else {
+				this.logger.debug('No existing file to load');
 			}
-		} else {
-			this.logger.debug('No existing file to load');
-		}
 
-		this.setupUI();
+			this.setupUI();
+		})();
 	}
 
 	onClose(): void {

@@ -110,12 +110,12 @@ export class DocumentSelectionModal extends Modal {
 	 * Called when the modal is opened.
 	 * Initializes the UI and loads documents.
 	 *
-	 * @returns {Promise<void>} Resolves when modal initialization is complete
+	 * @returns {void}
 	 */
-	async onOpen(): Promise<void> {
+	onOpen(): void {
 		this.modalContentEl = this.contentEl;
 		this.setupUI();
-		await this.loadDocuments();
+		void this.loadDocuments();
 	}
 
 	/**
@@ -770,8 +770,8 @@ export class DocumentSelectionModal extends Modal {
 		// Get successfully imported files for opening
 		const importedFiles = allDocProgress
 			.filter(progress => progress.status === 'completed' && progress.file)
-			.map(progress => progress.file!)
-			.filter(file => file !== undefined);
+			.map(progress => progress.file)
+			.filter((file): file is TFile => file !== undefined);
 
 		// Add buttons for next actions
 		const buttonsDiv = summary.createDiv('import-complete-buttons');
@@ -885,8 +885,10 @@ export class DocumentSelectionModal extends Modal {
 				});
 				openButton.addEventListener('click', () => {
 					void (async () => {
-						const leaf = this.app.workspace.getLeaf('tab');
-						await leaf.openFile(doc.file!);
+						if (doc.file) {
+							const leaf = this.app.workspace.getLeaf('tab');
+							await leaf.openFile(doc.file);
+						}
 					})();
 				});
 			}

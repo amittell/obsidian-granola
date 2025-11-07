@@ -132,16 +132,17 @@ export class DuplicateDetector {
 
 		for (const filename of potentialFilenames) {
 			// Check for conflicts with existing Granola documents
-			if (this.filenameToGranolaId.has(filename)) {
-				const conflictingId = this.filenameToGranolaId.get(filename)!;
-				const conflictingDoc = this.existingDocuments.get(conflictingId)!;
-
-				return {
-					status: 'CONFLICT',
-					existingFile: conflictingDoc.file,
-					reason: `Filename conflict: Another Granola document uses this filename`,
-					requiresUserChoice: true,
-				};
+			const conflictingId = this.filenameToGranolaId.get(filename);
+			if (conflictingId) {
+				const conflictingDoc = this.existingDocuments.get(conflictingId);
+				if (conflictingDoc) {
+					return {
+						status: 'CONFLICT',
+						existingFile: conflictingDoc.file,
+						reason: `Filename conflict: Another Granola document uses this filename`,
+						requiresUserChoice: true,
+					};
+				}
 			}
 
 			// Check if a file with this exact filename exists (non-Granola) in any folder

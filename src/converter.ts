@@ -703,7 +703,7 @@ export class ProseMirrorConverter {
 		}
 
 		if (doc.type !== 'doc') {
-			this.logger.debug(`ProseMirror doc has invalid type: ${doc.type}`);
+			this.logger.debug(`ProseMirror doc has invalid type: ${String(doc.type)}`);
 			return false;
 		}
 
@@ -1149,7 +1149,7 @@ export class ProseMirrorConverter {
 						text = `\`${text}\``;
 						break;
 					case 'link': {
-						const href = mark.attrs?.href || '#';
+						const href = String(mark.attrs?.href || '#');
 						text = `[${text}](${href})`;
 						break;
 					}

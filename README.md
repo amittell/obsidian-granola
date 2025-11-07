@@ -134,7 +134,7 @@ Access plugin settings via: **Settings → Plugin Options → Granola Importer**
 - **Enable debug mode** - Toggle detailed logging for troubleshooting
 - **Log level** - Control verbosity (Error, Warning, Info, Debug)
 
-### Import Behavior
+### Import behavior
 
 - **Duplicate handling** - Choose default action for existing documents:
   - Skip existing documents
@@ -143,7 +143,7 @@ Access plugin settings via: **Settings → Plugin Options → Granola Importer**
 - **Import folder** - Set default vault location for imported notes (e.g., "Meetings/Granola")
 - **Skip empty documents** - Filter out placeholder documents with no content
 
-### Content Processing
+### Content processing
 
 - **Enhanced frontmatter** - Include additional metadata (id, title, updated timestamp)
 - **Include Granola URL** - Add direct link to original Granola note in frontmatter
@@ -163,7 +163,7 @@ Access plugin settings via: **Settings → Plugin Options → Granola Importer**
     - `Meeting_{created_datetime}_{title}` → "Meeting_2025-07-23_14-30-00_Team Meeting"
     - `{title} [{id}]` → "Team Meeting [abc123def456]"
 
-### Action Items Processing
+### Action items processing
 
 - **Convert action items to tasks** - Automatically transform meeting action items:
   - Converts bullet points under action headers to Obsidian task format `- [ ]`

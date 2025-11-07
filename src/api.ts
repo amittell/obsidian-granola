@@ -390,8 +390,8 @@ export class GranolaAPI {
 					status: response.status,
 					statusText: '', // requestUrl doesn't provide statusText
 					headers: new Headers(response.headers),
-					json: async () => response.json,
-					text: async () => response.text || JSON.stringify(response.json),
+					json: () => Promise.resolve(response.json),
+					text: () => Promise.resolve(response.text || JSON.stringify(response.json)),
 				} as Response;
 
 				if (response.status === 429 && attempt < MAX_RETRY_ATTEMPTS) {

@@ -231,7 +231,11 @@ export class SelectiveImportManager {
 			const documentMap = new Map(granolaDocuments.map(doc => [doc.id, doc]));
 			const importQueue = selectedDocuments
 				.filter(meta => meta.selected && documentMap.has(meta.id))
-				.map(meta => ({ meta, doc: documentMap.get(meta.id)! }));
+				.map(meta => {
+					const doc = documentMap.get(meta.id);
+					if (!doc) throw new Error(`Document ${meta.id} not found in document map`);
+					return { meta, doc };
+				});
 
 			this.lastImportMetadata = new Map(
 				importQueue.map(({ meta }) => [meta.id, this.cloneMetadata(meta)])
@@ -608,7 +612,7 @@ export class SelectiveImportManager {
 					const newFilename = this.generateUniqueFilename(fullPath);
 					file = await this.vault.create(newFilename, convertedNote.content);
 				} else {
-					throw new Error(`Unhandled strategy for existing file: ${options.strategy}`);
+					throw new Error(`Unhandled strategy for existing file: ${String(options.strategy)}`);
 				}
 			} else {
 				file = await this.vault.create(fullPath, convertedNote.content);
