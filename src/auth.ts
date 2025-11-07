@@ -1,4 +1,7 @@
 import { Platform } from 'obsidian';
+import { readFileSync } from 'fs';
+import { platform as osPlatform, homedir } from 'os';
+import { join } from 'path';
 
 // Authentication Constants
 const JWT_PARTS_COUNT = 3;
@@ -203,10 +206,9 @@ export class GranolaAuth {
 	 */
 	private async readConfigFile(path: string): Promise<string> {
 		try {
-			// Use Node.js require to access fs module directly on desktop
+			// Use Node.js fs module directly on desktop
 			// This is a workaround since Obsidian's DataAdapter is vault-scoped
-			const fs = require('fs');
-			return fs.readFileSync(path, 'utf-8');
+			return readFileSync(path, 'utf-8');
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 			throw new Error(
@@ -239,26 +241,24 @@ export class GranolaAuth {
 	private getSupabaseConfigPath(): string {
 		// Use Node.js modules to determine paths
 		// This works on Obsidian desktop but not mobile
-		const os = require('os');
-		const path = require('path');
-		const platform = os.platform();
-		const homedir = os.homedir();
+		const platformType = osPlatform();
+		const homeDir = homedir();
 
-		switch (platform) {
+		switch (platformType) {
 			case 'darwin': // macOS
-				return path.join(
-					homedir,
+				return join(
+					homeDir,
 					'Library',
 					'Application Support',
 					'Granola',
 					'supabase.json'
 				);
 			case 'win32': // Windows
-				return path.join(homedir, 'AppData', 'Roaming', 'Granola', 'supabase.json');
+				return join(homeDir, 'AppData', 'Roaming', 'Granola', 'supabase.json');
 			case 'linux': // Linux
-				return path.join(homedir, '.config', 'Granola', 'supabase.json');
+				return join(homeDir, '.config', 'Granola', 'supabase.json');
 			default:
-				throw new Error(`Unsupported platform: ${platform}`);
+				throw new Error(`Unsupported platform: ${platformType}`);
 		}
 	}
 

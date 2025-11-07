@@ -150,7 +150,7 @@ export default class GranolaImporterPlugin extends Plugin {
 			id: 'diagnose-empty-granola-documents',
 			name: 'Diagnose empty Granola documents',
 			callback: () => {
-				this.diagnoseEmptyDocuments();
+				void this.diagnoseEmptyDocuments();
 			},
 		});
 
@@ -161,7 +161,7 @@ export default class GranolaImporterPlugin extends Plugin {
 				id: 'debug-granola-api',
 				name: 'Debug Granola API response',
 				callback: () => {
-					this.debugAPIResponse();
+					void this.debugAPIResponse();
 				},
 			});
 		}

@@ -1,3 +1,6 @@
+import { requestUrl } from 'obsidian';
+import { readFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
 import { GranolaAuth } from './auth';
 
 /**
@@ -217,14 +220,11 @@ export class GranolaAPI {
 
 		// Get version from package.json, fall back to static version
 		try {
-			const fs = require('fs');
-			const path = require('path');
-
 			// Try the most likely path first (relative to built main.js)
-			const packagePath = path.resolve(__dirname, '../package.json');
+			const packagePath = resolve(__dirname, '../package.json');
 
-			if (fs.existsSync(packagePath)) {
-				const manifest = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+			if (existsSync(packagePath)) {
+				const manifest = JSON.parse(readFileSync(packagePath, 'utf8'));
 				if (manifest?.name && manifest?.version) {
 					this.userAgent = `${manifest.name}/${manifest.version}`;
 				} else {
@@ -371,7 +371,23 @@ export class GranolaAPI {
 		// Retry logic with exponential backoff
 		for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
 			try {
-				const response = await fetch(url, options);
+				const response = await requestUrl({
+					url,
+					method: options.method || 'GET',
+					headers: options.headers,
+					body: options.body,
+					throw: false, // Don't throw on non-2xx status codes
+				});
+
+				// Convert requestUrl response to fetch-like Response for compatibility
+				const fetchLikeResponse = {
+					ok: response.status >= 200 && response.status < 300,
+					status: response.status,
+					statusText: '', // requestUrl doesn't provide statusText
+					headers: new Headers(response.headers),
+					json: async () => response.json,
+					text: async () => response.text || JSON.stringify(response.json),
+				} as Response;
 
 				if (response.status === 429 && attempt < MAX_RETRY_ATTEMPTS) {
 					const delay = Math.pow(2, attempt) * EXPONENTIAL_BACKOFF_BASE_MS; // Exponential backoff
@@ -379,7 +395,7 @@ export class GranolaAPI {
 					continue;
 				}
 
-				return response;
+				return fetchLikeResponse;
 			} catch (error) {
 				if (attempt === 3) {
 					const errorMessage = error instanceof Error ? error.message : 'Unknown error';
