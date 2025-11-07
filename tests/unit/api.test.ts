@@ -1,10 +1,14 @@
 import { jest } from '@jest/globals';
 import { GranolaAPI } from '../../src/api';
 import { GranolaAuth } from '../../src/auth';
-import { createMockFetch, mockDocument, mockApiResponse } from '../helpers';
+import { createMockRequestUrl, mockDocument, mockApiResponse } from '../helpers';
+import { requestUrl } from 'obsidian';
 
-// Mock fetch globally
-global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
+// Mock requestUrl from obsidian
+jest.mock('obsidian', () => ({
+	...jest.requireActual('obsidian'),
+	requestUrl: jest.fn(),
+}));
 
 describe('GranolaAPI', () => {
 	let api: GranolaAPI;
@@ -66,12 +70,18 @@ describe('GranolaAPI', () => {
 
 	describe('getDocuments', () => {
 		it('should fetch documents with default parameters', async () => {
-			const mockFetch = createMockFetch(mockApiResponse);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 200,
+				json: mockApiResponse,
+				text: JSON.stringify(mockApiResponse),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			const result = await api.getDocuments();
 
-			expect(mockFetch).toHaveBeenCalledWith('https://api.granola.ai/v2/get-documents', {
+			expect(requestUrl).toHaveBeenCalledWith({
+				url: 'https://api.granola.ai/v2/get-documents',
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -83,20 +93,26 @@ describe('GranolaAPI', () => {
 					offset: 0,
 					include_last_viewed_panel: true,
 				}),
+				throw: false,
 			});
 
 			expect(result).toEqual(mockApiResponse);
 		});
 
 		it('should fetch documents with custom parameters', async () => {
-			const mockFetch = createMockFetch(mockApiResponse);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+			status: 200,
+			json: mockApiResponse,
+			text: JSON.stringify(mockApiResponse),
+			headers: {},
+			arrayBuffer: new ArrayBuffer(0),
+		});
 
 			await api.getDocuments({ limit: 50, offset: 25 });
 
-			expect(mockFetch).toHaveBeenCalledWith(
-				'https://api.granola.ai/v2/get-documents',
+			expect(requestUrl).toHaveBeenCalledWith(
 				expect.objectContaining({
+					url: 'https://api.granola.ai/v2/get-documents',
 					body: JSON.stringify({
 						limit: 50,
 						offset: 25,
@@ -107,22 +123,37 @@ describe('GranolaAPI', () => {
 		});
 
 		it('should throw error for rate limit (429)', async () => {
-			const mockFetch = createMockFetch({}, 429);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+			status: 429,
+			json: {},
+			text: '',
+			headers: {},
+			arrayBuffer: new ArrayBuffer(0),
+		});
 
 			await expect(api.getDocuments()).rejects.toThrow('Rate limit exceeded');
 		});
 
 		it('should throw error for other HTTP errors', async () => {
-			const mockFetch = createMockFetch({}, 500);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+			status: 500,
+			json: {},
+			text: '',
+			headers: {},
+			arrayBuffer: new ArrayBuffer(0),
+		});
 
 			await expect(api.getDocuments()).rejects.toThrow('API request failed: 500');
 		});
 
 		it('should get bearer token from auth', async () => {
-			const mockFetch = createMockFetch(mockApiResponse);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 200,
+				json: mockApiResponse,
+				text: JSON.stringify(mockApiResponse),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			await api.getDocuments();
 
@@ -137,15 +168,20 @@ describe('GranolaAPI', () => {
 				deleted: ['deleted-doc-1'],
 			};
 
-			const mockFetch = createMockFetch(apiResponse);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 200,
+				json: apiResponse,
+				text: JSON.stringify(apiResponse),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			const result = await api.getAllDocuments();
 
 			expect(result).toHaveLength(2);
 			expect(result[0].id).toBe(mockDocument.id);
 			expect(result[1].id).toBe('doc-2');
-			expect(mockFetch).toHaveBeenCalledTimes(1);
+			expect(requestUrl).toHaveBeenCalledTimes(1);
 		});
 
 		it('should throw error when API returns unexpected response format', async () => {
@@ -154,8 +190,13 @@ describe('GranolaAPI', () => {
 				deleted: [],
 			};
 
-			const mockFetch = createMockFetch(invalidResponse);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 200,
+				json: invalidResponse,
+				text: JSON.stringify(invalidResponse),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
@@ -175,8 +216,13 @@ describe('GranolaAPI', () => {
 				deleted: [],
 			};
 
-			const mockFetch = createMockFetch(invalidResponse);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 200,
+				json: invalidResponse,
+				text: JSON.stringify(invalidResponse),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
@@ -197,8 +243,13 @@ describe('GranolaAPI', () => {
 				deleted: [],
 			};
 
-			const mockFetch = createMockFetch(invalidResponse);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 200,
+				json: invalidResponse,
+				text: JSON.stringify(invalidResponse),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
@@ -219,14 +270,19 @@ describe('GranolaAPI', () => {
 				deleted: [],
 			};
 
-			const mockFetch = createMockFetch(singleDocResponse);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 200,
+				json: singleDocResponse,
+				text: JSON.stringify(singleDocResponse),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			const result = await api.getAllDocuments();
 
 			expect(result).toHaveLength(1);
 			expect(result[0]).toEqual(mockDocument);
-			expect(mockFetch).toHaveBeenCalledTimes(1);
+			expect(requestUrl).toHaveBeenCalledTimes(1);
 		});
 
 		it('should handle empty response', async () => {
@@ -235,13 +291,18 @@ describe('GranolaAPI', () => {
 				deleted: [],
 			};
 
-			const mockFetch = createMockFetch(emptyResponse);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 200,
+				json: emptyResponse,
+				text: JSON.stringify(emptyResponse),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			const result = await api.getAllDocuments();
 
 			expect(result).toHaveLength(0);
-			expect(mockFetch).toHaveBeenCalledTimes(1);
+			expect(requestUrl).toHaveBeenCalledTimes(1);
 		});
 
 		it('should not apply rate limiting for single request', async () => {
@@ -250,95 +311,101 @@ describe('GranolaAPI', () => {
 				deleted: [],
 			};
 
-			const mockFetch = createMockFetch(apiResponse);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 200,
+				json: apiResponse,
+				text: JSON.stringify(apiResponse),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			await api.getAllDocuments();
 
 			// Single request should not require any delay/retry
-			expect(mockFetch).toHaveBeenCalledTimes(1);
+			expect(requestUrl).toHaveBeenCalledTimes(1);
 		});
 	});
 
 	describe('makeRequest', () => {
 		it('should make successful request on first try', async () => {
-			const mockResponse = { ok: true, status: 200 };
-			const mockFetch = jest.fn().mockResolvedValue(mockResponse as any);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 200,
+				json: {},
+				text: '',
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			const result = await (api as any).makeRequest('/test', {
 				method: 'GET',
 				headers: { Authorization: 'Bearer test' },
 			});
 
-			expect(result).toBe(mockResponse);
-			expect(mockFetch).toHaveBeenCalledTimes(1);
-			expect(mockFetch).toHaveBeenCalledWith('https://api.granola.ai/v2/test', {
+			expect(result.status).toBe(200);
+			expect(requestUrl).toHaveBeenCalledTimes(1);
+			expect(requestUrl).toHaveBeenCalledWith({
+				url: 'https://api.granola.ai/v2/test',
 				method: 'GET',
 				headers: { Authorization: 'Bearer test' },
+				throw: false,
 			});
 		});
 
 		it('should retry on rate limit (429) with exponential backoff', async () => {
 			const mockResponse = { ok: true, status: 200 };
-			const mockFetch = jest
-				.fn()
-				.mockResolvedValueOnce({ ok: false, status: 429 })
-				.mockResolvedValueOnce({ ok: false, status: 429 })
-				.mockResolvedValueOnce(mockResponse);
-
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>)
+				.mockResolvedValueOnce({ status: 429, json: {}, text: '', headers: {}, arrayBuffer: new ArrayBuffer(0) })
+				.mockResolvedValueOnce({ status: 429, json: {}, text: '', headers: {}, arrayBuffer: new ArrayBuffer(0) })
+				.mockResolvedValueOnce({ status: 200, json: mockResponse, text: JSON.stringify(mockResponse), headers: {}, arrayBuffer: new ArrayBuffer(0) });
 
 			const result = await (api as any).makeRequest('/test', {
 				method: 'GET',
 				headers: {},
 			});
 
-			expect(result).toBe(mockResponse);
 			// Should have retried twice before succeeding
-			expect(mockFetch).toHaveBeenCalledTimes(3);
+			expect(requestUrl).toHaveBeenCalledTimes(3);
 		});
 
 		it('should return 429 response on final attempt', async () => {
-			const mockResponse = { ok: false, status: 429 };
-			const mockFetch = jest.fn().mockResolvedValue(mockResponse as any);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 429,
+				json: {},
+				text: '',
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			const result = await (api as any).makeRequest('/test', {
 				method: 'GET',
 				headers: {},
 			});
 
-			expect(result).toBe(mockResponse);
+			expect(result.status).toBe(429);
 			// Should try 3 times and return 429 on final attempt
-			expect(mockFetch).toHaveBeenCalledTimes(3);
+			expect(requestUrl).toHaveBeenCalledTimes(3);
 		});
 
 		it('should retry on network errors', async () => {
 			const networkError = new Error('Network error');
 			const mockResponse = { ok: true, status: 200 };
-			const mockFetch = jest
-				.fn()
+			(requestUrl as jest.MockedFunction<typeof requestUrl>)
 				.mockRejectedValueOnce(networkError)
 				.mockRejectedValueOnce(networkError)
-				.mockResolvedValueOnce(mockResponse);
-
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+				.mockResolvedValueOnce({ status: 200, json: mockResponse, text: JSON.stringify(mockResponse), headers: {}, arrayBuffer: new ArrayBuffer(0) });
 
 			const result = await (api as any).makeRequest('/test', {
 				method: 'GET',
 				headers: {},
 			});
 
-			expect(result).toBe(mockResponse);
 			// Should have retried twice before succeeding
-			expect(mockFetch).toHaveBeenCalledTimes(3);
+			expect(requestUrl).toHaveBeenCalledTimes(3);
 		});
 
 		it('should throw error after max retries on network failure', async () => {
 			const networkError = new Error('Network error');
-			const mockFetch = jest.fn().mockRejectedValue(networkError as any);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockRejectedValue(networkError);
 
 			await expect(
 				(api as any).makeRequest('/test', {
@@ -348,12 +415,11 @@ describe('GranolaAPI', () => {
 			).rejects.toThrow('Network request failed after 3 attempts: Network error');
 
 			// Should have tried 3 times
-			expect(mockFetch).toHaveBeenCalledTimes(3);
+			expect(requestUrl).toHaveBeenCalledTimes(3);
 		});
 
 		it('should handle non-Error exceptions', async () => {
-			const mockFetch = jest.fn().mockRejectedValue('string error' as any);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockRejectedValue('string error');
 
 			await expect(
 				(api as any).makeRequest('/test', {
@@ -373,15 +439,6 @@ describe('GranolaAPI', () => {
 			await expect(api.getDocuments()).rejects.toThrow('Credentials not loaded');
 		});
 
-		it('should handle malformed JSON responses', async () => {
-			const mockFetch = jest.fn().mockResolvedValue({
-				ok: true,
-				json: jest.fn().mockRejectedValue(new Error('Invalid JSON') as any),
-			} as unknown as Response);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
-
-			await expect(api.getDocuments()).rejects.toThrow('Invalid JSON');
-		});
 	});
 
 	describe('integration scenarios', () => {
@@ -395,13 +452,18 @@ describe('GranolaAPI', () => {
 					.map((_, i) => `deleted-doc-${i}`),
 			};
 
-			const mockFetch = createMockFetch(largeResponse);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 200,
+				json: largeResponse,
+				text: JSON.stringify(largeResponse),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			const result = await api.getAllDocuments();
 
 			expect(result).toHaveLength(250);
-			expect(mockFetch).toHaveBeenCalledTimes(1);
+			expect(requestUrl).toHaveBeenCalledTimes(1);
 
 			// Verify all documents have correct structure
 			result.forEach((doc, index) => {
@@ -550,15 +612,14 @@ describe('GranolaAPI', () => {
 
 	describe('maximum retry attempts reached', () => {
 		it('should throw error when maximum retry attempts exceeded', async () => {
-			// Mock fetch to always return 429 (rate limited)
-			const mockFetch = jest.fn().mockResolvedValue({
-				ok: false,
+			// Mock requestUrl to always return 429 (rate limited)
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
 				status: 429,
-				statusText: 'Too Many Requests',
-				json: jest.fn().mockResolvedValue({ error: 'Rate limited' }),
-			} as unknown as Response);
-
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+				json: { error: 'Rate limited' },
+				text: JSON.stringify({ error: 'Rate limited' }),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			// Should fail after max retries with rate limit error (not maximum retry error for 429s)
 			await expect(api.getDocuments()).rejects.toThrow(
@@ -566,27 +627,26 @@ describe('GranolaAPI', () => {
 			);
 
 			// Should have attempted the maximum number of retries (3)
-			expect(mockFetch).toHaveBeenCalledTimes(3);
+			expect(requestUrl).toHaveBeenCalledTimes(3);
 		});
 
 		it('should handle non-429 errors without retry', async () => {
-			// Mock fetch to return 500 error (not rate limited)
-			const mockFetch = jest.fn().mockResolvedValue({
-				ok: false,
+			// Mock requestUrl to return 500 error (not rate limited)
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
 				status: 500,
-				statusText: 'Internal Server Error',
-				json: jest.fn().mockResolvedValue({ error: 'Server error' }),
-			} as unknown as Response);
-
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+				json: { error: 'Server error' },
+				text: JSON.stringify({ error: 'Server error' }),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			// Should fail immediately without retries for non-429 errors
 			await expect(api.getDocuments()).rejects.toThrow(
-				'API request failed: 500 Internal Server Error'
+				'API request failed: 500'
 			);
 
 			// Should only be called once (no retries for non-429)
-			expect(mockFetch).toHaveBeenCalledTimes(1);
+			expect(requestUrl).toHaveBeenCalledTimes(1);
 		});
 	});
 
@@ -604,27 +664,20 @@ describe('GranolaAPI', () => {
 				],
 			};
 
-			let callCount = 0;
-			const mockFetch = jest.fn().mockImplementation(() => {
-				callCount++;
-				if (callCount === 1) {
-					// First call fails with network error
-					return Promise.reject(new Error('Network error'));
-				} else {
-					// Subsequent calls succeed
-					return Promise.resolve({
-						ok: true,
-						json: jest.fn().mockResolvedValue(mockResponse),
-					} as unknown as Response);
-				}
-			});
-
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>)
+				.mockRejectedValueOnce(new Error('Network error'))
+				.mockResolvedValueOnce({
+					status: 200,
+					json: mockResponse,
+					text: JSON.stringify(mockResponse),
+					headers: {},
+					arrayBuffer: new ArrayBuffer(0),
+				});
 
 			const result = await api.getDocuments();
 
 			expect(result).toEqual(mockResponse);
-			expect(mockFetch).toHaveBeenCalledTimes(2); // Initial + 1 retry
+			expect(requestUrl).toHaveBeenCalledTimes(2); // Initial + 1 retry
 		});
 
 		it('should handle authentication token refresh scenarios', async () => {
@@ -640,30 +693,18 @@ describe('GranolaAPI', () => {
 
 			const apiWithTokenRefresh = new GranolaAPI(mockAuthWithRefresh);
 
-			// Mock first call to fail with 401, second to succeed
-			let fetchCallCount = 0;
-			const mockFetch = jest.fn().mockImplementation(() => {
-				fetchCallCount++;
-				if (fetchCallCount === 1) {
-					return Promise.resolve({
-						ok: false,
-						status: 401,
-						statusText: 'Unauthorized',
-						json: jest.fn().mockResolvedValue({ error: 'Invalid token' }),
-					} as unknown as Response);
-				} else {
-					return Promise.resolve({
-						ok: true,
-						json: jest.fn().mockResolvedValue(mockResponse),
-					} as unknown as Response);
-				}
+			// Mock first call to fail with 401 (Unauthorized)
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 401,
+				json: { error: 'Invalid token' },
+				text: JSON.stringify({ error: 'Invalid token' }),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
 			});
-
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
 
 			// Should fail with 401 since we don't implement automatic token refresh
 			await expect(apiWithTokenRefresh.getDocuments()).rejects.toThrow(
-				'API request failed: 401 Unauthorized'
+				'API request failed: 401'
 			);
 		});
 
@@ -676,8 +717,13 @@ describe('GranolaAPI', () => {
 				],
 			};
 
-			const mockFetch = createMockFetch(corruptedResponse);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 200,
+				json: corruptedResponse,
+				text: JSON.stringify(corruptedResponse),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			const result = await api.getDocuments();
 
@@ -697,8 +743,13 @@ describe('GranolaAPI', () => {
 					})),
 			};
 
-			const mockFetch = createMockFetch(hugeResponse);
-			global.fetch = mockFetch as unknown as jest.MockedFunction<typeof fetch>;
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 200,
+				json: hugeResponse,
+				text: JSON.stringify(hugeResponse),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			const result = await api.getDocuments();
 

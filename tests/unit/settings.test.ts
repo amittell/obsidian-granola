@@ -412,7 +412,7 @@ describe('Logger class', () => {
 	let consoleErrorSpy: jest.SpyInstance;
 	let consoleWarnSpy: jest.SpyInstance;
 	let consoleInfoSpy: jest.SpyInstance;
-	let consoleLogSpy: jest.SpyInstance;
+	let consoleDebugSpy: jest.SpyInstance;
 
 	beforeEach(() => {
 		testSettings = {
@@ -443,7 +443,7 @@ describe('Logger class', () => {
 		consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 		consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
 		consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation();
-		consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+		consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation();
 	});
 
 	afterEach(() => {
@@ -467,13 +467,13 @@ describe('Logger class', () => {
 			// Verify settings were updated by testing log behavior
 			logger.debug('test message');
 			// With new logic: debug shows when log level is DEBUG even if debug disabled
-			expect(consoleLogSpy).toHaveBeenCalledWith('[Granola Importer Debug] test message');
+			expect(consoleDebugSpy).toHaveBeenCalledWith('[Granola Importer Debug] test message');
 
-			consoleLogSpy.mockClear();
+			consoleDebugSpy.mockClear();
 			newSettings.debug.enabled = true;
 			logger.updateSettings(newSettings);
 			logger.debug('test message');
-			expect(consoleLogSpy).toHaveBeenCalledWith('[Granola Importer Debug] test message');
+			expect(consoleDebugSpy).toHaveBeenCalledWith('[Granola Importer Debug] test message');
 		});
 	});
 
@@ -555,7 +555,7 @@ describe('Logger class', () => {
 
 			logger.debug('Test debug message', ['array', 'data']);
 
-			expect(consoleLogSpy).toHaveBeenCalledWith(
+			expect(consoleDebugSpy).toHaveBeenCalledWith(
 				'[Granola Importer Debug] Test debug message',
 				['array', 'data']
 			);
@@ -568,7 +568,7 @@ describe('Logger class', () => {
 
 			logger.debug('Test debug message');
 
-			expect(consoleLogSpy).toHaveBeenCalledWith(
+			expect(consoleDebugSpy).toHaveBeenCalledWith(
 				'[Granola Importer Debug] Test debug message'
 			);
 		});
@@ -580,7 +580,7 @@ describe('Logger class', () => {
 
 			logger.debug('Test debug message');
 
-			expect(consoleLogSpy).toHaveBeenCalledWith(
+			expect(consoleDebugSpy).toHaveBeenCalledWith(
 				'[Granola Importer Debug] Test debug message'
 			);
 		});
@@ -595,7 +595,7 @@ describe('Logger class', () => {
 			];
 
 			testCases.forEach(({ enabled, logLevel, shouldLog }, index) => {
-				consoleLogSpy.mockClear();
+				consoleDebugSpy.mockClear();
 				testSettings.debug.enabled = enabled;
 				testSettings.debug.logLevel = logLevel;
 				logger.updateSettings(testSettings);
@@ -603,11 +603,11 @@ describe('Logger class', () => {
 				logger.debug(`Test message ${index}`);
 
 				if (shouldLog) {
-					expect(consoleLogSpy).toHaveBeenCalledWith(
+					expect(consoleDebugSpy).toHaveBeenCalledWith(
 						`[Granola Importer Debug] Test message ${index}`
 					);
 				} else {
-					expect(consoleLogSpy).not.toHaveBeenCalled();
+					expect(consoleDebugSpy).not.toHaveBeenCalled();
 				}
 			});
 		});
@@ -628,7 +628,7 @@ describe('Logger class', () => {
 			expect(consoleErrorSpy).toHaveBeenCalledWith('[Granola Importer] error');
 			expect(consoleWarnSpy).toHaveBeenCalledWith('[Granola Importer] warn');
 			expect(consoleInfoSpy).toHaveBeenCalledWith('[Granola Importer] info');
-			expect(consoleLogSpy).not.toHaveBeenCalled();
+			expect(consoleDebugSpy).not.toHaveBeenCalled();
 		});
 
 		it('should handle minimum log level correctly', () => {

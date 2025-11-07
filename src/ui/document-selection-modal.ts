@@ -787,7 +787,7 @@ export class DocumentSelectionModal extends Modal {
 				});
 		}
 
-		// If there are imported files, show "Open Imported Notes" button
+		// If there are imported files, show "Open imported notes" button
 		if (importedFiles.length > 0) {
 			const openButton = new ButtonComponent(buttonsDiv).setButtonText(
 				`Open imported notes (${importedFiles.length})`
@@ -798,7 +798,7 @@ export class DocumentSelectionModal extends Modal {
 			}
 
 			openButton.onClick(() => {
-				this.openImportedFiles(importedFiles);
+				void this.openImportedFiles(importedFiles);
 				this.close();
 			});
 		}
@@ -1676,7 +1676,7 @@ export class DocumentSelectionModal extends Modal {
 	 */
 	private updateFooterButtons(): void {
 		const selectedCount = this.documentMetadata.filter(doc => doc.selected).length;
-		this.importButton.setButtonText(`Import Selected (${selectedCount})`);
+		this.importButton.setButtonText(`Import selected (${selectedCount})`);
 		this.importButton.setDisabled(selectedCount === 0 || this.isImporting);
 	}
 

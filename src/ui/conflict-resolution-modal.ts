@@ -218,7 +218,7 @@ export class ConflictResolutionModal extends Modal {
 
 		// Skip option
 		this.createResolutionOption(optionsGrid, {
-			title: '⏭️ Skip This Document',
+			title: '⏭️ Skip this document',
 			description: "Leave existing file unchanged, don't import this document",
 			action: () => this.resolveWith({ action: 'skip', reason: 'User chose to skip' }),
 			buttonText: 'Skip',
@@ -227,7 +227,7 @@ export class ConflictResolutionModal extends Modal {
 
 		// Overwrite option
 		this.createResolutionOption(optionsGrid, {
-			title: '🔄 Replace Existing File',
+			title: '🔄 Replace existing file',
 			description: 'Overwrite the existing file with the Granola version',
 			action: () => this.showOverwriteOptions(),
 			buttonText: 'Replace',
@@ -237,7 +237,7 @@ export class ConflictResolutionModal extends Modal {
 		// Merge option
 		if (this.existingFile) {
 			this.createResolutionOption(optionsGrid, {
-				title: '🔗 Merge Content',
+				title: '🔗 Merge content',
 				description: 'Combine the existing content with the Granola version',
 				action: () => this.showMergeOptions(),
 				buttonText: 'Merge',
@@ -247,7 +247,7 @@ export class ConflictResolutionModal extends Modal {
 
 		// Rename option
 		this.createResolutionOption(optionsGrid, {
-			title: '📝 Import with New Name',
+			title: '📝 Import with new name',
 			description: 'Import the Granola document with a different filename',
 			action: () => this.showRenameOptions(),
 			buttonText: 'Rename',

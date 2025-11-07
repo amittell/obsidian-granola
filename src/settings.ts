@@ -39,7 +39,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 	private addConnectionSection(): void {
 		const { containerEl } = this;
 
-		new Setting(containerEl).setHeading().setName('Connection & validation');
+		new Setting(containerEl).setHeading().setName('Connection and validation');
 
 		// Connection status
 		const statusEl = containerEl.createDiv('connection-status');
@@ -65,7 +65,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 	private addDebugSection(): void {
 		const { containerEl } = this;
 
-		new Setting(containerEl).setHeading().setName('Debug & logging');
+		new Setting(containerEl).setHeading().setName('Debug and logging');
 
 		// Debug mode toggle
 		new Setting(containerEl)
@@ -279,7 +279,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 		}
 
 		// Action items section header
-		new Setting(containerEl).setHeading().setName('Action items processing');
+		new Setting(containerEl).setHeading().setName('Action items');
 
 		// Convert action items to tasks
 		new Setting(containerEl)

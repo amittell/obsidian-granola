@@ -225,7 +225,7 @@ export class Logger {
 	debug(message: string, ...args: unknown[]): void {
 		// Show debug messages if debug mode is enabled OR if log level is DEBUG
 		if (this.settings.debug.enabled || this.settings.debug.logLevel >= LogLevel.DEBUG) {
-			console.log(`[Granola Importer Debug] ${message}`, ...args);
+			console.debug(`[Granola Importer Debug] ${message}`, ...args);
 		}
 	}
 }

@@ -455,7 +455,7 @@ export class DuplicateDetector {
 		const newFormatFilename = this.generateDatePrefixedFilename(document);
 		filenames.push(newFormatFilename);
 
-		console.log(`[Duplicate Detector] Checking filenames for ${document.id}:`, filenames);
+		console.debug(`[Duplicate Detector] Checking filenames for ${document.id}:`, filenames);
 
 		return filenames;
 	}
