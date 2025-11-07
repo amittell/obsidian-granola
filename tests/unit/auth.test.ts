@@ -9,24 +9,32 @@ import {
 } from '../helpers';
 
 // Mock the fs module (synchronous version used by auth.ts)
-const mockReadFileSync = jest.fn();
 jest.mock('fs', () => ({
-	readFileSync: mockReadFileSync,
+	readFileSync: jest.fn(),
+	existsSync: jest.fn(),
 }));
 
 // Mock os module
-const mockPlatform = jest.fn();
-const mockHomedir = jest.fn();
 jest.mock('os', () => ({
-	platform: mockPlatform,
-	homedir: mockHomedir,
+	platform: jest.fn(),
+	homedir: jest.fn(),
 }));
 
 // Mock path module
-const mockJoin = jest.fn();
 jest.mock('path', () => ({
-	join: mockJoin,
+	join: jest.fn(),
 }));
+
+// Import the mocked modules to get the mocked functions
+import { readFileSync, existsSync } from 'fs';
+import { platform as osPlatform, homedir } from 'os';
+import { join } from 'path';
+
+const mockReadFileSync = readFileSync as jest.MockedFunction<typeof readFileSync>;
+const mockExistsSync = existsSync as jest.MockedFunction<typeof existsSync>;
+const mockPlatform = osPlatform as jest.MockedFunction<typeof osPlatform>;
+const mockHomedir = homedir as jest.MockedFunction<typeof homedir>;
+const mockJoin = join as jest.MockedFunction<typeof join>;
 
 describe('GranolaAuth', () => {
 	let auth: GranolaAuth;

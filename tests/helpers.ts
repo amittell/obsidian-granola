@@ -100,6 +100,20 @@ export function createMockFetch(
 	} as unknown as Response) as jest.MockedFunction<typeof fetch>;
 }
 
+/**
+ * Creates a mock requestUrl function for testing Obsidian API calls.
+ * This matches the response structure expected by Obsidian's requestUrl function.
+ */
+export function createMockRequestUrl(response: any = mockApiResponse, status: number = 200) {
+	return jest.fn().mockResolvedValue({
+		status,
+		json: response,
+		text: JSON.stringify(response),
+		headers: {},
+		arrayBuffer: new ArrayBuffer(0),
+	});
+}
+
 export function expectToThrow(fn: () => unknown, message?: string | RegExp) {
 	if (message) {
 		expect(fn).toThrow(message);
