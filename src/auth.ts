@@ -246,13 +246,7 @@ export class GranolaAuth {
 
 		switch (platformType) {
 			case 'darwin': // macOS
-				return join(
-					homeDir,
-					'Library',
-					'Application Support',
-					'Granola',
-					'supabase.json'
-				);
+				return join(homeDir, 'Library', 'Application Support', 'Granola', 'supabase.json');
 			case 'win32': // Windows
 				return join(homeDir, 'AppData', 'Roaming', 'Granola', 'supabase.json');
 			case 'linux': // Linux
