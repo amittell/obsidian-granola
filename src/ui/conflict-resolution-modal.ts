@@ -172,18 +172,18 @@ export class ConflictResolutionModal extends Modal {
 
 		// Last updated
 		const updatedRow = table.createEl('tr');
-		updatedRow.createEl('td', { text: 'Last Updated:', cls: 'info-label' });
+		updatedRow.createEl('td', { text: 'Last updated:', cls: 'info-label' });
 		updatedRow.createEl('td', { text: this.metadata.updatedDate });
 
 		// Word count
 		const wordsRow = table.createEl('tr');
-		wordsRow.createEl('td', { text: 'Word Count:', cls: 'info-label' });
+		wordsRow.createEl('td', { text: 'Word count:', cls: 'info-label' });
 		wordsRow.createEl('td', { text: `${this.metadata.wordCount} words` });
 
 		// Existing file info
 		if (this.existingFile) {
 			const existingRow = table.createEl('tr');
-			existingRow.createEl('td', { text: 'Existing File:', cls: 'info-label' });
+			existingRow.createEl('td', { text: 'Existing file:', cls: 'info-label' });
 			existingRow.createEl('td', { text: this.existingFile.path, cls: 'monospace' });
 		}
 	}
