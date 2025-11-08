@@ -68,7 +68,7 @@ export interface GranolaDocument {
 					email?: string;
 				};
 				title?: string;
-	};
+		  };
 
 	/** Additional metadata fields */
 	[key: string]: unknown;
