@@ -612,7 +612,7 @@ export class SelectiveImportManager {
 					const newFilename = this.generateUniqueFilename(fullPath);
 					file = await this.vault.create(newFilename, convertedNote.content);
 				} else {
-					throw new Error(`Unhandled strategy for existing file: ${options.strategy}`);
+					throw new Error(`Unhandled strategy for existing file: ${String(options.strategy)}`);
 				}
 			} else {
 				file = await this.vault.create(fullPath, convertedNote.content);
@@ -798,7 +798,7 @@ export class SelectiveImportManager {
 		if (!folder) {
 			try {
 				await this.vault.createFolder(folderPath);
-			} catch (error) {
+			} catch (_error) {
 				// Folder might already exist or parent folders need to be created
 				const parts = folderPath.split('/');
 				let currentPath = '';
@@ -808,7 +808,7 @@ export class SelectiveImportManager {
 					if (!existing) {
 						try {
 							await this.vault.createFolder(currentPath);
-						} catch (e) {
+						} catch (_e) {
 							// Ignore if folder already exists
 						}
 					}

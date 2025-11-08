@@ -165,7 +165,7 @@ export class ProseMirrorConverter {
 		// Enhanced content validation before conversion
 		const validationResult = this.validateDocumentStructure(doc);
 		if (!validationResult.isValid) {
-			throw new Error(`Document validation failed: ${validationResult.reason}`);
+			throw new Error(`Document validation failed: ${validationResult.reason || 'Unknown reason'}`);
 		}
 		// Debug logging for content analysis
 		this.logger.debug(
@@ -649,7 +649,7 @@ export class ProseMirrorConverter {
 				datePrefix = `${year}-${month}-${day}`;
 			}
 		} catch (error) {
-			this.logger.error(`Error parsing date: ${error}`);
+			this.logger.error(`Error parsing date: ${error instanceof Error ? error.message : String(error)}`);
 			datePrefix = 'INVALID-DATE';
 		}
 
@@ -702,7 +702,7 @@ export class ProseMirrorConverter {
 		}
 
 		if (doc.type !== 'doc') {
-			this.logger.debug(`ProseMirror doc has invalid type: ${doc.type}`);
+			this.logger.debug(`ProseMirror doc has invalid type: ${String(doc.type)}`);
 			return false;
 		}
 
@@ -1148,7 +1148,7 @@ export class ProseMirrorConverter {
 						text = `\`${text}\``;
 						break;
 					case 'link': {
-						const href = mark.attrs?.href || '#';
+						const href = String(mark.attrs?.href || '#');
 						text = `[${text}](${href})`;
 						break;
 					}
@@ -1569,7 +1569,7 @@ export class ProseMirrorConverter {
 
 			// Replace {email} variable
 			if (tag.includes('{email}')) {
-				this.logger.debug(`Processing {email} variable. Attendee email: ${attendee.email}`);
+				this.logger.debug(`Processing {email} variable. Attendee email: ${attendee.email || 'null'}`);
 				if (attendee.email) {
 					const normalizedEmail = attendee.email.toLowerCase().replace(/[@.]/g, '-');
 					tag = tag.replace(/{email}/g, normalizedEmail);

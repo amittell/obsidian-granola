@@ -225,8 +225,8 @@ export class GranolaAPI {
 
 			if (existsSync(packagePath)) {
 				const manifest = JSON.parse(readFileSync(packagePath, 'utf8'));
-				if (manifest?.name && manifest?.version) {
-					this.userAgent = `${manifest.name}/${manifest.version}`;
+				if (manifest?.name && manifest?.version && typeof manifest.name === 'string' && typeof manifest.version === 'string') {
+					this.userAgent = `${String(manifest.name)}/${String(manifest.version)}`;
 				} else {
 					throw new Error('Invalid package.json format');
 				}
@@ -390,8 +390,8 @@ export class GranolaAPI {
 					status: response.status,
 					statusText: '', // requestUrl doesn't provide statusText
 					headers: new Headers(response.headers),
-					json: async () => response.json,
-					text: async () => response.text || JSON.stringify(response.json),
+					json: () => Promise.resolve(response.json),
+					text: () => Promise.resolve(response.text || JSON.stringify(response.json)),
 				} as Response;
 
 				if (response.status === 429 && attempt < MAX_RETRY_ATTEMPTS) {

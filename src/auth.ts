@@ -147,6 +147,7 @@ export class GranolaAuth {
 	 * }
 	 * ```
 	 */
+	// eslint-disable-next-line @typescript-eslint/require-await
 	async loadCredentials(): Promise<GranolaCredentials> {
 		if (this.credentials) {
 			return this.credentials;
@@ -166,7 +167,7 @@ export class GranolaAuth {
 			// Read credentials file from the user's home directory
 			// Note: This accesses files outside the vault, which requires Obsidian's
 			// file system APIs. On desktop, we use a workaround with fetch for local files.
-			const configData = await this.readConfigFile(configPath);
+			const configData = this.readConfigFile(configPath);
 			const config: SupabaseConfig = JSON.parse(configData);
 
 			// Parse the nested cognito_tokens JSON string
@@ -204,7 +205,7 @@ export class GranolaAuth {
 	 * @returns {Promise<string>} The file contents as a string
 	 * @throws {Error} If the file cannot be read
 	 */
-	private async readConfigFile(path: string): Promise<string> {
+	private readConfigFile(path: string): string {
 		try {
 			// Use Node.js fs module directly on desktop
 			// This is a workaround since Obsidian's DataAdapter is vault-scoped
@@ -381,31 +382,26 @@ export class GranolaAuth {
 	 * }
 	 * ```
 	 */
-	async refreshToken(): Promise<void> {
+	refreshToken(): void {
 		if (!this.credentials?.refresh_token) {
 			throw new Error('No refresh token available');
 		}
 
-		try {
-			// Note: This would require implementing the actual refresh endpoint
-			// For now, we'll throw an informative error directing users to re-authenticate
-			throw new Error(
-				'Token refresh not yet implemented. Please re-authenticate in the Granola app.'
-			);
+		// Note: This would require implementing the actual refresh endpoint
+		// For now, we throw an informative error directing users to re-authenticate
+		this.credentials = null; // Clear invalid credentials
+		throw new Error(
+			'Token refresh not yet implemented. Please re-authenticate in the Granola app.'
+		);
 
-			// Future implementation would look like:
-			// const response = await fetch('https://api.granola.ai/auth/refresh', {
-			//     method: 'POST',
-			//     headers: { 'Content-Type': 'application/json' },
-			//     body: JSON.stringify({ refresh_token: this.credentials.refresh_token })
-			// });
-			// const newTokens = await response.json();
-			// this.credentials = { ...this.credentials, ...newTokens };
-		} catch (error) {
-			this.credentials = null; // Clear invalid credentials
-			const errorMessage = error instanceof Error ? error.message : 'Token refresh failed';
-			throw new Error(`Token refresh failed: ${errorMessage}`);
-		}
+		// Future implementation would be async and look like:
+		// const response = await fetch('https://api.granola.ai/auth/refresh', {
+		//     method: 'POST',
+		//     headers: { 'Content-Type': 'application/json' },
+		//     body: JSON.stringify({ refresh_token: this.credentials.refresh_token })
+		// });
+		// const newTokens = await response.json();
+		// this.credentials = { ...this.credentials, ...newTokens };
 	}
 
 	/**

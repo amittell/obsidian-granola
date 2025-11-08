@@ -39,6 +39,8 @@ export default [
 					args: 'none',
 					varsIgnorePattern: '^_',
 					argsIgnorePattern: '^_',
+					caughtErrors: 'all',
+					caughtErrorsIgnorePattern: '^_',
 				},
 			],
 			'@typescript-eslint/ban-ts-comment': 'off',
@@ -47,6 +49,9 @@ export default [
 			'@typescript-eslint/no-explicit-any': 'warn',
 			'@typescript-eslint/explicit-module-boundary-types': 'off',
 			'@typescript-eslint/no-non-null-assertion': 'warn',
+			'@typescript-eslint/require-await': 'error',
+			'@typescript-eslint/no-floating-promises': 'error',
+			'@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true, allowBoolean: true }],
 		},
 	},
 ];
