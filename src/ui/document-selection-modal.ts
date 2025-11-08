@@ -766,8 +766,8 @@ export class DocumentSelectionModal extends Modal {
 		// Get successfully imported files for opening
 		const importedFiles = allDocProgress
 			.filter(progress => progress.status === 'completed' && progress.file)
-			.map(progress => progress.file!)
-			.filter(file => file !== undefined);
+			.map(progress => progress.file)
+			.filter((file): file is NonNullable<typeof file> => file !== undefined);
 
 		// Add buttons for next actions
 		const buttonsDiv = summary.createDiv('import-complete-buttons');
@@ -874,14 +874,15 @@ export class DocumentSelectionModal extends Modal {
 			const titleSpan = listItem.createEl('span', { cls: 'success-doc-title' });
 			titleSpan.textContent = title;
 
-			if (doc.file) {
+			const docFile = doc.file;
+			if (docFile) {
 				const openButton = listItem.createEl('button', {
 					text: 'Open',
 					cls: 'open-doc-button',
 				});
 				openButton.addEventListener('click', async () => {
 					const leaf = this.app.workspace.getLeaf('tab');
-					await leaf.openFile(doc.file!);
+					await leaf.openFile(docFile);
 				});
 			}
 		});
@@ -1056,31 +1057,11 @@ export class DocumentSelectionModal extends Modal {
 		const summary = this.buildFailedDocumentsSummary(records);
 
 		try {
-			// Try modern Clipboard API first
-			if (navigator?.clipboard?.writeText) {
-				await navigator.clipboard.writeText(summary);
-			} else {
-				// Fallback to deprecated execCommand for older browsers
-				let textarea: HTMLTextAreaElement | null = null;
-				try {
-					textarea = document.createElement('textarea');
-					textarea.value = summary;
-					textarea.className = 'granola-clipboard-fallback';
-					document.body.appendChild(textarea);
-					textarea.focus();
-					textarea.select();
-
-					const successful = document.execCommand('copy');
-					if (!successful) {
-						throw new Error('document.execCommand("copy") failed');
-					}
-				} finally {
-					if (textarea && document.body.contains(textarea)) {
-						document.body.removeChild(textarea);
-					}
-				}
+			// Use modern Clipboard API (available in Electron/Obsidian)
+			if (!navigator?.clipboard?.writeText) {
+				throw new Error('Clipboard API not available');
 			}
-
+			await navigator.clipboard.writeText(summary);
 			new Notice('Failed import summary copied to clipboard.');
 		} catch (error) {
 			console.error('[Granola Importer] Clipboard copy failed:', error);

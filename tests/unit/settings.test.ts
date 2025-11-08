@@ -530,7 +530,7 @@ describe('Logger class', () => {
 
 			logger.info('Test info message', 123, true);
 
-			expect(consoleInfoSpy).toHaveBeenCalledWith(
+			expect(consoleDebugSpy).toHaveBeenCalledWith(
 				'[Granola Importer] Test info message',
 				123,
 				true
@@ -543,7 +543,7 @@ describe('Logger class', () => {
 
 			logger.info('Test info message');
 
-			expect(consoleInfoSpy).not.toHaveBeenCalled();
+			expect(consoleDebugSpy).not.toHaveBeenCalled();
 		});
 	});
 
@@ -622,13 +622,13 @@ describe('Logger class', () => {
 
 			logger.error('error'); // Should log
 			logger.warn('warn'); // Should log
-			logger.info('info'); // Should log
+			logger.info('info'); // Should log (uses console.debug)
 			logger.debug('debug'); // Should NOT log (debug disabled and level < DEBUG)
 
 			expect(consoleErrorSpy).toHaveBeenCalledWith('[Granola Importer] error');
 			expect(consoleWarnSpy).toHaveBeenCalledWith('[Granola Importer] warn');
-			expect(consoleInfoSpy).toHaveBeenCalledWith('[Granola Importer] info');
-			expect(consoleDebugSpy).not.toHaveBeenCalled();
+			expect(consoleDebugSpy).toHaveBeenCalledWith('[Granola Importer] info');
+			expect(consoleDebugSpy).toHaveBeenCalledTimes(1); // Only info() should have called it
 		});
 
 		it('should handle minimum log level correctly', () => {
@@ -641,7 +641,7 @@ describe('Logger class', () => {
 
 			expect(consoleErrorSpy).toHaveBeenCalledWith('[Granola Importer] error');
 			expect(consoleWarnSpy).not.toHaveBeenCalled();
-			expect(consoleInfoSpy).not.toHaveBeenCalled();
+			expect(consoleDebugSpy).not.toHaveBeenCalled();
 		});
 	});
 });
