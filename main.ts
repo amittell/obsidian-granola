@@ -326,7 +326,7 @@ export default class GranolaImporterPlugin extends Plugin {
 			}
 
 			this.logger.info('Debug analysis complete');
-			console.log(analysisReport);
+			console.debug(analysisReport);
 			new Notice('✅ Debug analysis complete - check console for full report', 5000);
 		} catch (error) {
 			debugNotice.hide();

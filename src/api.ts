@@ -68,7 +68,7 @@ export interface GranolaDocument {
 					email?: string;
 				};
 				title?: string;
-		  }; // eslint-disable-line no-mixed-spaces-and-tabs
+		  };
 
 	/** Additional metadata fields */
 	[key: string]: unknown;

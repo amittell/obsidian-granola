@@ -101,12 +101,12 @@ describe('GranolaAPI', () => {
 
 		it('should fetch documents with custom parameters', async () => {
 			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
-			status: 200,
-			json: mockApiResponse,
-			text: JSON.stringify(mockApiResponse),
-			headers: {},
-			arrayBuffer: new ArrayBuffer(0),
-		});
+				status: 200,
+				json: mockApiResponse,
+				text: JSON.stringify(mockApiResponse),
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			await api.getDocuments({ limit: 50, offset: 25 });
 
@@ -124,24 +124,24 @@ describe('GranolaAPI', () => {
 
 		it('should throw error for rate limit (429)', async () => {
 			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
-			status: 429,
-			json: {},
-			text: '',
-			headers: {},
-			arrayBuffer: new ArrayBuffer(0),
-		});
+				status: 429,
+				json: {},
+				text: '',
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			await expect(api.getDocuments()).rejects.toThrow('Rate limit exceeded');
 		});
 
 		it('should throw error for other HTTP errors', async () => {
 			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
-			status: 500,
-			json: {},
-			text: '',
-			headers: {},
-			arrayBuffer: new ArrayBuffer(0),
-		});
+				status: 500,
+				json: {},
+				text: '',
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
 
 			await expect(api.getDocuments()).rejects.toThrow('API request failed: 500');
 		});
@@ -354,9 +354,27 @@ describe('GranolaAPI', () => {
 		it('should retry on rate limit (429) with exponential backoff', async () => {
 			const mockResponse = { ok: true, status: 200 };
 			(requestUrl as jest.MockedFunction<typeof requestUrl>)
-				.mockResolvedValueOnce({ status: 429, json: {}, text: '', headers: {}, arrayBuffer: new ArrayBuffer(0) })
-				.mockResolvedValueOnce({ status: 429, json: {}, text: '', headers: {}, arrayBuffer: new ArrayBuffer(0) })
-				.mockResolvedValueOnce({ status: 200, json: mockResponse, text: JSON.stringify(mockResponse), headers: {}, arrayBuffer: new ArrayBuffer(0) });
+				.mockResolvedValueOnce({
+					status: 429,
+					json: {},
+					text: '',
+					headers: {},
+					arrayBuffer: new ArrayBuffer(0),
+				})
+				.mockResolvedValueOnce({
+					status: 429,
+					json: {},
+					text: '',
+					headers: {},
+					arrayBuffer: new ArrayBuffer(0),
+				})
+				.mockResolvedValueOnce({
+					status: 200,
+					json: mockResponse,
+					text: JSON.stringify(mockResponse),
+					headers: {},
+					arrayBuffer: new ArrayBuffer(0),
+				});
 
 			const result = await (api as any).makeRequest('/test', {
 				method: 'GET',
@@ -392,7 +410,13 @@ describe('GranolaAPI', () => {
 			(requestUrl as jest.MockedFunction<typeof requestUrl>)
 				.mockRejectedValueOnce(networkError)
 				.mockRejectedValueOnce(networkError)
-				.mockResolvedValueOnce({ status: 200, json: mockResponse, text: JSON.stringify(mockResponse), headers: {}, arrayBuffer: new ArrayBuffer(0) });
+				.mockResolvedValueOnce({
+					status: 200,
+					json: mockResponse,
+					text: JSON.stringify(mockResponse),
+					headers: {},
+					arrayBuffer: new ArrayBuffer(0),
+				});
 
 			const result = await (api as any).makeRequest('/test', {
 				method: 'GET',
@@ -419,7 +443,9 @@ describe('GranolaAPI', () => {
 		});
 
 		it('should handle non-Error exceptions', async () => {
-			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockRejectedValue('string error');
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockRejectedValue(
+				'string error'
+			);
 
 			await expect(
 				(api as any).makeRequest('/test', {
@@ -438,7 +464,6 @@ describe('GranolaAPI', () => {
 
 			await expect(api.getDocuments()).rejects.toThrow('Credentials not loaded');
 		});
-
 	});
 
 	describe('integration scenarios', () => {
@@ -641,9 +666,7 @@ describe('GranolaAPI', () => {
 			});
 
 			// Should fail immediately without retries for non-429 errors
-			await expect(api.getDocuments()).rejects.toThrow(
-				'API request failed: 500'
-			);
+			await expect(api.getDocuments()).rejects.toThrow('API request failed: 500');
 
 			// Should only be called once (no retries for non-429)
 			expect(requestUrl).toHaveBeenCalledTimes(1);

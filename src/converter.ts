@@ -1454,7 +1454,7 @@ export class ProseMirrorConverter {
 								};
 							};
 						}) => ({
-							name: attendee.details!.person!.name!.fullName!,
+							name: attendee.details?.person?.name?.fullName || 'Unknown',
 							email: attendee.email || null,
 							company: attendee.details?.company?.name || null,
 						})

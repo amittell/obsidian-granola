@@ -10,6 +10,7 @@ export default [
 			'docs/**',
 			'coverage/**',
 			'.obsidian/**',
+			'tests/**',
 			'*.js',
 			'!*.config.js',
 			'esbuild.config.mjs',
