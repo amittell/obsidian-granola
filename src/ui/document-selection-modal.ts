@@ -112,10 +112,10 @@ export class DocumentSelectionModal extends Modal {
 	 *
 	 * @returns {Promise<void>} Resolves when modal initialization is complete
 	 */
-	async onOpen(): Promise<void> {
+	onOpen(): void {
 		this.modalContentEl = this.contentEl;
 		this.setupUI();
-		await this.loadDocuments();
+		void this.loadDocuments();
 	}
 
 	/**

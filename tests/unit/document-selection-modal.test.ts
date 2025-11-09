@@ -275,8 +275,11 @@ describe('DocumentSelectionModal', () => {
 
 	describe('onOpen', () => {
 		it('should call setupUI and loadDocuments', async () => {
-			// Since setupUI and loadDocuments are private methods, we test the overall behavior
-			await modal.onOpen();
+			// onOpen now returns void, so we call it and wait for async operations
+			modal.onOpen();
+
+			// Wait for async loadDocuments to complete
+			await new Promise(resolve => setTimeout(resolve, 100));
 
 			// Verify API was called to load documents
 			expect(mockAPI.loadCredentials).toHaveBeenCalled();
@@ -287,8 +290,11 @@ describe('DocumentSelectionModal', () => {
 		it('should handle API errors gracefully', async () => {
 			(mockAPI.getAllDocuments as jest.Mock).mockRejectedValue(new Error('API Error'));
 
-			// Should not throw
-			await expect(modal.onOpen()).resolves.not.toThrow();
+			// Should not throw when called
+			expect(() => modal.onOpen()).not.toThrow();
+
+			// Wait for async error handling
+			await new Promise(resolve => setTimeout(resolve, 100));
 		});
 	});
 
@@ -331,7 +337,7 @@ describe('DocumentSelectionModal', () => {
 
 	describe('data loading and processing', () => {
 		it('should process documents through metadata service', async () => {
-			await modal.onOpen();
+			modal.onOpen(); await new Promise(resolve => setTimeout(resolve, 100));
 
 			expect(mockMetadataService.extractBulkMetadata).toHaveBeenCalledWith(
 				mockGranolaDocuments,
@@ -340,13 +346,13 @@ describe('DocumentSelectionModal', () => {
 		});
 
 		it('should check for duplicates', async () => {
-			await modal.onOpen();
+			modal.onOpen(); await new Promise(resolve => setTimeout(resolve, 100));
 
 			expect(mockDuplicateDetector.checkDocuments).toHaveBeenCalledWith(mockGranolaDocuments);
 		});
 
 		it('should apply default sorting', async () => {
-			await modal.onOpen();
+			modal.onOpen(); await new Promise(resolve => setTimeout(resolve, 100));
 
 			expect(mockMetadataService.applySorting).toHaveBeenCalledWith(mockDocumentMetadata, {
 				field: 'updated',
@@ -361,7 +367,7 @@ describe('DocumentSelectionModal', () => {
 				new Error('Init failed')
 			);
 
-			await expect(modal.onOpen()).resolves.not.toThrow();
+			expect(() => modal.onOpen()).not.toThrow(); await new Promise(resolve => setTimeout(resolve, 100));
 			// When duplicate detector fails, the process may stop early
 			// This is expected behavior - verify credentials loading was attempted
 			expect(mockAPI.loadCredentials).toHaveBeenCalled();
@@ -370,7 +376,7 @@ describe('DocumentSelectionModal', () => {
 		it('should handle document loading failure', async () => {
 			(mockAPI.getAllDocuments as jest.Mock).mockRejectedValue(new Error('Loading failed'));
 
-			await expect(modal.onOpen()).resolves.not.toThrow();
+			expect(() => modal.onOpen()).not.toThrow(); await new Promise(resolve => setTimeout(resolve, 100));
 		});
 
 		it('should handle metadata extraction failure', async () => {
@@ -378,7 +384,7 @@ describe('DocumentSelectionModal', () => {
 				throw new Error('Extraction failed');
 			});
 
-			await expect(modal.onOpen()).resolves.not.toThrow();
+			expect(() => modal.onOpen()).not.toThrow(); await new Promise(resolve => setTimeout(resolve, 100));
 		});
 	});
 
@@ -407,7 +413,7 @@ describe('DocumentSelectionModal', () => {
 			);
 			(mockMetadataService.applySorting as jest.Mock).mockReturnValue(mockDocumentMetadata);
 
-			await modal.onOpen();
+			modal.onOpen(); await new Promise(resolve => setTimeout(resolve, 100));
 
 			// Should store loaded documents
 			expect((modal as any).granolaDocuments).toEqual(mockGranolaDocuments);
@@ -441,7 +447,7 @@ describe('DocumentSelectionModal', () => {
 			);
 			(mockMetadataService.applySorting as jest.Mock).mockReturnValue(mockDocumentMetadata);
 
-			await modal.onOpen();
+			modal.onOpen(); await new Promise(resolve => setTimeout(resolve, 100));
 
 			// Verify all services are called
 			expect(mockAPI.loadCredentials).toHaveBeenCalled();
@@ -464,7 +470,7 @@ describe('DocumentSelectionModal', () => {
 			);
 			(mockMetadataService.applySorting as jest.Mock).mockReturnValue(mockDocumentMetadata);
 
-			await modal.onOpen();
+			modal.onOpen(); await new Promise(resolve => setTimeout(resolve, 100));
 
 			expect(mockDuplicateDetector.checkDocuments).toHaveBeenCalledWith(mockGranolaDocuments);
 			expect(mockMetadataService.extractBulkMetadata).toHaveBeenCalledWith(

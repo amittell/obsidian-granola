@@ -62,8 +62,17 @@ export class ConflictResolutionModal extends Modal {
 		});
 	}
 
-	async onOpen(): Promise<void> {
-		// Load existing file content if available
+	onOpen(): void {
+		// Load existing file content asynchronously
+		void this.loadExistingFileContent();
+		this.setupUI();
+	}
+
+	/**
+	 * Loads existing file content if available.
+	 * @private
+	 */
+	private async loadExistingFileContent(): Promise<void> {
 		if (this.existingFile) {
 			this.logger.debug(`Loading existing file content from: ${this.existingFile.path}`);
 			try {
@@ -78,8 +87,6 @@ export class ConflictResolutionModal extends Modal {
 		} else {
 			this.logger.debug('No existing file to load');
 		}
-
-		this.setupUI();
 	}
 
 	onClose(): void {
