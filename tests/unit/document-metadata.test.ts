@@ -174,6 +174,41 @@ describe('DocumentMetadataService', () => {
 			expect(updatedMetadata.selected).toBe(true);
 			expect(existsMetadata.selected).toBe(false);
 		});
+
+		it('should detect empty documents correctly', () => {
+			// Create an empty document (never modified after creation)
+			const emptyDocument: GranolaDocument = {
+				...mockDocument,
+				id: 'empty-doc',
+				created_at: '2023-01-01T10:00:00Z',
+				updated_at: '2023-01-01T10:00:00Z', // Same as created_at
+				notes_plain: '',
+				notes_markdown: '',
+				notes: { type: 'doc', content: [] },
+				last_viewed_panel: null,
+			};
+
+			const emptyMetadata = service.extractMetadata(emptyDocument, mockImportStatus);
+			expect(emptyMetadata.isEmpty).toBe(true);
+		});
+
+		it('should detect non-empty documents correctly', () => {
+			const metadata = service.extractMetadata(mockDocument, mockImportStatus);
+			expect(metadata.isEmpty).toBe(false);
+		});
+
+		it('should mark document as non-empty if it has content even with same created/updated dates', () => {
+			// Document with content but same created/updated dates
+			const documentWithContent: GranolaDocument = {
+				...mockDocument,
+				created_at: '2023-01-01T10:00:00Z',
+				updated_at: '2023-01-01T10:00:00Z', // Same as created_at
+				notes_plain: 'Some content here',
+			};
+
+			const metadata = service.extractMetadata(documentWithContent, mockImportStatus);
+			expect(metadata.isEmpty).toBe(false);
+		});
 	});
 
 	describe('extractBulkMetadata', () => {
@@ -358,6 +393,40 @@ describe('DocumentMetadataService', () => {
 
 			expect(filtered[0].visible).toBe(true);
 			expect(filtered[1].visible).toBe(true);
+		});
+
+		it('should hide empty documents when showEmptyDocuments setting is false', () => {
+			// Update settings to hide empty documents
+			mockSettings.ui.showEmptyDocuments = false;
+			service.updateSettings(mockSettings);
+
+			const documentsWithEmpty = [
+				{ ...testDocuments[0], isEmpty: false },
+				{ ...testDocuments[1], isEmpty: true }, // Empty document
+			];
+
+			const filter: DocumentFilter = {};
+			const filtered = service.applyFilter(documentsWithEmpty, filter);
+
+			expect(filtered[0].visible).toBe(true);
+			expect(filtered[1].visible).toBe(false); // Empty document should be hidden
+		});
+
+		it('should show empty documents when showEmptyDocuments setting is true', () => {
+			// Update settings to show empty documents
+			mockSettings.ui.showEmptyDocuments = true;
+			service.updateSettings(mockSettings);
+
+			const documentsWithEmpty = [
+				{ ...testDocuments[0], isEmpty: false },
+				{ ...testDocuments[1], isEmpty: true }, // Empty document
+			];
+
+			const filter: DocumentFilter = {};
+			const filtered = service.applyFilter(documentsWithEmpty, filter);
+
+			expect(filtered[0].visible).toBe(true);
+			expect(filtered[1].visible).toBe(true); // Empty document should be visible
 		});
 	});
 

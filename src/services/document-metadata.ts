@@ -38,6 +38,9 @@ export interface DocumentDisplayMetadata {
 	/** Import status from duplicate detection */
 	importStatus: DuplicateCheckResult;
 
+	/** Whether document is empty (never modified after creation) */
+	isEmpty: boolean;
+
 	/** Whether document matches current search/filter criteria */
 	visible: boolean;
 
@@ -136,6 +139,7 @@ export class DocumentMetadataService {
 			wordCount: this.estimateWordCount(document),
 			readingTime: 0, // Will be calculated after word count
 			importStatus,
+			isEmpty: isEmptyDocument(document),
 			visible: true,
 			selected: importStatus.status === 'NEW' || importStatus.status === 'UPDATED',
 		};
@@ -512,6 +516,11 @@ export class DocumentMetadataService {
 	 * @returns {boolean} True if document matches filter
 	 */
 	private matchesFilter(doc: DocumentDisplayMetadata, filter: DocumentFilter): boolean {
+		// Filter out empty documents if the setting is disabled
+		if (!this.settings.ui.showEmptyDocuments && doc.isEmpty) {
+			return false;
+		}
+
 		// Text search
 		if (filter.searchText && filter.searchText.trim()) {
 			const searchText = filter.searchText.toLowerCase();

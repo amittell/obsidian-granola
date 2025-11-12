@@ -378,6 +378,12 @@ export class DocumentSelectionModal extends Modal {
 	private renderDocumentItem(container: HTMLElement, doc: DocumentDisplayMetadata): void {
 		const item = container.createDiv('document-item');
 		item.addClass(`status-${doc.importStatus.status.toLowerCase()}`);
+		
+		// Add empty document indicator class
+		if (doc.isEmpty) {
+			item.addClass('document-empty');
+		}
+		
 		item.setAttribute('data-document-id', doc.id);
 
 		// Checkbox
@@ -396,6 +402,19 @@ export class DocumentSelectionModal extends Modal {
 
 		// Title and status
 		const titleRow = content.createDiv('document-title-row');
+		
+		// Add empty document icon with tooltip
+		if (doc.isEmpty) {
+			const emptyIcon = titleRow.createEl('span', {
+				cls: 'empty-document-icon',
+				attr: {
+					'aria-label': 'Empty document (never modified after creation)',
+					'title': 'This document was created but never edited in Granola',
+				},
+			});
+			emptyIcon.textContent = '📄';
+		}
+		
 		const titleEl = titleRow.createEl('h3', {
 			cls: 'document-title',
 		});

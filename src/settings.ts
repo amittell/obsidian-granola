@@ -356,6 +356,21 @@ export class GranolaSettingTab extends PluginSettingTab {
 					});
 			});
 
+		// Show empty documents
+		new Setting(containerEl)
+			.setName('Show empty documents')
+			.setDesc(
+				'Display empty documents in the document selection modal. Empty documents are those that were created but never modified.'
+			)
+			.addToggle(toggle => {
+				toggle
+					.setValue(this.plugin.settings.ui.showEmptyDocuments)
+					.onChange(async value => {
+						this.plugin.settings.ui.showEmptyDocuments = value;
+						await this.plugin.saveSettings();
+					});
+			});
+
 		// Attendee Tags section
 		new Setting(containerEl).setHeading().setName('Attendee tags');
 
