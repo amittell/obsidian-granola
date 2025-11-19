@@ -62,23 +62,29 @@ export class ConflictResolutionModal extends Modal {
 		});
 	}
 
-	async onOpen(): Promise<void> {
-		// Load existing file content if available
+	onOpen(): void {
+		// Load existing file content if available (async operation in background)
 		if (this.existingFile) {
 			this.logger.debug(`Loading existing file content from: ${this.existingFile.path}`);
-			try {
-				this.existingContent = await this.app.vault.read(this.existingFile);
-				this.logger.debug(
-					`Existing file content loaded: ${this.existingContent.length} characters`
-				);
-			} catch (error) {
-				this.logger.debug('Failed to read existing file:', error);
-				this.logger.warn('Failed to read existing file:', error);
-			}
+			const fileToRead = this.existingFile; // Capture in local variable to avoid undefined issues
+			void (async () => {
+				try {
+					this.existingContent = await this.app.vault.read(fileToRead);
+					this.logger.debug(
+						`Existing file content loaded: ${this.existingContent.length} characters`
+					);
+					// Re-render preview with loaded content
+					this.setupUI();
+				} catch (error) {
+					this.logger.debug('Failed to read existing file:', error);
+					this.logger.warn('Failed to read existing file:', error);
+				}
+			})();
 		} else {
 			this.logger.debug('No existing file to load');
 		}
 
+		// Setup UI immediately (will show initial state, then update when file loads)
 		this.setupUI();
 	}
 
@@ -172,18 +178,18 @@ export class ConflictResolutionModal extends Modal {
 
 		// Last updated
 		const updatedRow = table.createEl('tr');
-		updatedRow.createEl('td', { text: 'Last Updated:', cls: 'info-label' });
+		updatedRow.createEl('td', { text: 'Last updated:', cls: 'info-label' });
 		updatedRow.createEl('td', { text: this.metadata.updatedDate });
 
 		// Word count
 		const wordsRow = table.createEl('tr');
-		wordsRow.createEl('td', { text: 'Word Count:', cls: 'info-label' });
+		wordsRow.createEl('td', { text: 'Word count:', cls: 'info-label' });
 		wordsRow.createEl('td', { text: `${this.metadata.wordCount} words` });
 
 		// Existing file info
 		if (this.existingFile) {
 			const existingRow = table.createEl('tr');
-			existingRow.createEl('td', { text: 'Existing File:', cls: 'info-label' });
+			existingRow.createEl('td', { text: 'Existing file:', cls: 'info-label' });
 			existingRow.createEl('td', { text: this.existingFile.path, cls: 'monospace' });
 		}
 	}

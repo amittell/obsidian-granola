@@ -63,9 +63,9 @@ export class ModalTestHelper<T extends Modal = Modal> {
 			if (this.isOpen) return;
 
 			this.isOpen = true;
-			this.openPromise = Promise.resolve().then(async () => {
+			this.openPromise = Promise.resolve().then(() => {
 				if (this.modal.onOpen) {
-					await this.modal.onOpen();
+					this.modal.onOpen();
 				}
 			});
 

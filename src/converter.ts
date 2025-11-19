@@ -775,8 +775,9 @@ export class ProseMirrorConverter {
 						'value',
 						'data',
 					];
+					const nodeAsRecord = node as unknown as Record<string, unknown>;
 					for (const field of altTextFields) {
-						const altText = (node as unknown as Record<string, unknown>)[field];
+						const altText = nodeAsRecord[field];
 						if (typeof altText === 'string' && altText.trim().length > 0) {
 							this.logger.debug(`Found alternative text in ${field}: "${altText}"`);
 							text += altText;
