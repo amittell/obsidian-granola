@@ -381,7 +381,7 @@ export class GranolaAuth {
 	 * }
 	 * ```
 	 */
-	async refreshToken(): Promise<void> {
+	refreshToken(): void {
 		if (!this.credentials?.refresh_token) {
 			throw new Error('No refresh token available');
 		}

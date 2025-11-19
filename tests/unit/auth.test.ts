@@ -238,11 +238,11 @@ describe('GranolaAuth', () => {
 		it('should throw error as refresh is not implemented', async () => {
 			await auth.loadCredentials();
 
-			await expect(auth.refreshToken()).rejects.toThrow('Token refresh not yet implemented');
+			expect(() => auth.refreshToken()).toThrow('Token refresh not yet implemented');
 		});
 
-		it('should throw error when no refresh token available', async () => {
-			await expect(auth.refreshToken()).rejects.toThrow('No refresh token available');
+		it('should throw error when no refresh token available', () => {
+			expect(() => auth.refreshToken()).toThrow('No refresh token available');
 		});
 
 		it('should clear credentials on refresh failure', async () => {
@@ -250,7 +250,7 @@ describe('GranolaAuth', () => {
 			expect(auth.hasValidCredentials()).toBe(true);
 
 			try {
-				await auth.refreshToken();
+				auth.refreshToken();
 			} catch {
 				// Expected to fail
 			}

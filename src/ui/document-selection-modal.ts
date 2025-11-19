@@ -109,13 +109,11 @@ export class DocumentSelectionModal extends Modal {
 	/**
 	 * Called when the modal is opened.
 	 * Initializes the UI and loads documents.
-	 *
-	 * @returns {Promise<void>} Resolves when modal initialization is complete
 	 */
-	async onOpen(): Promise<void> {
+	onOpen(): void {
 		this.modalContentEl = this.contentEl;
 		this.setupUI();
-		await this.loadDocuments();
+		void this.loadDocuments();
 	}
 
 	/**
@@ -880,9 +878,11 @@ export class DocumentSelectionModal extends Modal {
 					text: 'Open',
 					cls: 'open-doc-button',
 				});
-				openButton.addEventListener('click', async () => {
-					const leaf = this.app.workspace.getLeaf('tab');
-					await leaf.openFile(docFile);
+				openButton.addEventListener('click', () => {
+					void (async () => {
+						const leaf = this.app.workspace.getLeaf('tab');
+						await leaf.openFile(docFile);
+					})();
 				});
 			}
 		});
@@ -1558,7 +1558,7 @@ export class DocumentSelectionModal extends Modal {
 			}
 
 			// Check for views with contentEl (reading mode, etc.)
-			const viewWithContentEl = view as unknown as { contentEl?: HTMLElement };
+			const viewWithContentEl = view as { contentEl?: HTMLElement };
 			if (viewWithContentEl.contentEl) {
 				const scrollElement =
 					viewWithContentEl.contentEl.querySelector('.markdown-reading-view') ||
