@@ -1,6 +1,4 @@
 import { requestUrl } from 'obsidian';
-import { readFileSync, existsSync } from 'fs';
-import { resolve } from 'path';
 import { GranolaAuth } from './auth';
 
 /**
@@ -194,12 +192,6 @@ export class GranolaAPI {
 	/** Base URL for all Granola API endpoints */
 	private readonly baseUrl = 'https://api.granola.ai/v2';
 
-	/**
-	 * User-Agent string for API requests identifying this plugin.
-	 * Version is automatically pulled from package.json to keep it in sync.
-	 */
-	private readonly userAgent: string;
-
 	/** Authentication manager for API credentials */
 	private auth: GranolaAuth;
 
@@ -217,26 +209,6 @@ export class GranolaAPI {
 	 */
 	constructor(auth: GranolaAuth) {
 		this.auth = auth;
-
-		// Get version from package.json, fall back to static version
-		try {
-			// Try the most likely path first (relative to built main.js)
-			const packagePath = resolve(__dirname, '../package.json');
-
-			if (existsSync(packagePath)) {
-				const manifest = JSON.parse(readFileSync(packagePath, 'utf8'));
-				if (manifest?.name && manifest?.version) {
-					this.userAgent = `${manifest.name}/${manifest.version}`;
-				} else {
-					throw new Error('Invalid package.json format');
-				}
-			} else {
-				throw new Error('Package.json not found');
-			}
-		} catch {
-			// Fallback to static version if package.json is unavailable
-			this.userAgent = 'obsidian-granola-importer/1.0.0';
-		}
 	}
 
 	/**
@@ -274,20 +246,87 @@ export class GranolaAPI {
 	async getDocuments(options: GetDocumentsRequest = {}): Promise<GetDocumentsResponse> {
 		const { limit = DEFAULT_PAGE_SIZE, offset = 0 } = options;
 
-		const response = await this.makeRequest('/get-documents', {
+		return this.makeAuthenticatedRequest('/get-documents', {
+			limit,
+			offset,
+			include_last_viewed_panel: true,
+		});
+	}
+
+	/**
+	 * Makes an authenticated API request with a 401 retry cascade.
+	 *
+	 * On 401:
+	 * 1. Reload credentials from disk (Granola may have refreshed them)
+	 * 2. If still 401, attempt a Cognito token refresh
+	 * 3. If refresh fails, throw a descriptive error
+	 *
+	 * @private
+	 */
+	private async makeAuthenticatedRequest(
+		endpoint: string,
+		body: Record<string, unknown>
+	): Promise<GetDocumentsResponse> {
+		const AUTH_FAILED_MSG =
+			'Authentication failed. Please re-open the Granola app to re-authenticate, then try again.';
+
+		// First attempt with current token
+		let response = await this.makeRequestWithToken(endpoint, body);
+
+		if (response.status !== 401) {
+			return this.handleResponse(response);
+		}
+
+		// 401: Try reloading credentials from disk (Granola may have refreshed)
+		try {
+			await this.auth.reloadCredentials();
+			response = await this.makeRequestWithToken(endpoint, body);
+			if (response.status !== 401) {
+				return this.handleResponse(response);
+			}
+		} catch {
+			// Reload failed — fall through to refresh
+		}
+
+		// Still 401: Try Cognito token refresh
+		try {
+			await this.auth.refreshToken();
+			response = await this.makeRequestWithToken(endpoint, body);
+			if (response.status !== 401) {
+				return this.handleResponse(response);
+			}
+		} catch {
+			// Refresh failed — fall through to error
+		}
+
+		throw new Error(AUTH_FAILED_MSG);
+	}
+
+	/**
+	 * Makes a single request with the current bearer token.
+	 *
+	 * @private
+	 */
+	private async makeRequestWithToken(
+		endpoint: string,
+		body: Record<string, unknown>
+	): Promise<Response> {
+		return this.makeRequest(endpoint, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
 				Authorization: `Bearer ${this.auth.getBearerToken()}`,
-				'User-Agent': this.userAgent,
 			},
-			body: JSON.stringify({
-				limit,
-				offset,
-				include_last_viewed_panel: true,
-			}),
+			body: JSON.stringify(body),
 		});
+	}
 
+	/**
+	 * Handles a non-401 API response, checking for other errors.
+	 *
+	 * @private
+	 */
+	private async handleResponse(response: Response): Promise<GetDocumentsResponse> {
 		if (!response.ok) {
 			if (response.status === 429) {
 				throw new Error('Rate limit exceeded. Please try again later.');
@@ -396,7 +435,7 @@ export class GranolaAPI {
 
 				if (response.status === 429 && attempt < MAX_RETRY_ATTEMPTS) {
 					const delay = Math.pow(2, attempt) * EXPONENTIAL_BACKOFF_BASE_MS; // Exponential backoff
-					await window.sleep(delay);
+					await new Promise<void>(resolve => setTimeout(resolve, delay));
 					continue;
 				}
 
@@ -410,7 +449,7 @@ export class GranolaAPI {
 				}
 
 				const delay = Math.pow(2, attempt) * EXPONENTIAL_BACKOFF_BASE_MS;
-				await window.sleep(delay);
+				await new Promise<void>(resolve => setTimeout(resolve, delay));
 			}
 		}
 

@@ -1,9 +1,81 @@
 import { jest } from '@jest/globals';
 import { DEFAULT_SETTINGS, Logger } from '../src/types';
 
+/**
+ * Creates a mock JWT with Cognito-style claims (iss, client_id) in the payload.
+ * Returns a valid 3-part JWT string.
+ */
+export function createMockCognitoJwt(
+	claims: Record<string, unknown> = {}
+): string {
+	const header = { alg: 'RS256', typ: 'JWT' };
+	const payload = {
+		sub: '1234567890',
+		iss: 'https://cognito-idp.us-east-1.amazonaws.com/us-east-1_TestPool',
+		client_id: 'test-client-id-123',
+		token_use: 'access',
+		iat: Math.floor(Date.now() / 1000),
+		...claims,
+	};
+	const signature = 'mock-signature';
+
+	const encode = (obj: unknown) =>
+		Buffer.from(JSON.stringify(obj)).toString('base64url');
+
+	return `${encode(header)}.${encode(payload)}.${signature}`;
+}
+
+export const mockCognitoRefreshResponse = {
+	AuthenticationResult: {
+		AccessToken: createMockCognitoJwt(),
+		ExpiresIn: 3600,
+		TokenType: 'Bearer',
+		IdToken: 'new-id-token',
+	},
+	ChallengeParameters: {},
+};
+
+export function createMockWorkOSJwt(claims: Record<string, unknown> = {}): string {
+	const header = { alg: 'RS256', kid: 'sso_oidc_key_pair_test' };
+	const payload = {
+		workos_id: 'user_test123',
+		external_id: 'test-external-id',
+		iss: 'https://auth.granola.ai/user_management/client_test123',
+		sub: 'user_test123',
+		sid: 'session_test123',
+		exp: Math.floor(Date.now() / 1000) + 3600,
+		iat: Math.floor(Date.now() / 1000),
+		...claims,
+	};
+	const signature = 'mock-signature';
+
+	const encode = (obj: unknown) => Buffer.from(JSON.stringify(obj)).toString('base64url');
+
+	return `${encode(header)}.${encode(payload)}.${signature}`;
+}
+
+export const mockWorkOSTokens = {
+	access_token: createMockWorkOSJwt(),
+	refresh_token: 'workos-refresh-token',
+	token_type: 'Bearer',
+	expires_in: 3600,
+	obtained_at: Date.now(),
+	session_id: 'session_test123',
+	external_id: 'test-external-id',
+};
+
+export const mockWorkOSRefreshResponse = {
+	access_token: createMockWorkOSJwt(),
+	refresh_token: 'new-workos-refresh-token',
+	token_type: 'Bearer',
+	expires_in: 3600,
+	obtained_at: Date.now(),
+	session_id: 'session_test123',
+	external_id: 'test-external-id',
+};
+
 export const mockCognitoTokens = {
-	access_token:
-		'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
+	access_token: createMockCognitoJwt(),
 	token_type: 'Bearer',
 	expires_in: 3600, // 1 hour in seconds
 	refresh_token: 'test-refresh-token',
@@ -18,6 +90,18 @@ export const mockCredentials = {
 	refresh_token: mockCognitoTokens.refresh_token,
 };
 
+/** Config with WorkOS tokens (current Granola auth) */
+export const mockSupabaseConfigWorkOS = JSON.stringify({
+	cognito_tokens: JSON.stringify(mockCognitoTokens),
+	workos_tokens: JSON.stringify(mockWorkOSTokens),
+	user_info: JSON.stringify({
+		id: 'test-user-id',
+		email: 'test@example.com',
+	}),
+	session_id: 'session_test123',
+});
+
+/** Config with only Cognito tokens (legacy) */
 export const mockSupabaseConfig = JSON.stringify({
 	cognito_tokens: JSON.stringify(mockCognitoTokens),
 	user_info: JSON.stringify({

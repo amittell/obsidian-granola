@@ -1,5 +1,5 @@
-import { Platform } from 'obsidian';
-import { readFileSync } from 'fs';
+import { Platform, requestUrl } from 'obsidian';
+import { readFileSync, writeFileSync } from 'fs';
 import { platform as osPlatform, homedir } from 'os';
 import { join } from 'path';
 
@@ -9,150 +9,71 @@ const TIMESTAMP_CONVERSION_FACTOR = 1000;
 
 /**
  * Represents the authentication credentials required for Granola API access.
- *
- * These credentials are typically obtained through the Granola desktop application's
- * OAuth flow and stored in a platform-specific configuration file.
- *
- * @interface GranolaCredentials
- * @since 1.0.0
  */
 export interface GranolaCredentials {
-	/**
-	 * JWT access token for API authentication.
-	 * Used as Bearer token in Authorization headers.
-	 */
 	access_token: string;
-
-	/**
-	 * Token used to refresh expired access tokens.
-	 * Currently stored but refresh functionality is not implemented.
-	 */
 	refresh_token: string;
-
-	/**
-	 * Type of token, typically "bearer" for OAuth 2.0.
-	 * Must match expected token type for validation.
-	 */
 	token_type: string;
-
-	/**
-	 * Unix timestamp indicating when the access token expires.
-	 * Used to determine if token refresh is needed.
-	 */
 	expires_at: number;
 }
 
 /**
- * OAuth token structure within the Granola configuration file.
- *
- * This interface represents the parsed cognito_tokens JSON string
- * from the supabase.json file. Contains AWS Cognito OAuth tokens.
- *
- * @interface CognitoTokens
- * @since 1.0.0
+ * WorkOS token structure within the Granola configuration file.
+ * Granola migrated from Cognito to WorkOS for authentication.
+ */
+export interface WorkOSTokens {
+	access_token: string;
+	refresh_token: string;
+	token_type: string;
+	expires_in: number;
+	obtained_at: number;
+	session_id: string;
+	external_id: string;
+}
+
+/**
+ * Legacy Cognito token structure (kept for backward compatibility).
  */
 export interface CognitoTokens {
-	/** JWT access token from AWS Cognito OAuth flow */
 	access_token: string;
-
-	/** Refresh token for token renewal (not yet implemented) */
 	refresh_token: string;
-
-	/** OAuth token type, typically "Bearer" (capitalized) */
 	token_type: string;
-
-	/** Token expiration time in seconds from now */
 	expires_in: number;
-
-	/** JWT ID token containing user information */
 	id_token: string;
 }
 
 /**
- * Configuration structure for Supabase authentication data.
- *
- * This interface mirrors the structure of the supabase.json file
- * created by the Granola desktop application. The file contains
- * OAuth tokens and metadata required for API access.
- *
- * @interface SupabaseConfig
- * @since 1.0.0
+ * Configuration structure for the supabase.json file
+ * created by the Granola desktop application.
  */
 export interface SupabaseConfig {
-	/** Stringified JSON containing AWS Cognito OAuth tokens */
 	cognito_tokens: string;
-
-	/** Stringified JSON containing user profile information */
 	user_info: string;
+	workos_tokens?: string;
+	session_id?: string;
 }
 
 /**
  * Handles authentication and credential management for Granola API access.
  *
- * This class is responsible for:
- * - Loading credentials from platform-specific configuration files
- * - Validating token format and expiration
- * - Providing bearer tokens for API requests
- * - Managing token lifecycle (future: refresh capability)
- *
- * The authentication flow relies on the Granola desktop application
- * to handle OAuth and store credentials in the appropriate location.
- *
- * @class GranolaAuth
- * @since 1.0.0
- *
- * @example
- * ```typescript
- * const auth = new GranolaAuth();
- * await auth.loadCredentials();
- * const token = auth.getBearerToken();
- * ```
+ * Supports both WorkOS (current) and Cognito (legacy) token formats.
+ * WorkOS tokens are preferred when available.
  */
 export class GranolaAuth {
-	/**
-	 * Cached credentials loaded from the configuration file.
-	 * Null until credentials are successfully loaded and validated.
-	 * @private
-	 */
 	private credentials: GranolaCredentials | null = null;
-
-	/**
-	 * Base path for Granola configuration files.
-	 * Set dynamically based on the current platform.
-	 * @private
-	 */
 	private configBasePath: string = '';
+	/** Tracks which token source is in use for refresh routing */
+	private tokenSource: 'workos' | 'cognito' = 'workos';
 
 	/**
 	 * Loads and validates Granola credentials from the platform-specific config file.
-	 *
-	 * This method locates the supabase.json file created by the Granola desktop app,
-	 * reads the credential data, validates the token format and expiration,
-	 * and caches the credentials for subsequent API requests.
-	 *
-	 * Note: On mobile platforms, this will fail as Granola is a desktop-only application.
-	 * The plugin currently only supports desktop platforms.
-	 *
-	 * @async
-	 * @returns {Promise<GranolaCredentials>} The validated credentials
-	 * @throws {Error} If credentials file is missing, malformed, or contains invalid data
-	 *
-	 * @example
-	 * ```typescript
-	 * try {
-	 *   const credentials = await auth.loadCredentials();
-	 *   console.log('Credentials loaded successfully');
-	 * } catch (error) {
-	 *   console.error('Failed to load credentials:', error.message);
-	 * }
-	 * ```
+	 * Prefers WorkOS tokens over legacy Cognito tokens.
 	 */
 	async loadCredentials(): Promise<GranolaCredentials> {
 		if (this.credentials) {
 			return this.credentials;
 		}
 
-		// Check if running on a supported platform
 		if (Platform.isMobile) {
 			throw new Error(
 				'Granola Importer is not supported on mobile devices. ' +
@@ -163,29 +84,16 @@ export class GranolaAuth {
 		const configPath = this.getSupabaseConfigPath();
 
 		try {
-			// Read credentials file from the user's home directory
-			// Note: This accesses files outside the vault, which requires Obsidian's
-			// file system APIs. On desktop, we use a workaround with fetch for local files.
 			const configData = await this.readConfigFile(configPath);
 			const config: SupabaseConfig = JSON.parse(configData);
 
-			// Parse the nested cognito_tokens JSON string
-			const cognitoTokens: CognitoTokens = JSON.parse(config.cognito_tokens);
+			// Prefer WorkOS tokens (current auth system)
+			if (config.workos_tokens) {
+				return this.loadWorkOSTokens(config);
+			}
 
-			this.validateCredentials(cognitoTokens);
-
-			// Convert expires_in (seconds from now) to expires_at (unix timestamp)
-			const expiresAt =
-				Math.floor(Date.now() / TIMESTAMP_CONVERSION_FACTOR) + cognitoTokens.expires_in;
-
-			this.credentials = {
-				access_token: cognitoTokens.access_token,
-				refresh_token: cognitoTokens.refresh_token,
-				token_type: cognitoTokens.token_type.toLowerCase(), // Normalize to lowercase
-				expires_at: expiresAt,
-			};
-
-			return this.credentials;
+			// Fall back to Cognito tokens (legacy)
+			return this.loadCognitoTokens(config);
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 			throw new Error(`Failed to load Granola credentials: ${errorMessage}`);
@@ -193,21 +101,61 @@ export class GranolaAuth {
 	}
 
 	/**
-	 * Reads the configuration file from the file system.
-	 *
-	 * Uses a workaround to read files from outside the vault on desktop platforms.
-	 * This is necessary because Granola stores credentials in the user's home directory,
-	 * not within the Obsidian vault.
-	 *
-	 * @private
-	 * @param {string} path - Absolute path to the configuration file
-	 * @returns {Promise<string>} The file contents as a string
-	 * @throws {Error} If the file cannot be read
+	 * Loads credentials from WorkOS tokens.
 	 */
+	private loadWorkOSTokens(config: SupabaseConfig): GranolaCredentials {
+		const tokens: WorkOSTokens = JSON.parse(config.workos_tokens as string);
+
+		if (!tokens.access_token || !tokens.refresh_token) {
+			throw new Error('Missing required WorkOS token fields');
+		}
+
+		// Validate JWT format
+		const tokenParts = tokens.access_token.split('.');
+		if (tokenParts.length !== JWT_PARTS_COUNT || tokenParts.some(part => part.length === 0)) {
+			throw new Error('Invalid token format');
+		}
+
+		// Calculate expiry: obtained_at (ms) + expires_in (seconds)
+		const obtainedAtMs = tokens.obtained_at || Date.now();
+		const expiresAt =
+			Math.floor(obtainedAtMs / TIMESTAMP_CONVERSION_FACTOR) + tokens.expires_in;
+
+		this.tokenSource = 'workos';
+		this.credentials = {
+			access_token: tokens.access_token,
+			refresh_token: tokens.refresh_token,
+			token_type: (tokens.token_type || 'bearer').toLowerCase(),
+			expires_at: expiresAt,
+		};
+
+		return this.credentials;
+	}
+
+	/**
+	 * Loads credentials from legacy Cognito tokens.
+	 */
+	private loadCognitoTokens(config: SupabaseConfig): GranolaCredentials {
+		const cognitoTokens: CognitoTokens = JSON.parse(config.cognito_tokens);
+
+		this.validateCognitoCredentials(cognitoTokens);
+
+		const expiresAt =
+			Math.floor(Date.now() / TIMESTAMP_CONVERSION_FACTOR) + cognitoTokens.expires_in;
+
+		this.tokenSource = 'cognito';
+		this.credentials = {
+			access_token: cognitoTokens.access_token,
+			refresh_token: cognitoTokens.refresh_token,
+			token_type: cognitoTokens.token_type.toLowerCase(),
+			expires_at: expiresAt,
+		};
+
+		return this.credentials;
+	}
+
 	private async readConfigFile(path: string): Promise<string> {
 		try {
-			// Use Node.js fs module directly on desktop
-			// This is a workaround since Obsidian's DataAdapter is vault-scoped
 			return readFileSync(path, 'utf-8');
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -219,37 +167,16 @@ export class GranolaAuth {
 		}
 	}
 
-	/**
-	 * Determines the platform-specific path to the Granola configuration file.
-	 *
-	 * The Granola desktop application stores OAuth credentials in different
-	 * locations depending on the operating system:
-	 * - macOS: ~/Library/Application Support/Granola/supabase.json
-	 * - Windows: %APPDATA%/Granola/supabase.json
-	 * - Linux: ~/.config/Granola/supabase.json
-	 *
-	 * @private
-	 * @returns {string} The absolute path to the configuration file
-	 * @throws {Error} If the current platform is not supported
-	 *
-	 * @example
-	 * ```typescript
-	 * const configPath = this.getSupabaseConfigPath();
-	 * // Returns: "/home/user/.config/Granola/supabase.json" on Linux
-	 * ```
-	 */
 	private getSupabaseConfigPath(): string {
-		// Use Node.js modules to determine paths
-		// This works on Obsidian desktop but not mobile
 		const platformType = osPlatform();
 		const homeDir = homedir();
 
 		switch (platformType) {
-			case 'darwin': // macOS
+			case 'darwin':
 				return join(homeDir, 'Library', 'Application Support', 'Granola', 'supabase.json');
-			case 'win32': // Windows
+			case 'win32':
 				return join(homeDir, 'AppData', 'Roaming', 'Granola', 'supabase.json');
-			case 'linux': // Linux
+			case 'linux':
 				return join(homeDir, '.config', 'Granola', 'supabase.json');
 			default:
 				throw new Error(`Unsupported platform: ${platformType}`);
@@ -257,29 +184,9 @@ export class GranolaAuth {
 	}
 
 	/**
-	 * Validates the structure and content of loaded credentials.
-	 *
-	 * Performs comprehensive validation including:
-	 * - Required field presence check
-	 * - Token type verification (must be "bearer" case-insensitive)
-	 * - JWT token format validation using regex
-	 * - Token expiration check using expires_in field
-	 *
-	 * @private
-	 * @param {CognitoTokens} tokens - The cognito tokens object to validate
-	 * @throws {Error} If any validation check fails
-	 *
-	 * @example
-	 * ```typescript
-	 * try {
-	 *   this.validateCredentials(tokens);
-	 *   console.log('Credentials are valid');
-	 * } catch (error) {
-	 *   console.error('Invalid credentials:', error.message);
-	 * }
-	 * ```
+	 * Validates legacy Cognito token structure.
 	 */
-	private validateCredentials(tokens: CognitoTokens): void {
+	private validateCognitoCredentials(tokens: CognitoTokens): void {
 		const required: (keyof CognitoTokens)[] = [
 			'access_token',
 			'refresh_token',
@@ -297,36 +204,16 @@ export class GranolaAuth {
 			throw new Error(`Invalid token type: ${tokens.token_type}`);
 		}
 
-		// Enhanced JWT format validation - should have exactly 3 non-empty parts
 		const tokenParts = tokens.access_token.split('.');
 		if (tokenParts.length !== JWT_PARTS_COUNT || tokenParts.some(part => part.length === 0)) {
 			throw new Error('Invalid token format');
 		}
 
-		// Check if token will expire soon (expires_in is in seconds)
 		if (tokens.expires_in <= 0) {
 			throw new Error('Access token has expired');
 		}
 	}
 
-	/**
-	 * Retrieves the access token for use in API Authorization headers.
-	 *
-	 * This method returns the raw JWT access token that should be used
-	 * with the "Bearer" authentication scheme in HTTP requests.
-	 *
-	 * @returns {string} The JWT access token
-	 * @throws {Error} If credentials have not been loaded
-	 *
-	 * @example
-	 * ```typescript
-	 * const token = auth.getBearerToken();
-	 * const headers = {
-	 *   'Authorization': `Bearer ${token}`,
-	 *   'Content-Type': 'application/json'
-	 * };
-	 * ```
-	 */
 	getBearerToken(): string {
 		if (!this.credentials) {
 			throw new Error('Credentials not loaded');
@@ -335,22 +222,6 @@ export class GranolaAuth {
 		return this.credentials.access_token;
 	}
 
-	/**
-	 * Checks if the current access token has expired.
-	 *
-	 * Compares the token's expiration timestamp against the current time
-	 * to determine if the token needs to be refreshed before making API calls.
-	 *
-	 * @returns {boolean} True if token is expired or not loaded, false if valid
-	 *
-	 * @example
-	 * ```typescript
-	 * if (auth.isTokenExpired()) {
-	 *   console.log('Token needs refresh');
-	 *   // In future: await auth.refreshToken();
-	 * }
-	 * ```
-	 */
 	isTokenExpired(): boolean {
 		if (!this.credentials) {
 			return true;
@@ -360,93 +231,189 @@ export class GranolaAuth {
 	}
 
 	/**
-	 * Refreshes an expired access token using the stored refresh token.
-	 *
-	 * @deprecated This method is not yet implemented. Users must re-authenticate
-	 * through the Granola desktop application when tokens expire.
-	 *
-	 * Future implementation will use the refresh_token to obtain new credentials
-	 * from the Granola API without requiring user intervention.
-	 *
-	 * @async
-	 * @returns {Promise<void>} Resolves when token refresh completes
-	 * @throws {Error} Currently always throws as refresh is not implemented
-	 *
-	 * @example
-	 * ```typescript
-	 * try {
-	 *   await auth.refreshToken();
-	 * } catch (error) {
-	 *   console.log('Refresh not available, please re-authenticate');
-	 * }
-	 * ```
+	 * Clears cached credentials and re-reads them from disk.
 	 */
-	refreshToken(): void {
+	async reloadCredentials(): Promise<GranolaCredentials> {
+		this.credentials = null;
+		return this.loadCredentials();
+	}
+
+	/**
+	 * Refreshes an expired access token.
+	 * Routes to the appropriate refresh mechanism based on token source.
+	 */
+	async refreshToken(): Promise<void> {
 		if (!this.credentials?.refresh_token) {
 			throw new Error('No refresh token available');
 		}
 
-		try {
-			// Note: This would require implementing the actual refresh endpoint
-			// For now, we'll throw an informative error directing users to re-authenticate
-			throw new Error(
-				'Token refresh not yet implemented. Please re-authenticate in the Granola app.'
-			);
-
-			// Future implementation would look like:
-			// const response = await fetch('https://api.granola.ai/auth/refresh', {
-			//     method: 'POST',
-			//     headers: { 'Content-Type': 'application/json' },
-			//     body: JSON.stringify({ refresh_token: this.credentials.refresh_token })
-			// });
-			// const newTokens = await response.json();
-			// this.credentials = { ...this.credentials, ...newTokens };
-		} catch (error) {
-			this.credentials = null; // Clear invalid credentials
-			const errorMessage = error instanceof Error ? error.message : 'Token refresh failed';
-			throw new Error(`Token refresh failed: ${errorMessage}`);
+		if (this.tokenSource === 'workos') {
+			await this.refreshWorkOSToken();
+		} else {
+			await this.refreshCognitoToken();
 		}
 	}
 
 	/**
-	 * Clears cached credentials from memory.
-	 *
-	 * This method removes stored credentials, typically called when
-	 * authentication fails or tokens become invalid. Does not affect
-	 * the credential file on disk.
-	 *
-	 * @returns {void}
-	 *
-	 * @example
-	 * ```typescript
-	 * auth.clearCredentials();
-	 * console.log('Credentials cleared from memory');
-	 * ```
+	 * Refreshes a WorkOS token via Granola's refresh-access-token endpoint.
 	 */
+	private async refreshWorkOSToken(): Promise<void> {
+		const creds = this.credentials as GranolaCredentials;
+
+		const response = await requestUrl({
+			url: 'https://api.granola.ai/v1/refresh-access-token',
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${creds.access_token}`,
+			},
+			body: JSON.stringify({
+				refresh_token: creds.refresh_token,
+			}),
+			throw: false,
+		});
+
+		if (response.status !== 200) {
+			throw new Error(
+				`Token refresh failed (${response.status}). Please re-open the Granola app to re-authenticate.`
+			);
+		}
+
+		const result = response.json;
+
+		if (!result?.access_token) {
+			throw new Error('Refresh response missing access_token');
+		}
+
+		this.credentials = {
+			access_token: result.access_token,
+			refresh_token: result.refresh_token || creds.refresh_token,
+			token_type: (result.token_type || 'bearer').toLowerCase(),
+			expires_at:
+				Math.floor(Date.now() / TIMESTAMP_CONVERSION_FACTOR) +
+				(result.expires_in || 3600),
+		};
+
+		this.persistWorkOSTokensToDisk(result);
+	}
+
+	/**
+	 * Refreshes a legacy Cognito token via AWS Cognito InitiateAuth.
+	 */
+	private async refreshCognitoToken(): Promise<void> {
+		const creds = this.credentials as GranolaCredentials;
+		const { iss, client_id } = this.parseAccessTokenClaims(creds.access_token);
+
+		const regionMatch = iss.match(/cognito-idp\.([^.]+)\.amazonaws\.com/);
+		if (!regionMatch) {
+			throw new Error('Cannot extract region from Cognito issuer URL');
+		}
+		const region = regionMatch[1];
+
+		const response = await requestUrl({
+			url: `https://cognito-idp.${region}.amazonaws.com/`,
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/x-amz-json-1.1',
+				'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
+			},
+			body: JSON.stringify({
+				AuthFlow: 'REFRESH_TOKEN_AUTH',
+				ClientId: client_id,
+				AuthParameters: {
+					REFRESH_TOKEN: creds.refresh_token,
+				},
+			}),
+			throw: false,
+		});
+
+		if (response.status !== 200) {
+			throw new Error(
+				`Cognito token refresh failed (${response.status}). Please re-open the Granola app to re-authenticate.`
+			);
+		}
+
+		const result = response.json;
+		const authResult = result.AuthenticationResult;
+
+		if (!authResult?.AccessToken) {
+			throw new Error('Cognito refresh response missing AccessToken');
+		}
+
+		this.credentials = {
+			...creds,
+			access_token: authResult.AccessToken,
+			expires_at:
+				Math.floor(Date.now() / TIMESTAMP_CONVERSION_FACTOR) +
+				(authResult.ExpiresIn || 3600),
+		};
+
+		this.persistCognitoTokensToDisk(authResult);
+	}
+
+	private parseAccessTokenClaims(token: string): { iss: string; client_id: string } {
+		const parts = token.split('.');
+		if (parts.length !== JWT_PARTS_COUNT) {
+			throw new Error('Invalid JWT format');
+		}
+
+		const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
+
+		if (!payload.iss || !payload.client_id) {
+			throw new Error('JWT missing required Cognito claims (iss, client_id)');
+		}
+
+		return { iss: payload.iss as string, client_id: payload.client_id as string };
+	}
+
+	private persistWorkOSTokensToDisk(result: Record<string, unknown>): void {
+		try {
+			const configPath = this.getSupabaseConfigPath();
+			const configData = readFileSync(configPath, 'utf-8');
+			const config: SupabaseConfig = JSON.parse(configData);
+
+			const workosTokens: WorkOSTokens = config.workos_tokens
+				? JSON.parse(config.workos_tokens)
+				: ({} as WorkOSTokens);
+
+			workosTokens.access_token = result.access_token as string;
+			workosTokens.expires_in = (result.expires_in as number) || 3600;
+			workosTokens.obtained_at = Date.now();
+			if (result.refresh_token) {
+				workosTokens.refresh_token = result.refresh_token as string;
+			}
+
+			config.workos_tokens = JSON.stringify(workosTokens);
+			writeFileSync(configPath, JSON.stringify(config), 'utf-8');
+		} catch {
+			console.warn('Failed to persist refreshed tokens to disk');
+		}
+	}
+
+	private persistCognitoTokensToDisk(authResult: Record<string, unknown>): void {
+		try {
+			const configPath = this.getSupabaseConfigPath();
+			const configData = readFileSync(configPath, 'utf-8');
+			const config: SupabaseConfig = JSON.parse(configData);
+			const cognitoTokens: CognitoTokens = JSON.parse(config.cognito_tokens);
+
+			cognitoTokens.access_token = authResult.AccessToken as string;
+			cognitoTokens.expires_in = (authResult.ExpiresIn as number) || 3600;
+			if (authResult.IdToken) {
+				cognitoTokens.id_token = authResult.IdToken as string;
+			}
+
+			config.cognito_tokens = JSON.stringify(cognitoTokens);
+			writeFileSync(configPath, JSON.stringify(config), 'utf-8');
+		} catch {
+			console.warn('Failed to persist refreshed tokens to disk');
+		}
+	}
+
 	clearCredentials(): void {
 		this.credentials = null;
 	}
 
-	/**
-	 * Checks if valid, non-expired credentials are currently loaded.
-	 *
-	 * This is a convenience method that combines credential existence
-	 * and expiration checks to determine if the auth manager is ready
-	 * for API requests.
-	 *
-	 * @returns {boolean} True if credentials are loaded and not expired
-	 *
-	 * @example
-	 * ```typescript
-	 * if (auth.hasValidCredentials()) {
-	 *   // Safe to make API calls
-	 *   const documents = await api.getDocuments();
-	 * } else {
-	 *   // Need to load/refresh credentials first
-	 *   await auth.loadCredentials();
-	 * }
-	 * ```
-	 */
 	hasValidCredentials(): boolean {
 		return this.credentials !== null && !this.isTokenExpired();
 	}

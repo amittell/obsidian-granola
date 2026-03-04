@@ -18,6 +18,7 @@ describe('GranolaAPI', () => {
 		mockAuth = {
 			getBearerToken: jest.fn().mockReturnValue('test-token'),
 			loadCredentials: jest.fn(),
+			reloadCredentials: jest.fn(),
 			isTokenExpired: jest.fn().mockReturnValue(false),
 			hasValidCredentials: jest.fn().mockReturnValue(true),
 			clearCredentials: jest.fn(),
@@ -31,26 +32,6 @@ describe('GranolaAPI', () => {
 	describe('constructor', () => {
 		it('should create API instance with auth', () => {
 			expect(api).toBeInstanceOf(GranolaAPI);
-		});
-
-		it('should handle invalid package.json format', () => {
-			// This test verifies the error handling for invalid package.json format
-			// The actual error path is tested by mocking filesystem at module load time
-			const testApi = new GranolaAPI(mockAuth);
-			// If package.json is invalid, fallback should be used
-			expect(testApi.userAgent).toMatch(/obsidian-granola-importer/);
-		});
-
-		it('should handle missing package.json file', () => {
-			// This test verifies the fallback behavior when package.json is missing
-			const testApi = new GranolaAPI(mockAuth);
-			expect(testApi.userAgent).toMatch(/obsidian-granola-importer/);
-		});
-
-		it('should fallback to static version on file system error', () => {
-			// This test verifies the fallback behavior on filesystem errors
-			const testApi = new GranolaAPI(mockAuth);
-			expect(testApi.userAgent).toMatch(/obsidian-granola-importer/);
 		});
 	});
 
@@ -86,7 +67,6 @@ describe('GranolaAPI', () => {
 				headers: {
 					'Content-Type': 'application/json',
 					Authorization: 'Bearer test-token',
-					'User-Agent': 'obsidian-granola-importer/1.0.0',
 				},
 				body: JSON.stringify({
 					limit: 100,
@@ -498,143 +478,6 @@ describe('GranolaAPI', () => {
 		});
 	});
 
-	describe('user agent initialization edge cases', () => {
-		let originalFs: typeof import('fs');
-		let originalPath: typeof import('path');
-
-		beforeEach(() => {
-			// Store original modules
-			originalFs = require('fs');
-			originalPath = require('path');
-		});
-
-		afterEach(() => {
-			// Restore original modules
-			jest.resetModules();
-		});
-
-		it('should handle missing package.json file', () => {
-			// Mock fs.existsSync to return false
-			const mockFs = {
-				...originalFs,
-				existsSync: jest.fn().mockReturnValue(false),
-			};
-
-			// Mock require to return our mock fs
-			jest.doMock('fs', () => mockFs);
-
-			// Clear the module cache and re-require the API module
-			jest.resetModules();
-			const { GranolaAPI } = require('../../src/api');
-
-			// Create new instance - should use fallback user agent
-			const apiWithMissingPackage = new GranolaAPI(mockAuth);
-
-			// Access the private userAgent property
-			expect((apiWithMissingPackage as any).userAgent).toBe(
-				'obsidian-granola-importer/1.0.0'
-			);
-		});
-
-		it('should handle malformed package.json file', () => {
-			const mockFs = {
-				...originalFs,
-				existsSync: jest.fn().mockReturnValue(true),
-				readFileSync: jest
-					.fn()
-					.mockReturnValue('{"invalid": "json", "missing": "required fields"}'),
-			};
-
-			jest.doMock('fs', () => mockFs);
-
-			jest.resetModules();
-			const { GranolaAPI } = require('../../src/api');
-
-			// Create new instance - should use fallback user agent due to missing name/version
-			const apiWithMalformedPackage = new GranolaAPI(mockAuth);
-
-			expect((apiWithMalformedPackage as any).userAgent).toBe(
-				'obsidian-granola-importer/1.0.0'
-			);
-		});
-
-		it('should handle package.json with null name or version', () => {
-			const mockFs = {
-				...originalFs,
-				existsSync: jest.fn().mockReturnValue(true),
-				readFileSync: jest.fn().mockReturnValue('{"name": null, "version": "1.0.0"}'),
-			};
-
-			jest.doMock('fs', () => mockFs);
-
-			jest.resetModules();
-			const { GranolaAPI } = require('../../src/api');
-
-			// Create new instance - should use fallback user agent due to null name
-			const apiWithNullFields = new GranolaAPI(mockAuth);
-
-			expect((apiWithNullFields as any).userAgent).toBe('obsidian-granola-importer/1.0.0');
-		});
-
-		it('should handle package.json read errors', () => {
-			const mockFs = {
-				...originalFs,
-				existsSync: jest.fn().mockReturnValue(true),
-				readFileSync: jest.fn().mockImplementation(() => {
-					throw new Error('Permission denied');
-				}),
-			};
-
-			jest.doMock('fs', () => mockFs);
-
-			jest.resetModules();
-			const { GranolaAPI } = require('../../src/api');
-
-			// Create new instance - should use fallback user agent due to read error
-			const apiWithReadError = new GranolaAPI(mockAuth);
-
-			expect((apiWithReadError as any).userAgent).toBe('obsidian-granola-importer/1.0.0');
-		});
-
-		it('should handle JSON parsing errors', () => {
-			const mockFs = {
-				...originalFs,
-				existsSync: jest.fn().mockReturnValue(true),
-				readFileSync: jest.fn().mockReturnValue('invalid json content'),
-			};
-
-			jest.doMock('fs', () => mockFs);
-
-			jest.resetModules();
-			const { GranolaAPI } = require('../../src/api');
-
-			// Create new instance - should use fallback user agent due to JSON parse error
-			const apiWithParseError = new GranolaAPI(mockAuth);
-
-			expect((apiWithParseError as any).userAgent).toBe('obsidian-granola-importer/1.0.0');
-		});
-
-		it('should correctly parse valid package.json', () => {
-			const mockFs = {
-				...originalFs,
-				existsSync: jest.fn().mockReturnValue(true),
-				readFileSync: jest
-					.fn()
-					.mockReturnValue('{"name": "test-package", "version": "2.1.0"}'),
-			};
-
-			jest.doMock('fs', () => mockFs);
-
-			jest.resetModules();
-			const { GranolaAPI } = require('../../src/api');
-
-			// Create new instance - should use package.json values
-			const apiWithValidPackage = new GranolaAPI(mockAuth);
-
-			expect((apiWithValidPackage as any).userAgent).toBe('test-package/2.1.0');
-		});
-	});
-
 	describe('maximum retry attempts reached', () => {
 		it('should throw error when maximum retry attempts exceeded', async () => {
 			// Mock requestUrl to always return 429 (rate limited)
@@ -703,31 +546,200 @@ describe('GranolaAPI', () => {
 			expect(requestUrl).toHaveBeenCalledTimes(2); // Initial + 1 retry
 		});
 
-		it('should handle authentication token refresh scenarios', async () => {
-			// Mock auth to simulate token refresh
-			let tokenCallCount = 0;
-			const mockAuthWithRefresh = {
-				...mockAuth,
-				getBearerToken: jest.fn().mockImplementation(() => {
-					tokenCallCount++;
-					return tokenCallCount === 1 ? 'expired-token' : 'fresh-token';
-				}),
-			};
+		it('should retry and succeed after reloading credentials from disk on 401', async () => {
+			const mockResponse = { docs: [mockDocument], deleted: [] };
 
-			const apiWithTokenRefresh = new GranolaAPI(mockAuthWithRefresh);
+			(requestUrl as jest.MockedFunction<typeof requestUrl>)
+				.mockResolvedValueOnce({
+					status: 401,
+					json: { error: 'Unauthorized' },
+					text: '{"error":"Unauthorized"}',
+					headers: {},
+					arrayBuffer: new ArrayBuffer(0),
+				})
+				.mockResolvedValueOnce({
+					status: 200,
+					json: mockResponse,
+					text: JSON.stringify(mockResponse),
+					headers: {},
+					arrayBuffer: new ArrayBuffer(0),
+				});
 
-			// Mock first call to fail with 401 (Unauthorized)
+			mockAuth.reloadCredentials.mockResolvedValue(undefined);
+			mockAuth.getBearerToken
+				.mockReturnValueOnce('expired-token')
+				.mockReturnValueOnce('reloaded-token');
+
+			const result = await api.getDocuments();
+
+			expect(result).toEqual(mockResponse);
+			expect(mockAuth.reloadCredentials).toHaveBeenCalled();
+			expect(mockAuth.refreshToken).not.toHaveBeenCalled();
+		});
+
+		it('should retry and succeed after Cognito token refresh on double 401', async () => {
+			const mockResponse = { docs: [mockDocument], deleted: [] };
+
+			(requestUrl as jest.MockedFunction<typeof requestUrl>)
+				.mockResolvedValueOnce({
+					status: 401,
+					json: { error: 'Unauthorized' },
+					text: '{"error":"Unauthorized"}',
+					headers: {},
+					arrayBuffer: new ArrayBuffer(0),
+				})
+				.mockResolvedValueOnce({
+					status: 401,
+					json: { error: 'Unauthorized' },
+					text: '{"error":"Unauthorized"}',
+					headers: {},
+					arrayBuffer: new ArrayBuffer(0),
+				})
+				.mockResolvedValueOnce({
+					status: 200,
+					json: mockResponse,
+					text: JSON.stringify(mockResponse),
+					headers: {},
+					arrayBuffer: new ArrayBuffer(0),
+				});
+
+			mockAuth.reloadCredentials.mockResolvedValue(undefined);
+			mockAuth.refreshToken.mockResolvedValue(undefined);
+			mockAuth.getBearerToken
+				.mockReturnValueOnce('expired-token')
+				.mockReturnValueOnce('still-expired-token')
+				.mockReturnValueOnce('fresh-token');
+
+			const result = await api.getDocuments();
+
+			expect(result).toEqual(mockResponse);
+			expect(mockAuth.reloadCredentials).toHaveBeenCalled();
+			expect(mockAuth.refreshToken).toHaveBeenCalled();
+		});
+
+		it('should throw descriptive error when both reload and refresh fail', async () => {
 			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
 				status: 401,
-				json: { error: 'Invalid token' },
-				text: JSON.stringify({ error: 'Invalid token' }),
+				json: { error: 'Unauthorized' },
+				text: '{"error":"Unauthorized"}',
 				headers: {},
 				arrayBuffer: new ArrayBuffer(0),
 			});
 
-			// Should fail with 401 since we don't implement automatic token refresh
-			await expect(apiWithTokenRefresh.getDocuments()).rejects.toThrow(
-				'API request failed: 401'
+			mockAuth.reloadCredentials.mockResolvedValue(undefined);
+			mockAuth.refreshToken.mockRejectedValue(new Error('Cognito refresh failed'));
+
+			await expect(api.getDocuments()).rejects.toThrow(
+				'Authentication failed. Please re-open the Granola app to re-authenticate'
+			);
+		});
+
+		it('should fall through to refresh even if reload throws', async () => {
+			const mockResponse = { docs: [mockDocument], deleted: [] };
+
+			// Only 2 requests: first attempt (401), then after refresh (200)
+			// No second attempt after reload because reload threw
+			(requestUrl as jest.MockedFunction<typeof requestUrl>)
+				.mockResolvedValueOnce({
+					status: 401,
+					json: { error: 'Unauthorized' },
+					text: '{"error":"Unauthorized"}',
+					headers: {},
+					arrayBuffer: new ArrayBuffer(0),
+				})
+				.mockResolvedValueOnce({
+					status: 200,
+					json: mockResponse,
+					text: JSON.stringify(mockResponse),
+					headers: {},
+					arrayBuffer: new ArrayBuffer(0),
+				});
+
+			mockAuth.reloadCredentials.mockRejectedValue(new Error('Disk read failed'));
+			mockAuth.refreshToken.mockResolvedValue(undefined);
+			mockAuth.getBearerToken
+				.mockReturnValueOnce('expired-token')
+				.mockReturnValueOnce('fresh-token');
+
+			const result = await api.getDocuments();
+
+			expect(result).toEqual(mockResponse);
+			expect(mockAuth.refreshToken).toHaveBeenCalled();
+		});
+
+		it('should throw descriptive error when refresh succeeds but API still returns 401', async () => {
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 401,
+				json: { error: 'Unauthorized' },
+				text: '{"error":"Unauthorized"}',
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
+
+			mockAuth.reloadCredentials.mockResolvedValue(undefined);
+			mockAuth.refreshToken.mockResolvedValue(undefined);
+
+			await expect(api.getDocuments()).rejects.toThrow(
+				'Authentication failed. Please re-open the Granola app to re-authenticate'
+			);
+		});
+
+		it('should not retry on non-401 errors', async () => {
+			(requestUrl as jest.MockedFunction<typeof requestUrl>).mockResolvedValue({
+				status: 500,
+				json: { error: 'Server error' },
+				text: '{"error":"Server error"}',
+				headers: {},
+				arrayBuffer: new ArrayBuffer(0),
+			});
+
+			await expect(api.getDocuments()).rejects.toThrow('API request failed: 500');
+
+			expect(mockAuth.reloadCredentials).not.toHaveBeenCalled();
+			expect(mockAuth.refreshToken).not.toHaveBeenCalled();
+		});
+
+		it('should use fresh token from getBearerToken on each retry', async () => {
+			const mockResponse = { docs: [mockDocument], deleted: [] };
+
+			(requestUrl as jest.MockedFunction<typeof requestUrl>)
+				.mockResolvedValueOnce({
+					status: 401,
+					json: { error: 'Unauthorized' },
+					text: '{"error":"Unauthorized"}',
+					headers: {},
+					arrayBuffer: new ArrayBuffer(0),
+				})
+				.mockResolvedValueOnce({
+					status: 200,
+					json: mockResponse,
+					text: JSON.stringify(mockResponse),
+					headers: {},
+					arrayBuffer: new ArrayBuffer(0),
+				});
+
+			mockAuth.reloadCredentials.mockResolvedValue(undefined);
+			mockAuth.getBearerToken
+				.mockReturnValueOnce('old-token')
+				.mockReturnValueOnce('new-token');
+
+			await api.getDocuments();
+
+			// Verify the second request used the new token
+			const calls = (requestUrl as jest.MockedFunction<typeof requestUrl>).mock.calls;
+			expect(calls[0][0]).toEqual(
+				expect.objectContaining({
+					headers: expect.objectContaining({
+						Authorization: 'Bearer old-token',
+					}),
+				})
+			);
+			expect(calls[1][0]).toEqual(
+				expect.objectContaining({
+					headers: expect.objectContaining({
+						Authorization: 'Bearer new-token',
+					}),
+				})
 			);
 		});
 
