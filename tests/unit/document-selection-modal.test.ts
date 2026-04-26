@@ -492,4 +492,51 @@ describe('DocumentSelectionModal', () => {
 			);
 		});
 	});
+
+	describe('failed import export helpers', () => {
+		it('sanitizes failed import export filenames for Windows-incompatible characters', () => {
+			const toISOStringSpy = jest
+				.spyOn(Date.prototype, 'toISOString')
+				.mockReturnValue('2026-04-26T23:45:00.123Z');
+
+			const filename = (modal as any).buildFailedImportExportFilename();
+
+			expect(filename).toBe('granola-failed-imports-2026-04-26T23-45-00.123Z.csv');
+			toISOStringSpy.mockRestore();
+		});
+
+		it('removes the fallback clipboard textarea after copying', async () => {
+			const textarea = document.createElementNS('http://www.w3.org/1999/xhtml', 'textarea');
+			const removeSpy = jest.spyOn(textarea, 'remove');
+			Object.defineProperty(global.navigator, 'clipboard', {
+				value: undefined,
+				configurable: true,
+			});
+			(global.document.createElement as jest.Mock).mockImplementation((tag: string) => {
+				if (tag === 'textarea') {
+					return textarea;
+				}
+
+				return {
+					textContent: '',
+					style: {},
+					appendChild: jest.fn(),
+				};
+			});
+			(global.document as any).execCommand = jest.fn().mockReturnValue(true);
+			const removeChildSpy = jest.spyOn(document.body, 'removeChild');
+
+			await (modal as any).copyFailedDocumentsToClipboard([
+				{
+					document: { id: 'doc1', title: 'Document 1' },
+					error: 'Boom',
+					message: 'Import failed',
+					timestamp: 1,
+				},
+			]);
+
+			expect(removeSpy).toHaveBeenCalled();
+			expect(removeChildSpy).not.toHaveBeenCalled();
+		});
+	});
 });

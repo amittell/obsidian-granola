@@ -1033,7 +1033,7 @@ export class DocumentSelectionModal extends Modal {
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement('a');
 		link.href = url;
-		link.download = `granola-failed-imports-${new Date().toISOString().replace(/:/g, '-')}.csv`;
+		link.download = this.buildFailedImportExportFilename();
 		document.body.appendChild(link);
 		link.click();
 		document.body.removeChild(link);
@@ -1077,9 +1077,7 @@ export class DocumentSelectionModal extends Modal {
 						throw new Error('document.execCommand("copy") failed');
 					}
 				} finally {
-					if (textarea && document.body.contains(textarea)) {
-						document.body.removeChild(textarea);
-					}
+					textarea?.remove();
 				}
 			}
 
@@ -1108,6 +1106,11 @@ export class DocumentSelectionModal extends Modal {
 		});
 
 		return [header, ...rows].join('\n');
+	}
+
+	private buildFailedImportExportFilename(): string {
+		const timestamp = new Date().toISOString().replace(/[<>:"/\\|?*]/g, '-');
+		return `granola-failed-imports-${timestamp}.csv`;
 	}
 
 	/**
