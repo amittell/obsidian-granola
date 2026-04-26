@@ -34,6 +34,29 @@ describe('ServiceContainer', () => {
 		expect(firstScopeInstance).not.toBe(otherScopeInstance);
 	});
 
+	it('resolves singletons with the registration container instead of the requesting scope', async () => {
+		const container = new ServiceContainer();
+
+		container.registerScoped('scoped-dependency', () => ({ scopeId: Symbol('scope') }));
+		container.registerSingleton('singleton-with-scope', async resolver => ({
+			dependency: await resolver.resolve('scoped-dependency'),
+			resolver,
+		}));
+
+		const scopeA = container.createScope();
+		const scopeB = container.createScope();
+
+		const singletonFromScopeA = await scopeA.resolve('singleton-with-scope');
+		const singletonFromScopeB = await scopeB.resolve('singleton-with-scope');
+		const rootScopedDependency = await container.resolve('scoped-dependency');
+		const scopeScopedDependency = await scopeA.resolve('scoped-dependency');
+
+		expect(singletonFromScopeA).toBe(singletonFromScopeB);
+		expect(singletonFromScopeA.resolver).toBe(container);
+		expect(singletonFromScopeA.dependency).toBe(rootScopedDependency);
+		expect(singletonFromScopeA.dependency).not.toBe(scopeScopedDependency);
+	});
+
 	it('supports asynchronous factories', async () => {
 		const container = new ServiceContainer();
 
