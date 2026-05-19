@@ -58,8 +58,10 @@ const mockElement = {
 	removeClass: jest.fn(),
 	createDiv: jest.fn().mockReturnThis(),
 	createEl: jest.fn().mockReturnThis(),
+	createSpan: jest.fn().mockReturnThis(),
 	appendChild: jest.fn(),
 	removeChild: jest.fn(),
+	setAttribute: jest.fn(),
 	style: {},
 	textContent: '',
 	addEventListener: jest.fn(),
@@ -490,6 +492,43 @@ describe('DocumentSelectionModal', () => {
 				mockGranolaDocuments,
 				expect.any(Map)
 			);
+		});
+	});
+
+	describe('empty document display markers', () => {
+		it('renders an empty badge when an included document is marked empty', () => {
+			const emptyDocument = {
+				...mockDocumentMetadata[0],
+				id: 'empty-doc',
+				title: 'Empty Document',
+				isEmpty: true,
+				preview: '',
+				wordCount: 0,
+			};
+
+			(modal as any).renderDocumentItem(mockElement, emptyDocument);
+
+			expect(mockElement.addClass).toHaveBeenCalledWith('document-empty');
+			expect(mockElement.createEl).toHaveBeenCalledWith(
+				'span',
+				expect.objectContaining({
+					text: 'Empty',
+					cls: 'empty-document-badge',
+					attr: expect.objectContaining({
+						'aria-label': 'Empty document',
+					}),
+				})
+			);
+		});
+
+		it('does not render an empty badge for normal documents', () => {
+			(modal as any).renderDocumentItem(mockElement, mockDocumentMetadata[0]);
+
+			expect(mockElement.addClass).not.toHaveBeenCalledWith('document-empty');
+			const emptyBadgeCalls = (mockElement.createEl as jest.Mock).mock.calls.filter(
+				([tag, options]) => tag === 'span' && options?.cls === 'empty-document-badge'
+			);
+			expect(emptyBadgeCalls).toHaveLength(0);
 		});
 	});
 

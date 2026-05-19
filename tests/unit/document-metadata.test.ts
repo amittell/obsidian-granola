@@ -16,7 +16,7 @@ describe('DocumentMetadataService', () => {
 
 	beforeEach(() => {
 		// Create mock settings with skipEmptyDocuments enabled by default
-		mockSettings = { ...DEFAULT_SETTINGS };
+		mockSettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 		service = new DocumentMetadataService(mockSettings);
 
 		mockFile = {
@@ -263,7 +263,46 @@ describe('DocumentMetadataService', () => {
 
 			expect(metadata).toHaveLength(2); // Both documents included
 			expect(metadata[0].id).toBe('test-doc-1');
+			expect(metadata[0].isEmpty).toBeUndefined();
 			expect(metadata[1].id).toBe('empty-doc');
+			expect(metadata[1].isEmpty).toBe(true);
+		});
+
+		it('should only mark empty documents for display when they are included', () => {
+			const emptyDocument: GranolaDocument = {
+				...mockDocument,
+				id: 'empty-doc',
+				title: 'Empty Document',
+				created_at: '2023-01-01T10:00:00Z',
+				updated_at: '2023-01-01T10:00:00Z',
+				notes_plain: '',
+				notes_markdown: '',
+				notes: { type: 'doc', content: [] },
+				last_viewed_panel: null,
+			};
+			const statusMap = new Map([
+				['test-doc-1', mockImportStatus],
+				['empty-doc', { status: 'NEW' as const, reason: 'New', requiresUserChoice: false }],
+			]);
+
+			const filteredMetadata = service.extractBulkMetadata(
+				[mockDocument, emptyDocument],
+				statusMap
+			);
+			expect(filteredMetadata).toHaveLength(1);
+			expect(filteredMetadata.some(doc => doc.isEmpty)).toBe(false);
+
+			mockSettings.import.skipEmptyDocuments = false;
+			service.updateSettings(mockSettings);
+
+			const visibleMetadata = service.extractBulkMetadata(
+				[mockDocument, emptyDocument],
+				statusMap
+			);
+			expect(visibleMetadata.map(doc => ({ id: doc.id, isEmpty: doc.isEmpty }))).toEqual([
+				{ id: 'test-doc-1', isEmpty: undefined },
+				{ id: 'empty-doc', isEmpty: true },
+			]);
 		});
 
 		it('should not filter documents with content even if dates match', () => {
