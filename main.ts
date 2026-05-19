@@ -1,5 +1,5 @@
 import { Plugin, Notice } from 'obsidian';
-import { GranolaAuth } from './src/auth';
+import { GranolaAuth, GranolaAuthData } from './src/auth';
 import { GranolaAPI } from './src/api';
 import { ProseMirrorConverter } from './src/converter';
 import { DuplicateDetector } from './src/services/duplicate-detector';
@@ -17,7 +17,7 @@ import { GranolaSettingTab } from './src/settings';
 
 // Error Message Constants
 const ERROR_MESSAGES = {
-	CREDENTIALS: 'Please check your Granola credentials and ensure the app is properly logged in.',
+	CREDENTIALS: 'Please connect your Granola account with the browser OAuth flow.',
 	NETWORK: 'Network error - please check your internet connection and try again.',
 	RATE_LIMIT: 'Rate limit exceeded - please wait a moment and try again.',
 	FILE_SYSTEM: 'File system error - check vault permissions and available disk space.',
@@ -137,29 +137,43 @@ export default class GranolaImporterPlugin extends Plugin {
 		}
 
 		// Initialize core components
-		this.auth = new GranolaAuth();
+		this.auth = new GranolaAuth({
+			getData: async () =>
+				((await this.loadData()) ?? {}) as GranolaAuthData & Record<string, unknown>,
+			saveData: async data => {
+				await this.saveData(data);
+			},
+			openUrl: url => {
+				window.open(url);
+			},
+		});
 		this.api = new GranolaAPI(this.auth);
 		this.converter = new ProseMirrorConverter(this.logger, this.settings);
 
+		this.registerObsidianProtocolHandler('granola-auth', params => {
+			const code = params.code;
+			if (typeof code === 'string' && code.length > 0) {
+				void this.handleAuthCallback(code);
+			}
+		});
+
 		if (this.settings.plugin?.flags?.useEventBus) {
 			this.serviceContainer = new ServiceContainer();
-			this.pluginEvents = new PluginEvents();
+			const events = new PluginEvents();
+			this.pluginEvents = events;
 
 			const pluginEventsKey = Symbol.for('granola.plugin.events');
 			const pluginInstanceKey = Symbol.for('granola.plugin.instance');
 
-			this.serviceContainer.registerSingleton(
-				pluginEventsKey,
-				async () => this.pluginEvents!
-			);
+			this.serviceContainer.registerSingleton(pluginEventsKey, async () => events);
 			this.serviceContainer.registerSingleton(pluginInstanceKey, async () => this);
 
 			this.eventAdapters = [
-				new VaultIndexerEventsAdapter(this.pluginEvents),
-				new CostTrackerEventsAdapter(this.pluginEvents),
+				new VaultIndexerEventsAdapter(events),
+				new CostTrackerEventsAdapter(events),
 			];
 
-			await this.pluginEvents.emit('plugin:initialized');
+			await events.emit('plugin:initialized');
 		}
 
 		// Initialize selective import services
@@ -229,10 +243,24 @@ export default class GranolaImporterPlugin extends Plugin {
 	 */
 	onunload(): void {
 		// Clean up resources when plugin is disabled
+		void this.api?.disconnect();
 		this.eventAdapters.forEach(adapter => adapter.dispose());
 		this.eventAdapters = [];
 		this.pluginEvents?.clearAll();
 		this.serviceContainer?.clearScoped();
+	}
+
+	private async handleAuthCallback(code: string): Promise<void> {
+		try {
+			await this.api.finishAuth(code);
+			new Notice('Connected to Granola.', 5000);
+		} catch (error) {
+			this.logger.error('Granola OAuth callback failed:', error);
+			new Notice(
+				`Failed to complete Granola authorization: ${error instanceof Error ? error.message : 'Unknown error'}`,
+				8000
+			);
+		}
 	}
 
 	/**
@@ -504,7 +532,7 @@ export default class GranolaImporterPlugin extends Plugin {
 					report += `- **${trulyEmptyDocs} documents** were created but never edited. These can be safely skipped during import.\n`;
 				}
 				if (conversionFailures > 0) {
-					report += `- **${conversionFailures} documents** may have content that failed to convert. Check these in Granola desktop app.\n`;
+					report += `- **${conversionFailures} documents** may have content that failed to convert. Check these in Granola.\n`;
 				}
 				report += `\n*Document IDs are available in debug logs when debug mode is enabled.*`;
 			} else {
@@ -609,7 +637,14 @@ export default class GranolaImporterPlugin extends Plugin {
 	 */
 	async loadSettings(): Promise<void> {
 		const savedData = await this.loadData();
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, savedData);
+		const {
+			oauthTokens: _oauthTokens,
+			oauthClientInfo: _oauthClientInfo,
+			oauthCodeVerifier: _oauthCodeVerifier,
+			oauthDiscoveryState: _oauthDiscoveryState,
+			...settingsData
+		} = (savedData ?? {}) as GranolaAuthData & Partial<GranolaSettings>;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, settingsData);
 
 		// Ensure new plugin flag defaults are preserved when loading legacy settings
 		this.settings.plugin = {
@@ -639,7 +674,11 @@ export default class GranolaImporterPlugin extends Plugin {
 	 * @returns {Promise<void>} Resolves when settings are saved
 	 */
 	async saveSettings(): Promise<void> {
-		await this.saveData(this.settings);
+		const existingData = ((await this.loadData()) ?? {}) as Record<string, unknown>;
+		await this.saveData({
+			...existingData,
+			...this.settings,
+		});
 
 		// Update converter settings if it exists
 		if (this.converter) {

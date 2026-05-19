@@ -88,11 +88,14 @@ export class PluginEvents {
 	}
 
 	private getHandlerSet<K extends keyof PluginEventMap>(event: K): Set<EventHandler<unknown>> {
-		if (!this.handlers.has(event)) {
-			this.handlers.set(event, new Set());
+		const existingHandlers = this.handlers.get(event);
+		if (existingHandlers) {
+			return existingHandlers;
 		}
 
-		return this.handlers.get(event)!;
+		const handlerSet = new Set<EventHandler<unknown>>();
+		this.handlers.set(event, handlerSet);
+		return handlerSet;
 	}
 }
 

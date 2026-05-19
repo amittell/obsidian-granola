@@ -1176,7 +1176,7 @@ export class DocumentSelectionModal extends Modal {
 		}
 		try {
 			return new Date(timestamp).toISOString();
-		} catch (error) {
+		} catch {
 			return 'Unknown';
 		}
 	}

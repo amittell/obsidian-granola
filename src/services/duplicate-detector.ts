@@ -375,7 +375,7 @@ export class DuplicateDetector {
 	 * @returns {string} Content without frontmatter
 	 */
 	private extractContentAfterFrontmatter(content: string): string {
-		const frontmatterMatch = content.match(/^---\n[\s\S]*?\n---\n(.*)$/s);
+		const frontmatterMatch = content.match(/^---\n[\s\S]*?\n---\n([\s\S]*)$/);
 		return frontmatterMatch ? frontmatterMatch[1] : content;
 	}
 

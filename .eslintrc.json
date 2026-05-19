@@ -13,7 +13,18 @@
 		"no-var": "error",
 		"no-undef": "off"
 	},
-	"ignorePatterns": ["main.js", "build/", "dist/", "node_modules/"],
+	"ignorePatterns": [
+		"main.js",
+		"build/",
+		"dist/",
+		"node_modules/",
+		"tests/",
+		"**/*.test.ts",
+		"**/*.spec.ts",
+		"jest.config.js",
+		"esbuild.config.mjs",
+		"version-bump.mjs"
+	],
 	"overrides": [
 		{
 			"files": ["*.ts", "*.tsx"],

@@ -446,9 +446,8 @@ export class GranolaSettingTab extends PluginSettingTab {
 		});
 
 		try {
-			// Create a temporary API instance for testing
-			const auth = this.plugin.auth;
-			await auth.loadCredentials();
+			// Connect through MCP. If OAuth is needed, this starts the browser flow.
+			await this.plugin.api.loadCredentials();
 
 			// Try to fetch a small number of documents to test the connection
 			const response = await this.plugin.api.getDocuments({ limit: 1, offset: 0 });
