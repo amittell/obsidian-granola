@@ -376,6 +376,9 @@ export class DocumentSelectionModal extends Modal {
 	private renderDocumentItem(container: HTMLElement, doc: DocumentDisplayMetadata): void {
 		const item = container.createDiv('document-item');
 		item.addClass(`status-${doc.importStatus.status.toLowerCase()}`);
+		if (doc.isEmpty) {
+			item.addClass('document-empty');
+		}
 		item.setAttribute('data-document-id', doc.id);
 
 		// Checkbox
@@ -394,10 +397,22 @@ export class DocumentSelectionModal extends Modal {
 
 		// Title and status
 		const titleRow = content.createDiv('document-title-row');
-		const titleEl = titleRow.createEl('h3', {
+		const titleGroup = titleRow.createDiv('document-title-group');
+		const titleEl = titleGroup.createEl('h3', {
 			cls: 'document-title',
 		});
 		titleEl.textContent = doc.title;
+
+		if (doc.isEmpty) {
+			titleGroup.createEl('span', {
+				text: 'Empty',
+				cls: 'empty-document-badge',
+				attr: {
+					'aria-label': 'Empty document',
+					title: 'This document has no content in Granola',
+				},
+			});
+		}
 
 		titleRow.createEl('span', {
 			text: this.getStatusText(doc.importStatus.status),

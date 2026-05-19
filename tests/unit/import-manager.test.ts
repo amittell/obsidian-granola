@@ -1058,6 +1058,7 @@ describe('SelectiveImportManager', () => {
 				wordCount: 0,
 				readingTime: 1,
 				importStatus: { status: 'NEW', reason: 'New document', requiresUserChoice: false },
+				isEmpty: true,
 				visible: true,
 				selected: true,
 			};
@@ -1131,6 +1132,7 @@ describe('SelectiveImportManager', () => {
 				wordCount: 0,
 				readingTime: 1,
 				importStatus: { status: 'NEW', reason: 'New document', requiresUserChoice: false },
+				isEmpty: true,
 				visible: true,
 				selected: true,
 			};

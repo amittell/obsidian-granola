@@ -38,6 +38,9 @@ export interface DocumentDisplayMetadata {
 	/** Import status from duplicate detection */
 	importStatus: DuplicateCheckResult;
 
+	/** Display-only marker used when empty documents are intentionally included */
+	isEmpty?: boolean;
+
 	/** Whether document matches current search/filter criteria */
 	visible: boolean;
 
@@ -122,6 +125,7 @@ export class DocumentMetadataService {
 		if (cached) {
 			// Update status and selection state (these can change)
 			cached.importStatus = importStatus;
+			delete cached.isEmpty;
 			return cached;
 		}
 
@@ -160,19 +164,31 @@ export class DocumentMetadataService {
 		documents: GranolaDocument[],
 		statusMap: Map<string, DuplicateCheckResult>
 	): DocumentDisplayMetadata[] {
-		// Filter out empty documents if the setting is enabled
-		const filteredDocuments = this.settings.import.skipEmptyDocuments
-			? documents.filter(doc => !isEmptyDocument(doc))
-			: documents;
+		const metadataList: DocumentDisplayMetadata[] = [];
 
-		return filteredDocuments.map(doc => {
+		for (const doc of documents) {
+			const empty = isEmptyDocument(doc);
+			if (this.settings.import.skipEmptyDocuments && empty) {
+				continue;
+			}
+
 			const status = statusMap.get(doc.id) || {
 				status: 'NEW' as const,
 				reason: 'Status not determined',
 				requiresUserChoice: false,
 			};
-			return this.extractMetadata(doc, status);
-		});
+			const metadata = this.extractMetadata(doc, status);
+
+			if (empty) {
+				metadata.isEmpty = true;
+			} else {
+				delete metadata.isEmpty;
+			}
+
+			metadataList.push(metadata);
+		}
+
+		return metadataList;
 	}
 
 	/**

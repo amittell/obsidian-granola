@@ -334,20 +334,46 @@
 	border-left: 4px solid var(--text-muted);
 }
 
+.granola-import-modal .document-item.document-empty {
+	background: var(--background-secondary);
+}
+
 .granola-import-modal .document-content {
 	flex: 1;
+	min-width: 0;
 }
 
 .granola-import-modal .document-title-row {
 	display: flex;
 	justify-content: space-between;
 	align-items: flex-start;
+	gap: 0.75rem;
 	margin-bottom: 0.5rem;
+}
+
+.granola-import-modal .document-title-group {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-width: 0;
 }
 
 .granola-import-modal .document-title {
 	margin: 0;
 	font-size: 1.1rem;
+	overflow-wrap: anywhere;
+}
+
+.granola-import-modal .empty-document-badge {
+	padding: 0.15rem 0.4rem;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	color: var(--text-muted);
+	background: var(--background-primary);
+	font-size: 0.7rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	white-space: nowrap;
 }
 
 .granola-import-modal .status-badge {
@@ -356,6 +382,7 @@
 	font-size: 0.75rem;
 	font-weight: bold;
 	text-transform: uppercase;
+	white-space: nowrap;
 }
 
 .granola-import-modal .status-badge.status-new {
