@@ -984,6 +984,43 @@ describe('SelectiveImportManager', () => {
 			).toBe(true);
 		});
 
+		it('preserves failed state snapshots when metadata contains circular TFile references', async () => {
+			const circularFile: any = { path: 'Existing.md' };
+			circularFile.self = circularFile;
+			const metadataWithExistingFile: DocumentDisplayMetadata = {
+				...mockDocumentMetadata[0],
+				importStatus: {
+					status: 'EXISTS',
+					reason: 'File already exists',
+					requiresUserChoice: true,
+					existingFile: circularFile,
+				},
+			};
+			(importManager as any).failedDocuments = [
+				{
+					document: mockGranolaDocuments[0],
+					metadata: metadataWithExistingFile,
+					error: 'Initial failure for doc1',
+					message: 'Import failed: Initial failure for doc1',
+					errorCategory: 'conversion',
+					timestamp: Date.now(),
+				},
+			];
+			(importManager as any).lastImportMetadata = new Map([
+				[mockGranolaDocuments[0].id, metadataWithExistingFile],
+			]);
+			jest.spyOn(importManager, 'importDocuments').mockRejectedValueOnce(
+				new Error('Retry aborted before processing')
+			);
+
+			await expect(importManager.retryFailedImports({ ...defaultOptions })).rejects.toThrow(
+				'Retry aborted before processing'
+			);
+
+			const [restoredRecord] = importManager.getFailedDocuments();
+			expect(restoredRecord.metadata?.importStatus.existingFile).toBe(circularFile);
+		});
+
 		it('throws when retrying without failed documents', async () => {
 			await importManager.importDocuments(mockDocumentMetadata, mockGranolaDocuments, {
 				...defaultOptions,

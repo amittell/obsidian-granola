@@ -1033,7 +1033,7 @@ export class DocumentSelectionModal extends Modal {
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement('a');
 		link.href = url;
-		link.download = `granola-failed-imports-${new Date().toISOString().replace(/:/g, '-')}.csv`;
+		link.download = this.buildFailedImportExportFilename();
 		document.body.appendChild(link);
 		link.click();
 		document.body.removeChild(link);
@@ -1057,11 +1057,30 @@ export class DocumentSelectionModal extends Modal {
 		const summary = this.buildFailedDocumentsSummary(records);
 
 		try {
-			// Use modern Clipboard API (available in Electron/Obsidian)
-			if (!navigator?.clipboard?.writeText) {
-				throw new Error('Clipboard API not available');
+			// Try modern Clipboard API first
+			if (navigator?.clipboard?.writeText) {
+				await navigator.clipboard.writeText(summary);
+			} else {
+				// Fallback to deprecated execCommand for older browsers
+				let textarea: HTMLTextAreaElement | null = null;
+				try {
+					textarea = document.createElement('textarea');
+					textarea.value = summary;
+					textarea.style.position = 'fixed';
+					textarea.style.opacity = '0';
+					document.body.appendChild(textarea);
+					textarea.focus();
+					textarea.select();
+
+					const successful = document.execCommand('copy');
+					if (!successful) {
+						throw new Error('document.execCommand("copy") failed');
+					}
+				} finally {
+					textarea?.remove();
+				}
 			}
-			await navigator.clipboard.writeText(summary);
+
 			new Notice('Failed import summary copied to clipboard.');
 		} catch (error) {
 			console.error('[Granola Importer] Clipboard copy failed:', error);
@@ -1087,6 +1106,11 @@ export class DocumentSelectionModal extends Modal {
 		});
 
 		return [header, ...rows].join('\n');
+	}
+
+	private buildFailedImportExportFilename(): string {
+		const timestamp = new Date().toISOString().replace(/[<>:"/\\|?*]/g, '-');
+		return `granola-failed-imports-${timestamp}.csv`;
 	}
 
 	/**

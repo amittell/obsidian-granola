@@ -358,13 +358,11 @@ export class SelectiveImportManager {
 
 		// Snapshot failed state before retry to prevent loss if importDocuments aborts early.
 		// importDocuments calls startImport which calls reset(), clearing failedDocuments and
-		// lastImportMetadata. If import throws synchronously before any processing, we restore
-		// the snapshot so users can still export or retry the original failure set.
-		const failedSnapshot = this.failedDocuments.map(record => ({
-			...record,
-			document: this.cloneDocument(record.document),
-			metadata: record.metadata ? this.cloneMetadata(record.metadata) : undefined,
-		}));
+		// lastImportMetadata. Keep this snapshot in-memory so metadata that contains Obsidian
+		// TFile references remains restorable even when those objects are not JSON-serializable.
+		const failedSnapshot = this.failedDocuments.map(record =>
+			this.cloneFailedDocumentRecord(record)
+		);
 		const lastMetaSnapshot = new Map(
 			Array.from(this.lastImportMetadata.entries()).map(([key, value]) => [
 				key,
@@ -1142,6 +1140,14 @@ export class SelectiveImportManager {
 		return {
 			...metadata,
 			importStatus: { ...metadata.importStatus },
+		};
+	}
+
+	private cloneFailedDocumentRecord(record: FailedDocumentRecord): FailedDocumentRecord {
+		return {
+			...record,
+			document: this.cloneDocument(record.document),
+			metadata: record.metadata ? this.cloneMetadata(record.metadata) : undefined,
 		};
 	}
 
