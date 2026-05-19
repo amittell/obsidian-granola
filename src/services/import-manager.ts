@@ -798,7 +798,7 @@ export class SelectiveImportManager {
 		if (!folder) {
 			try {
 				await this.vault.createFolder(folderPath);
-			} catch (error) {
+			} catch {
 				// Folder might already exist or parent folders need to be created
 				const parts = folderPath.split('/');
 				let currentPath = '';
@@ -808,7 +808,7 @@ export class SelectiveImportManager {
 					if (!existing) {
 						try {
 							await this.vault.createFolder(currentPath);
-						} catch (e) {
+						} catch {
 							// Ignore if folder already exists
 						}
 					}
@@ -1027,7 +1027,7 @@ export class SelectiveImportManager {
 	 * @returns {string} Content without frontmatter
 	 */
 	private extractContentAfterFrontmatter(content: string): string {
-		const frontmatterMatch = content.match(/^---\n[\s\S]*?\n---\n(.*)$/s);
+		const frontmatterMatch = content.match(/^---\n[\s\S]*?\n---\n([\s\S]*)$/);
 		return frontmatterMatch ? frontmatterMatch[1] : content;
 	}
 

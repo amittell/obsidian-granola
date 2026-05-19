@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { ReadableStream, TransformStream } from 'stream/web';
 
 // Define development constants for test environment
 declare global {
@@ -7,6 +8,28 @@ declare global {
 }
 global.__DEV__ = true;
 global.DEBUG = true;
+
+if (!global.TransformStream) {
+	global.TransformStream = TransformStream as unknown as typeof global.TransformStream;
+}
+if (!global.ReadableStream) {
+	global.ReadableStream = ReadableStream as unknown as typeof global.ReadableStream;
+}
+if (!global.Response) {
+	global.Response = class TestResponse {
+		body: BodyInit | null;
+		status: number;
+		statusText: string;
+		headers: Headers;
+
+		constructor(body: BodyInit | null = null, init: ResponseInit = {}) {
+			this.body = body;
+			this.status = init.status ?? 200;
+			this.statusText = init.statusText ?? '';
+			this.headers = new Headers(init.headers);
+		}
+	} as unknown as typeof Response;
+}
 
 // Enhanced DOM environment setup for complex UI testing
 import './helpers/dom-test-utils';
@@ -267,21 +290,14 @@ Object.defineProperty(window, 'sessionStorage', {
 	writable: true,
 });
 
-// Mock URL and URLSearchParams for modern web APIs
-global.URL = jest.fn().mockImplementation((url, base) => ({
-	href: url,
-	origin: 'http://localhost:3000',
-	protocol: 'http:',
-	host: 'localhost:3000',
-	hostname: 'localhost',
-	port: '3000',
-	pathname: new URL(url, base || 'http://localhost:3000').pathname,
-	search: new URL(url, base || 'http://localhost:3000').search,
-	hash: new URL(url, base || 'http://localhost:3000').hash,
-	searchParams: new URLSearchParams(new URL(url, base || 'http://localhost:3000').search),
-}));
+// Mock URL constructor while delegating parsing to the native implementation.
+const NativeURL = global.URL;
+const NativeURLSearchParams = global.URLSearchParams;
+global.URL = jest.fn().mockImplementation((url, base) => {
+	return new NativeURL(url, base || 'http://localhost:3000');
+}) as unknown as typeof URL;
 
-global.URLSearchParams = URLSearchParams;
+global.URLSearchParams = NativeURLSearchParams;
 
 // Mock Clipboard API for testing copy/paste functionality
 Object.assign(navigator, {

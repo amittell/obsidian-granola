@@ -1,261 +1,156 @@
-import { jest } from '@jest/globals';
-import { GranolaAuth } from '../../src/auth';
-import {
-	mockCredentials,
-	mockCognitoTokens,
-	mockSupabaseConfig,
-	mockExpiredCognitoTokens,
-	mockInvalidTokenFormat,
-} from '../helpers';
+import { GranolaAuth, GranolaAuthData, GranolaAuthStorage } from '../../src/auth';
 
-// Mock the fs module (synchronous version used by auth.ts)
-jest.mock('fs', () => ({
-	readFileSync: jest.fn(),
-	existsSync: jest.fn(),
-}));
+function createStorage(initialData: GranolaAuthData = {}) {
+	let data: GranolaAuthData & Record<string, unknown> = { ...initialData };
+	const storage: GranolaAuthStorage = {
+		getData: jest.fn(async () => data),
+		saveData: jest.fn(async nextData => {
+			data = { ...nextData };
+		}),
+		openUrl: jest.fn(),
+	};
 
-// Mock os module
-jest.mock('os', () => ({
-	platform: jest.fn(),
-	homedir: jest.fn(),
-}));
-
-// Mock path module
-jest.mock('path', () => ({
-	join: jest.fn(),
-}));
-
-// Import the mocked modules to get the mocked functions
-import { readFileSync, existsSync } from 'fs';
-import { platform as osPlatform, homedir } from 'os';
-import { join } from 'path';
-
-const mockReadFileSync = readFileSync as jest.MockedFunction<typeof readFileSync>;
-const mockExistsSync = existsSync as jest.MockedFunction<typeof existsSync>;
-const mockPlatform = osPlatform as jest.MockedFunction<typeof osPlatform>;
-const mockHomedir = homedir as jest.MockedFunction<typeof homedir>;
-const mockJoin = join as jest.MockedFunction<typeof join>;
+	return {
+		storage,
+		get data() {
+			return data;
+		},
+	};
+}
 
 describe('GranolaAuth', () => {
-	let auth: GranolaAuth;
+	it('exposes MCP OAuth client metadata', () => {
+		const auth = new GranolaAuth();
 
-	beforeEach(() => {
-		// Clear all mocks
-		jest.clearAllMocks();
-
-		// Setup mocks with proper values
-		mockReadFileSync.mockReturnValue(mockSupabaseConfig);
-		mockPlatform.mockReturnValue('darwin');
-		mockHomedir.mockReturnValue('/Users/test');
-		mockJoin.mockImplementation((...args: string[]) => args.join('/'));
-
-		// Create auth instance
-		auth = new GranolaAuth();
-	});
-
-	describe('loadCredentials', () => {
-		it('should load valid credentials successfully', async () => {
-			const credentials = await auth.loadCredentials();
-
-			expect(credentials).toEqual({
-				access_token: mockCognitoTokens.access_token,
-				refresh_token: mockCognitoTokens.refresh_token,
-				token_type: 'bearer', // normalized to lowercase
-				expires_at: expect.any(Number),
-			});
-		});
-
-		it('should cache credentials on subsequent calls', async () => {
-			await auth.loadCredentials();
-			await auth.loadCredentials();
-
-			expect(mockReadFileSync).toHaveBeenCalledTimes(1);
-		});
-
-		it('should throw error if config file is missing', async () => {
-			mockReadFileSync.mockImplementation(() => {
-				throw new Error('File not found');
-			});
-
-			await expect(auth.loadCredentials()).rejects.toThrow(
-				'Cannot read Granola configuration file'
-			);
-		});
-
-		it('should throw error if config file contains invalid JSON', async () => {
-			mockReadFileSync.mockReturnValue('invalid json');
-
-			await expect(auth.loadCredentials()).rejects.toThrow(
-				'Failed to load Granola credentials'
-			);
-		});
-
-		it('should throw error if required fields are missing', async () => {
-			const invalidConfig = {
-				cognito_tokens: JSON.stringify({ access_token: 'test' }), // missing other fields
-				user_info: '{}',
-			};
-			mockReadFileSync.mockReturnValue(JSON.stringify(invalidConfig));
-
-			await expect(auth.loadCredentials()).rejects.toThrow('Missing required field');
-		});
-
-		it('should throw error if token type is not bearer', async () => {
-			const invalidConfig = {
-				cognito_tokens: JSON.stringify({
-					...mockCognitoTokens,
-					token_type: 'basic',
-				}),
-				user_info: '{}',
-			};
-			mockReadFileSync.mockReturnValue(JSON.stringify(invalidConfig));
-
-			await expect(auth.loadCredentials()).rejects.toThrow('Invalid token type');
-		});
-
-		it('should throw error if token format is invalid', async () => {
-			const invalidConfig = {
-				cognito_tokens: JSON.stringify(mockInvalidTokenFormat),
-				user_info: '{}',
-			};
-			mockReadFileSync.mockReturnValue(JSON.stringify(invalidConfig));
-
-			await expect(auth.loadCredentials()).rejects.toThrow('Invalid token format');
-		});
-
-		it('should throw error if token is expired', async () => {
-			const expiredConfig = {
-				cognito_tokens: JSON.stringify(mockExpiredCognitoTokens),
-				user_info: '{}',
-			};
-			mockReadFileSync.mockReturnValue(JSON.stringify(expiredConfig));
-
-			await expect(auth.loadCredentials()).rejects.toThrow('Access token has expired');
+		expect(auth.redirectUrl).toBe('obsidian://granola-auth');
+		expect(auth.clientMetadata).toEqual({
+			client_name: 'Obsidian Granola Importer',
+			redirect_uris: ['obsidian://granola-auth'],
+			grant_types: ['authorization_code', 'refresh_token'],
+			response_types: ['code'],
+			token_endpoint_auth_method: 'none',
 		});
 	});
 
-	describe('getSupabaseConfigPath', () => {
-		it('should return correct path for macOS', () => {
-			mockPlatform.mockReturnValue('darwin');
-			mockHomedir.mockReturnValue('/Users/test');
+	it('persists OAuth tokens with an absolute expiry', async () => {
+		const fixture = createStorage();
+		const auth = new GranolaAuth(fixture.storage);
 
-			// Access the private method through any casting
-			const configPath = (auth as any).getSupabaseConfigPath();
-
-			expect(mockJoin).toHaveBeenCalledWith(
-				'/Users/test',
-				'Library',
-				'Application Support',
-				'Granola',
-				'supabase.json'
-			);
+		await auth.saveTokens({
+			access_token: 'access-token',
+			refresh_token: 'refresh-token',
+			token_type: 'Bearer',
+			expires_in: 3600,
 		});
 
-		it('should return correct path for Windows', () => {
-			mockPlatform.mockReturnValue('win32');
-			mockHomedir.mockReturnValue('C:\\Users\\test');
-
-			const configPath = (auth as any).getSupabaseConfigPath();
-
-			expect(mockJoin).toHaveBeenCalledWith(
-				'C:\\Users\\test',
-				'AppData',
-				'Roaming',
-				'Granola',
-				'supabase.json'
-			);
-		});
-
-		it('should return correct path for Linux', () => {
-			mockPlatform.mockReturnValue('linux');
-			mockHomedir.mockReturnValue('/home/test');
-
-			const configPath = (auth as any).getSupabaseConfigPath();
-
-			expect(mockJoin).toHaveBeenCalledWith(
-				'/home/test',
-				'.config',
-				'Granola',
-				'supabase.json'
-			);
-		});
-
-		it('should throw error for unsupported platform', () => {
-			mockPlatform.mockReturnValue('freebsd');
-
-			expect(() => (auth as any).getSupabaseConfigPath()).toThrow('Unsupported platform');
+		expect(fixture.storage.saveData).toHaveBeenCalled();
+		expect(fixture.data.oauthTokens).toMatchObject({
+			access_token: 'access-token',
+			refresh_token: 'refresh-token',
+			token_type: 'Bearer',
+			expires_in: 3600,
+			obtained_at: expect.any(Number),
+			expires_at: expect.any(Number),
 		});
 	});
 
-	describe('getBearerToken', () => {
-		it('should return access token when credentials are loaded', async () => {
-			await auth.loadCredentials();
-			const token = auth.getBearerToken();
-
-			expect(token).toBe(mockCredentials.access_token);
+	it('loads credentials from persisted tokens', async () => {
+		const { storage } = createStorage({
+			oauthTokens: {
+				access_token: 'access-token',
+				refresh_token: 'refresh-token',
+				token_type: 'Bearer',
+				expires_at: Math.floor(Date.now() / 1000) + 3600,
+			},
 		});
+		const auth = new GranolaAuth(storage);
 
-		it('should throw error when credentials are not loaded', () => {
-			expect(() => auth.getBearerToken()).toThrow('Credentials not loaded');
+		const credentials = await auth.loadCredentials();
+
+		expect(credentials).toEqual({
+			access_token: 'access-token',
+			refresh_token: 'refresh-token',
+			token_type: 'bearer',
+			expires_at: expect.any(Number),
 		});
+		expect(auth.getBearerToken()).toBe('access-token');
+		expect(auth.hasValidCredentials()).toBe(true);
 	});
 
-	describe('isTokenExpired', () => {
-		it('should return false for valid token', async () => {
-			await auth.loadCredentials();
+	it('rejects missing tokens', async () => {
+		const { storage } = createStorage();
+		const auth = new GranolaAuth(storage);
 
-			expect(auth.isTokenExpired()).toBe(false);
-		});
-
-		it('should return true when credentials are not loaded', () => {
-			expect(auth.isTokenExpired()).toBe(true);
-		});
+		await expect(auth.loadCredentials()).rejects.toThrow('Granola account is not connected');
+		expect(() => auth.getBearerToken()).toThrow('Credentials not loaded');
 	});
 
-	describe('hasValidCredentials', () => {
-		it('should return true when credentials are loaded and valid', async () => {
-			await auth.loadCredentials();
-
-			expect(auth.hasValidCredentials()).toBe(true);
+	it('rejects invalid token types', async () => {
+		const { storage } = createStorage({
+			oauthTokens: {
+				access_token: 'access-token',
+				token_type: 'Basic',
+			},
 		});
+		const auth = new GranolaAuth(storage);
 
-		it('should return false when credentials are not loaded', () => {
-			expect(auth.hasValidCredentials()).toBe(false);
-		});
+		await expect(auth.loadCredentials()).rejects.toThrow('Invalid token type: Basic');
 	});
 
-	describe('clearCredentials', () => {
-		it('should clear cached credentials', async () => {
-			await auth.loadCredentials();
-			expect(auth.hasValidCredentials()).toBe(true);
+	it('persists dynamic client registration and PKCE verifier', async () => {
+		const fixture = createStorage();
+		const auth = new GranolaAuth(fixture.storage);
 
-			auth.clearCredentials();
-			expect(auth.hasValidCredentials()).toBe(false);
-		});
+		await auth.saveClientInformation({ client_id: 'client-id' });
+		await auth.saveCodeVerifier('verifier');
+
+		expect(await auth.clientInformation()).toEqual({ client_id: 'client-id' });
+		expect(await auth.codeVerifier()).toBe('verifier');
+		expect(fixture.data.oauthClientInfo).toEqual({ client_id: 'client-id' });
+		expect(fixture.data.oauthCodeVerifier).toBe('verifier');
 	});
 
-	describe('refreshToken', () => {
-		it('should throw error as refresh is not implemented', async () => {
-			await auth.loadCredentials();
+	it('opens browser authorization URLs through storage', async () => {
+		const { storage } = createStorage();
+		const auth = new GranolaAuth(storage);
 
-			expect(() => auth.refreshToken()).toThrow('Token refresh not yet implemented');
+		await auth.redirectToAuthorization(new URL('https://mcp.granola.ai/auth'));
+
+		expect(storage.openUrl).toHaveBeenCalledWith('https://mcp.granola.ai/auth');
+	});
+
+	it('clears persisted OAuth state', async () => {
+		const fixture = createStorage({
+			oauthTokens: {
+				access_token: 'access-token',
+				token_type: 'Bearer',
+			},
+			oauthClientInfo: { client_id: 'client-id' },
+			oauthCodeVerifier: 'verifier',
 		});
+		const auth = new GranolaAuth(fixture.storage);
+		await auth.loadCredentials();
 
-		it('should throw error when no refresh token available', () => {
-			expect(() => auth.refreshToken()).toThrow('No refresh token available');
+		await auth.clearCredentials();
+
+		expect(auth.hasValidCredentials()).toBe(false);
+		expect(fixture.data.oauthTokens).toBeUndefined();
+		expect(fixture.data.oauthClientInfo).toBeUndefined();
+		expect(fixture.data.oauthCodeVerifier).toBeUndefined();
+	});
+
+	it('marks cached tokens expired using the stored expiry', async () => {
+		const { storage } = createStorage({
+			oauthTokens: {
+				access_token: 'access-token',
+				token_type: 'Bearer',
+				expires_at: Math.floor(Date.now() / 1000) - 1,
+			},
 		});
+		const auth = new GranolaAuth(storage);
+		await auth.loadCredentials();
 
-		it('should clear credentials on refresh failure', async () => {
-			await auth.loadCredentials();
-			expect(auth.hasValidCredentials()).toBe(true);
-
-			try {
-				auth.refreshToken();
-			} catch {
-				// Expected to fail
-			}
-
-			expect(auth.hasValidCredentials()).toBe(false);
-		});
+		expect(auth.isTokenExpired()).toBe(true);
+		expect(auth.hasValidCredentials()).toBe(false);
 	});
 });

@@ -389,7 +389,7 @@ export class ProseMirrorConverter {
 			);
 
 			// Create a helpful placeholder instead of failing completely
-			markdown = `# ${decodeHtmlEntities(doc.title)}\n\n*This document appears to have no extractable content from the Granola API.*\n\n*Possible causes:*\n- Content exists in Granola but wasn't included in the API response\n- Document was created but never had content added\n- Sync issue between Granola desktop app and API\n\n*To fix: Check the original document in Granola and manually copy content if needed.*\n\n---\n*Document ID: ${doc.id}*\n*Created: ${doc.created_at}*\n*Updated: ${doc.updated_at}*`;
+			markdown = `# ${decodeHtmlEntities(doc.title)}\n\n*This document appears to have no extractable content from Granola MCP.*\n\n*Possible causes:*\n- Content exists in Granola but wasn't included in the MCP response\n- Document was created but never had content added\n- Granola MCP only returned meeting metadata for this note\n\n*To fix: Check the original document in Granola and manually copy content if needed.*\n\n---\n*Document ID: ${doc.id}*\n*Created: ${doc.created_at}*\n*Updated: ${doc.updated_at}*`;
 		}
 
 		// Process action items if enabled

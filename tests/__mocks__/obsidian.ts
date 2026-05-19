@@ -87,6 +87,10 @@ export class Plugin {
 	onunload() {}
 	addCommand(command: any) {}
 	addSettingTab(tab: any) {}
+	registerObsidianProtocolHandler(
+		action: string,
+		handler: (params: Record<string, string>) => void
+	) {}
 	addRibbonIcon(icon: string, title: string, callback: () => void) {
 		// Mock implementation - return a mock HTMLElement
 		const mockElement = {

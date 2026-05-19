@@ -1,52 +1,31 @@
-import { requestUrl } from 'obsidian';
-import { readFileSync, existsSync } from 'fs';
-import { resolve } from 'path';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { GranolaAuth } from './auth';
+import { nodeFetch } from './fetch';
 
-/**
- * Represents a document from the Granola API.
- *
- * Documents contain ProseMirror JSON content under the 'notes' field that needs to be converted
- * to Markdown format for use in Obsidian. Each document includes metadata
- * such as creation/update timestamps and a unique identifier.
- *
- * @interface GranolaDocument
- * @since 1.0.0
- */
+const MCP_SERVER_URL = 'https://mcp.granola.ai/mcp';
+const DEFAULT_PAGE_SIZE = 100;
+const FETCH_BATCH_SIZE = 10;
+const DEFAULT_TIME_RANGE: SyncTimeRange = 'last_30_days';
+
+const LIST_MEETINGS_TOOL = 'list_meetings';
+const GET_MEETINGS_TOOL = 'get_meetings';
+
+export type SyncTimeRange = 'this_week' | 'last_week' | 'last_30_days';
+
 export interface GranolaDocument {
-	/** Unique identifier for the document */
 	id: string;
-
-	/** Human-readable title of the document */
 	title: string;
-
-	/** Document content in ProseMirror JSON format */
 	notes: ProseMirrorDoc;
-
-	/** Plain text version of the notes */
 	notes_plain: string;
-
-	/** Markdown version of the notes */
 	notes_markdown: string;
-
-	/** Last viewed panel containing the actual content */
 	last_viewed_panel?: {
-		/** Panel content in ProseMirror JSON format or HTML string */
 		content?: ProseMirrorDoc | string;
-		/** Additional panel metadata */
 		[key: string]: unknown;
 	};
-
-	/** ISO timestamp when the document was created */
 	created_at: string;
-
-	/** ISO timestamp when the document was last updated */
 	updated_at: string;
-
-	/** User ID of the document owner */
 	user_id: string;
-
-	/** Array of meeting attendees (if available) - can be string[] or complex object */
 	people?:
 		| string[]
 		| {
@@ -69,351 +48,401 @@ export interface GranolaDocument {
 				};
 				title?: string;
 		  };
-
-	/** Additional metadata fields */
 	[key: string]: unknown;
 }
 
-/**
- * Root document structure for ProseMirror content.
- *
- * ProseMirror documents follow a hierarchical node structure where
- * the root document contains an array of top-level nodes (paragraphs,
- * headings, lists, etc.).
- *
- * @interface ProseMirrorDoc
- * @since 1.0.0
- * @see {@link https://prosemirror.net/docs/ref/#model.Node} ProseMirror Node Documentation
- */
 export interface ProseMirrorDoc {
-	/** Always 'doc' for root document nodes */
 	type: 'doc';
-
-	/** Array of top-level content nodes (paragraphs, headings, etc.) */
 	content?: ProseMirrorNode[];
 }
 
-/**
- * Individual node within a ProseMirror document structure.
- *
- * Each node represents a semantic element (paragraph, heading, text, etc.)
- * and may contain attributes, child content, text content, or formatting marks.
- * The converter processes these nodes recursively to generate Markdown.
- *
- * @interface ProseMirrorNode
- * @since 1.0.0
- * @see {@link https://prosemirror.net/docs/ref/#model.Node} ProseMirror Node Documentation
- */
 export interface ProseMirrorNode {
-	/** Node type (paragraph, heading, text, bulletList, etc.) */
 	type: string;
-
-	/** Node-specific attributes (e.g., heading level, link href) */
 	attrs?: Record<string, unknown>;
-
-	/** Child nodes for container elements */
 	content?: ProseMirrorNode[];
-
-	/** Text content for text nodes */
 	text?: string;
-
-	/** Formatting marks applied to text (bold, italic, code, links) */
 	marks?: Array<{
-		/** Mark type (strong, em, code, link) */
 		type: string;
-		/** Mark-specific attributes (e.g., link href) */
 		attrs?: Record<string, unknown>;
 	}>;
 }
 
-/**
- * Request parameters for paginated document fetching.
- *
- * The Granola API supports pagination to handle large document collections.
- * These parameters control how many documents are returned and from what offset.
- *
- * @interface GetDocumentsRequest
- * @since 1.0.0
- */
 export interface GetDocumentsRequest {
-	/** Maximum number of documents to return (default: 100, max: 100) */
 	limit?: number;
-
-	/** Number of documents to skip for pagination (default: 0) */
 	offset?: number;
+	timeRange?: SyncTimeRange;
 }
 
-/**
- * Response structure from the Granola API document endpoint.
- *
- * Contains the requested documents along with deleted document information.
- * Note: The API no longer uses pagination - all documents are returned in a single request.
- *
- * @interface GetDocumentsResponse
- * @since 1.0.0
- */
 export interface GetDocumentsResponse {
-	/** Array of active documents */
 	docs: GranolaDocument[];
-
-	/** Array of deleted document IDs */
 	deleted: string[];
 }
 
-// API Configuration Constants
-const DEFAULT_PAGE_SIZE = 100;
-const MAX_RETRY_ATTEMPTS = 3;
-const EXPONENTIAL_BACKOFF_BASE_MS = 1000;
+interface McpTool {
+	name: string;
+	description?: string;
+	inputSchema?: Record<string, unknown>;
+}
 
-/**
- * HTTP client for interacting with the Granola REST API.
- *
- * This class handles all communication with Granola's backend services,
- * including authentication, rate limiting, retry logic, and pagination.
- * It provides a high-level interface for fetching documents while managing
- * the complexities of API interaction.
- *
- * Features:
- * - Automatic retry with exponential backoff
- * - Rate limiting compliance (200ms between requests)
- * - Pagination handling for large document collections
- * - Comprehensive error handling and categorization
- *
- * @class GranolaAPI
- * @since 1.0.0
- *
- * @example
- * ```typescript
- * const auth = new GranolaAuth();
- * await auth.loadCredentials();
- * const api = new GranolaAPI(auth);
- * const documents = await api.getAllDocuments();
- * ```
- */
+interface ParsedParticipant {
+	name: string;
+	email: string;
+	organization: string;
+	isCreator: boolean;
+}
+
+interface ParsedMeeting {
+	id: string;
+	title: string;
+	date: string;
+	participants: ParsedParticipant[];
+	privateNotes: string;
+	summary: string;
+}
+
+type ToolResult = Awaited<ReturnType<Client['callTool']>>;
+
 export class GranolaAPI {
-	/** Base URL for all Granola API endpoints */
-	private readonly baseUrl = 'https://api.granola.ai/v2';
-
-	/**
-	 * User-Agent string for API requests identifying this plugin.
-	 * Version is automatically pulled from package.json to keep it in sync.
-	 */
-	private readonly userAgent: string;
-
-	/** Authentication manager for API credentials */
+	private client: Client | null = null;
+	private transport: StreamableHTTPClientTransport | null = null;
+	private tools: McpTool[] = [];
 	private auth: GranolaAuth;
 
-	/**
-	 * Creates a new Granola API client.
-	 *
-	 * @param {GranolaAuth} auth - Authentication manager with loaded credentials
-	 *
-	 * @example
-	 * ```typescript
-	 * const auth = new GranolaAuth();
-	 * await auth.loadCredentials();
-	 * const api = new GranolaAPI(auth);
-	 * ```
-	 */
 	constructor(auth: GranolaAuth) {
 		this.auth = auth;
-
-		// Get version from package.json, fall back to static version
-		try {
-			// Try the most likely path first (relative to built main.js)
-			const packagePath = resolve(__dirname, '../package.json');
-
-			if (existsSync(packagePath)) {
-				const manifest = JSON.parse(readFileSync(packagePath, 'utf8'));
-				if (manifest?.name && manifest?.version) {
-					this.userAgent = `${manifest.name}/${manifest.version}`;
-				} else {
-					throw new Error('Invalid package.json format');
-				}
-			} else {
-				throw new Error('Package.json not found');
-			}
-		} catch {
-			// Fallback to static version if package.json is unavailable
-			this.userAgent = 'obsidian-granola-importer/1.0.0';
-		}
 	}
 
-	/**
-	 * Loads and validates Granola credentials.
-	 * This method should be called before making any API requests.
-	 *
-	 * @async
-	 * @returns {Promise<void>} Resolves when credentials are loaded and validated
-	 * @throws {Error} If credential loading fails
-	 */
+	get isConnected(): boolean {
+		return this.client !== null;
+	}
+
 	async loadCredentials(): Promise<void> {
-		await this.auth.loadCredentials();
+		await this.connect();
 	}
 
-	/**
-	 * Fetches documents from the Granola API.
-	 *
-	 * Note: The Granola API now returns all documents in a single request.
-	 * The limit and offset parameters are kept for backward compatibility
-	 * but may not have any effect on the actual API response.
-	 *
-	 * @async
-	 * @param {GetDocumentsRequest} options - Request options (may be ignored by API)
-	 * @returns {Promise<GetDocumentsResponse>} All documents with metadata
-	 * @throws {Error} If API request fails or rate limit is exceeded
-	 *
-	 * @example
-	 * ```typescript
-	 * // Fetch all documents
-	 * const response = await api.getDocuments();
-	 * console.log(`Found ${response.docs.length} documents`);
-	 * console.log(`Deleted documents: ${response.deleted.length}`);
-	 * ```
-	 */
-	async getDocuments(options: GetDocumentsRequest = {}): Promise<GetDocumentsResponse> {
-		const { limit = DEFAULT_PAGE_SIZE, offset = 0 } = options;
+	async connect(): Promise<void> {
+		await this.disconnect();
 
-		const response = await this.makeRequest('/get-documents', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${this.auth.getBearerToken()}`,
-				'User-Agent': this.userAgent,
-			},
-			body: JSON.stringify({
-				limit,
-				offset,
-				include_last_viewed_panel: true,
-			}),
+		this.client = new Client({
+			name: 'obsidian-granola-importer',
+			version: '2.0.0',
+		});
+		this.transport = new StreamableHTTPClientTransport(new URL(MCP_SERVER_URL), {
+			authProvider: this.auth,
+			fetch: nodeFetch,
 		});
 
-		if (!response.ok) {
-			if (response.status === 429) {
-				throw new Error('Rate limit exceeded. Please try again later.');
-			}
-			throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-		}
-
-		return await response.json();
-	}
-
-	/**
-	 * Fetches all documents from the user's Granola account.
-	 *
-	 * The Granola API now returns all documents in a single request,
-	 * so no pagination handling is required.
-	 *
-	 * @async
-	 * @returns {Promise<GranolaDocument[]>} Array of all documents in the account
-	 * @throws {Error} If the API request fails
-	 *
-	 * @example
-	 * ```typescript
-	 * try {
-	 *   const allDocuments = await api.getAllDocuments();
-	 *   console.log(`Retrieved ${allDocuments.length} total documents`);
-	 *
-	 *   for (const doc of allDocuments) {
-	 *     console.log(`Document: ${doc.title} (${doc.id})`);
-	 *   }
-	 * } catch (error) {
-	 *   console.error('Failed to fetch documents:', error.message);
-	 * }
-	 * ```
-	 */
-	async getAllDocuments(): Promise<GranolaDocument[]> {
-		const response = await this.getDocuments();
-
-		// Handle the new API response format
-		if (response.docs && Array.isArray(response.docs)) {
-			return response.docs;
-		} else {
-			console.error('Unexpected API response format:', response);
-			throw new Error('API returned unexpected response format');
+		try {
+			await this.client.connect(this.transport);
+			await this.discoverTools(true);
+		} catch (error) {
+			this.client = null;
+			this.transport = null;
+			throw error;
 		}
 	}
 
-	/**
-	 * Makes an HTTP request with retry logic and exponential backoff.
-	 *
-	 * This method implements robust error handling including:
-	 * - Up to 3 retry attempts for failed requests
-	 * - Exponential backoff delays (2^attempt * 1000ms)
-	 * - Special handling for rate limit (429) responses
-	 * - Network error recovery
-	 *
-	 * @private
-	 * @param {string} endpoint - API endpoint path (e.g., '/get-documents')
-	 * @param {object} options - Fetch options (method, headers, body, etc.)
-	 * @returns {Promise<Response>} The HTTP response object
-	 * @throws {Error} If all retry attempts fail
-	 *
-	 * @example
-	 * ```typescript
-	 * const response = await this.makeRequest('/get-documents', {
-	 *   method: 'POST',
-	 *   headers: { 'Authorization': `Bearer ${token}` },
-	 *   body: JSON.stringify({ limit: 100 })
-	 * });
-	 * ```
-	 */
-	private async makeRequest(
-		endpoint: string,
-		options: {
-			method?: string;
-			headers: Record<string, string>;
-			body?: string;
-		}
-	): Promise<Response> {
-		const url = `${this.baseUrl}${endpoint}`;
-
-		// Retry logic with exponential backoff
-		for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+	async disconnect(): Promise<void> {
+		if (this.client) {
 			try {
-				const response = await requestUrl({
-					url,
-					method: options.method || 'GET',
-					headers: options.headers,
-					body: options.body,
-					throw: false, // Don't throw on non-2xx status codes
-				});
-
-				// Check if response exists (can be undefined on network error)
-				if (!response || response.status === undefined) {
-					throw new Error('Network error: no response received');
-				}
-
-				// Convert requestUrl response to fetch-like Response for compatibility
-				const fetchLikeResponse = {
-					ok: response.status >= 200 && response.status < 300,
-					status: response.status,
-					statusText: '', // requestUrl doesn't provide statusText
-					headers: new Headers(response.headers),
-					json: async () => response.json,
-					text: async () => response.text || JSON.stringify(response.json),
-				} as Response;
-
-				if (response.status === 429 && attempt < MAX_RETRY_ATTEMPTS) {
-					const delay = Math.pow(2, attempt) * EXPONENTIAL_BACKOFF_BASE_MS; // Exponential backoff
-					await window.sleep(delay);
-					continue;
-				}
-
-				return fetchLikeResponse;
-			} catch (error) {
-				if (attempt === 3) {
-					const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-					throw new Error(
-						`Network request failed after ${attempt} attempts: ${errorMessage}`
-					);
-				}
-
-				const delay = Math.pow(2, attempt) * EXPONENTIAL_BACKOFF_BASE_MS;
-				await window.sleep(delay);
+				await this.client.close();
+			} catch {
+				// Ignore shutdown errors from an already-closed MCP session.
 			}
 		}
 
-		throw new Error('Maximum retry attempts exceeded');
+		this.client = null;
+		this.transport = null;
+		this.tools = [];
 	}
+
+	async finishAuth(authorizationCode: string): Promise<void> {
+		const transport = new StreamableHTTPClientTransport(new URL(MCP_SERVER_URL), {
+			authProvider: this.auth,
+			fetch: nodeFetch,
+		});
+		await transport.finishAuth(authorizationCode);
+		await this.connect();
+	}
+
+	async getDocuments(options: GetDocumentsRequest = {}): Promise<GetDocumentsResponse> {
+		const { limit = DEFAULT_PAGE_SIZE, offset = 0, timeRange = DEFAULT_TIME_RANGE } = options;
+		const allMeetings = await this.listMeetings(timeRange);
+		const selectedMeetings = allMeetings.slice(offset, offset + limit);
+
+		if (selectedMeetings.length === 0) {
+			return { docs: [], deleted: [] };
+		}
+
+		const docs = await this.fetchMeetingDetails(selectedMeetings);
+		return { docs, deleted: [] };
+	}
+
+	async getAllDocuments(): Promise<GranolaDocument[]> {
+		const allMeetings = await this.listMeetings(DEFAULT_TIME_RANGE);
+		if (allMeetings.length === 0) {
+			return [];
+		}
+
+		return this.fetchMeetingDetails(allMeetings);
+	}
+
+	async getAvailableTools(): Promise<McpTool[]> {
+		await this.ensureConnected();
+		return this.discoverTools();
+	}
+
+	private async listMeetings(timeRange: SyncTimeRange): Promise<ParsedMeeting[]> {
+		const toolName = await this.requireTool(LIST_MEETINGS_TOOL);
+		const text = await this.callToolText(toolName, { time_range: timeRange });
+		return parseMeetingsResponse(text);
+	}
+
+	private async fetchMeetingDetails(meetings: ParsedMeeting[]): Promise<GranolaDocument[]> {
+		const toolName = await this.requireTool(GET_MEETINGS_TOOL);
+		const docs: GranolaDocument[] = [];
+
+		for (let index = 0; index < meetings.length; index += FETCH_BATCH_SIZE) {
+			const batch = meetings.slice(index, index + FETCH_BATCH_SIZE);
+			const text = await this.callToolText(toolName, {
+				meeting_ids: batch.map(meeting => meeting.id),
+			});
+			const details = parseMeetingsResponse(text);
+			const detailsById = new Map(details.map(meeting => [meeting.id, meeting]));
+
+			for (const meeting of batch) {
+				docs.push(toGranolaDocument(detailsById.get(meeting.id) ?? meeting));
+			}
+		}
+
+		return docs;
+	}
+
+	private async callToolText(name: string, args: Record<string, unknown>): Promise<string> {
+		await this.ensureConnected();
+		const result = (await this.getClient().callTool({ name, arguments: args })) as ToolResult;
+		const text = extractToolText(result);
+
+		if ('isError' in result && result.isError) {
+			throw new Error(text || `Granola MCP tool failed: ${name}`);
+		}
+
+		return text;
+	}
+
+	private async requireTool(name: string): Promise<string> {
+		const tools = await this.discoverTools();
+		if (!tools.some(tool => tool.name === name)) {
+			const availableTools = tools.map(tool => tool.name).join(', ') || 'none';
+			throw new Error(
+				`Granola MCP tool "${name}" is unavailable. Available tools: ${availableTools}`
+			);
+		}
+		return name;
+	}
+
+	private async discoverTools(force = false): Promise<McpTool[]> {
+		await this.ensureConnected();
+
+		if (!force && this.tools.length > 0) {
+			return this.tools;
+		}
+
+		const result = await this.getClient().listTools();
+		this.tools = result.tools.map(tool => ({
+			name: tool.name,
+			description: tool.description,
+			inputSchema: tool.inputSchema,
+		}));
+		return this.tools;
+	}
+
+	private async ensureConnected(): Promise<void> {
+		if (!this.client) {
+			await this.connect();
+		}
+	}
+
+	private getClient(): Client {
+		if (!this.client) {
+			throw new Error('Not connected to Granola');
+		}
+		return this.client;
+	}
+}
+
+function extractToolText(result: ToolResult): string {
+	if ('content' in result && Array.isArray(result.content)) {
+		return result.content
+			.filter(item => item.type === 'text' && typeof item.text === 'string')
+			.map(item => item.text)
+			.join('\n');
+	}
+
+	if ('structuredContent' in result && result.structuredContent) {
+		return JSON.stringify(result.structuredContent);
+	}
+
+	if ('toolResult' in result) {
+		return typeof result.toolResult === 'string'
+			? result.toolResult
+			: JSON.stringify(result.toolResult);
+	}
+
+	return '';
+}
+
+function parseMeetingsResponse(text: string): ParsedMeeting[] {
+	const meetings: ParsedMeeting[] = [];
+	const meetingRegex =
+		/<meeting\s+id="([^"]+)"\s+title="([^"]*?)"\s+date="([^"]*?)">([\s\S]*?)<\/meeting>/g;
+
+	let match: RegExpExecArray | null;
+	while ((match = meetingRegex.exec(text)) !== null) {
+		const [, id, title, date, body] = match;
+		const participantsMatch = body.match(
+			/<known_participants>\s*([\s\S]*?)\s*<\/known_participants>/
+		);
+		const notesMatch = body.match(/<private_notes>\s*([\s\S]*?)\s*<\/private_notes>/);
+		const summaryMatch = body.match(/<summary>\s*([\s\S]*?)\s*<\/summary>/);
+
+		meetings.push({
+			id: decodeXml(id),
+			title: decodeXml(title),
+			date: decodeXml(date),
+			participants: participantsMatch
+				? parseParticipants(decodeXml(participantsMatch[1]))
+				: [],
+			privateNotes: notesMatch ? decodeXml(notesMatch[1].trim()) : '',
+			summary: summaryMatch ? decodeXml(summaryMatch[1].trim()) : '',
+		});
+	}
+
+	return meetings;
+}
+
+function parseParticipants(text: string): ParsedParticipant[] {
+	if (!text.trim()) {
+		return [];
+	}
+
+	return text
+		.split(/,\s*(?=[A-Z])/)
+		.map(part => {
+			const emailMatch = part.match(/<([^>]+)>/);
+			const email = emailMatch?.[1] ?? '';
+			const isCreator = part.includes('(note creator)');
+			let name = part
+				.replace(/<[^>]+>/, '')
+				.replace(/\(note creator\)/g, '')
+				.trim();
+			let organization = '';
+			const fromMatch = name.match(/^(.+?)\s+from\s+(.+)$/);
+
+			if (fromMatch) {
+				name = fromMatch[1].trim();
+				organization = fromMatch[2].trim();
+			}
+
+			return {
+				name,
+				email,
+				organization,
+				isCreator,
+			};
+		})
+		.filter(participant => participant.name || participant.email);
+}
+
+function toGranolaDocument(meeting: ParsedMeeting): GranolaDocument {
+	const timestamp = parseGranolaDate(meeting.date);
+	const markdown = buildMarkdown(meeting);
+
+	return {
+		id: meeting.id,
+		title: meeting.title || 'Untitled Meeting',
+		notes: { type: 'doc', content: [] },
+		notes_plain: markdownToPlainText(markdown),
+		notes_markdown: markdown,
+		created_at: timestamp,
+		updated_at: timestamp,
+		user_id: '',
+		people: toPeople(meeting),
+	};
+}
+
+function buildMarkdown(meeting: ParsedMeeting): string {
+	const parts: string[] = [];
+
+	if (meeting.privateNotes.trim()) {
+		parts.push(`## Notes\n\n${meeting.privateNotes.trim()}`);
+	}
+
+	if (meeting.summary.trim()) {
+		parts.push(`## Summary\n\n${meeting.summary.trim()}`);
+	}
+
+	return parts.join('\n\n').trim();
+}
+
+function toPeople(meeting: ParsedMeeting): NonNullable<GranolaDocument['people']> {
+	const creator = meeting.participants.find(participant => participant.isCreator);
+	const attendees = meeting.participants
+		.filter(participant => !participant.isCreator)
+		.map(participant => ({
+			email: participant.email || undefined,
+			details: {
+				person: {
+					name: {
+						fullName: participant.name,
+					},
+				},
+				company: participant.organization
+					? {
+							name: participant.organization,
+						}
+					: undefined,
+			},
+		}));
+
+	return {
+		attendees,
+		creator: creator
+			? {
+					name: creator.name,
+					email: creator.email || undefined,
+				}
+			: undefined,
+		title: meeting.title,
+	};
+}
+
+function parseGranolaDate(date: string): string {
+	const parsed = new Date(date);
+	if (!Number.isNaN(parsed.getTime())) {
+		return parsed.toISOString();
+	}
+
+	return new Date().toISOString();
+}
+
+function markdownToPlainText(markdown: string): string {
+	return markdown
+		.replace(/```[\s\S]*?```/g, ' ')
+		.replace(/`([^`]+)`/g, '$1')
+		.replace(/!\[[^\]]*]\([^)]+\)/g, '')
+		.replace(/\[([^\]]+)]\([^)]+\)/g, '$1')
+		.replace(/^#{1,6}\s+/gm, '')
+		.replace(/[*_~>#-]/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+function decodeXml(value: string): string {
+	return value
+		.replace(/&quot;/g, '"')
+		.replace(/&apos;/g, "'")
+		.replace(/&lt;/g, '<')
+		.replace(/&gt;/g, '>')
+		.replace(/&amp;/g, '&');
 }

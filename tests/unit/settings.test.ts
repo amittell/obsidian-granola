@@ -661,6 +661,7 @@ describe('GranolaSettingTab class', () => {
 				loadCredentials: jest.fn().mockResolvedValue(undefined),
 			},
 			api: {
+				loadCredentials: jest.fn().mockResolvedValue(undefined),
 				getDocuments: jest.fn().mockResolvedValue({ docs: [] }),
 			},
 			logger: {
@@ -758,7 +759,7 @@ describe('GranolaSettingTab class', () => {
 
 			await (settingTab as any).validateConnection(mockStatusEl);
 
-			expect(mockPlugin.auth.loadCredentials).toHaveBeenCalled();
+			expect(mockPlugin.api.loadCredentials).toHaveBeenCalled();
 			expect(mockPlugin.api.getDocuments).toHaveBeenCalledWith({ limit: 1, offset: 0 });
 			expect(mockPlugin.settings.connection.isConnected).toBe(true);
 			expect(mockPlugin.saveSettings).toHaveBeenCalled();
@@ -902,7 +903,7 @@ describe('GranolaSettingTab class', () => {
 				expect(callbacks.buttonCallbacks.length).toBeGreaterThan(0);
 				await callbacks.buttonCallbacks[0]();
 
-				expect(mockPlugin.auth.loadCredentials).toHaveBeenCalled();
+				expect(mockPlugin.api.loadCredentials).toHaveBeenCalled();
 			});
 		});
 
@@ -1137,7 +1138,7 @@ describe('GranolaSettingTab class', () => {
 				expect(mockStatusEl._content).toContain('Connection failed');
 			});
 
-			it('should handle auth.loadCredentials failure', async () => {
+			it('should handle api.loadCredentials failure', async () => {
 				const mockStatusEl = {
 					_content: '',
 					empty: jest.fn(() => {
@@ -1152,7 +1153,7 @@ describe('GranolaSettingTab class', () => {
 						mockStatusEl._content += text;
 					}),
 				};
-				mockPlugin.auth.loadCredentials = jest
+				mockPlugin.api.loadCredentials = jest
 					.fn()
 					.mockRejectedValue(new Error('Auth failed'));
 
