@@ -62,6 +62,15 @@ export interface GranolaSettings {
 		logLevel: LogLevel;
 	};
 
+	/** Experimental plugin feature flags */
+	plugin: {
+		/** Flags that enable in-development functionality */
+		flags: {
+			/** Toggle for the internal event bus scaffolding */
+			useEventBus: boolean;
+		};
+	};
+
 	/** Import behavior settings */
 	import: {
 		/** Default strategy for handling duplicates */
@@ -138,6 +147,11 @@ export const DEFAULT_SETTINGS: GranolaSettings = {
 	debug: {
 		enabled: false,
 		logLevel: LogLevel.WARN,
+	},
+	plugin: {
+		flags: {
+			useEventBus: false,
+		},
 	},
 	import: {
 		strategy: ImportStrategy.ALWAYS_PROMPT,

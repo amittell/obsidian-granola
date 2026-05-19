@@ -7,6 +7,12 @@ import { DocumentMetadataService } from './src/services/document-metadata';
 import { SelectiveImportManager } from './src/services/import-manager';
 import { DocumentSelectionModal } from './src/ui/document-selection-modal';
 import { GranolaSettings, DEFAULT_SETTINGS, Logger } from './src/types';
+import { ServiceContainer } from './src/core/di/ServiceContainer';
+import {
+	PluginEvents,
+	VaultIndexerEventsAdapter,
+	CostTrackerEventsAdapter,
+} from './src/core/events/PluginEvents';
 import { GranolaSettingTab } from './src/settings';
 
 // Error Message Constants
@@ -92,6 +98,19 @@ export default class GranolaImporterPlugin extends Plugin {
 	logger!: Logger;
 
 	/**
+	 * Optional dependency container used when experimental features are enabled.
+	 */
+	private serviceContainer?: ServiceContainer;
+
+	/** Shared event bus for coordinating experimental features. */
+	private pluginEvents?: PluginEvents;
+
+	/**
+	 * Registered event adapters that should be disposed during teardown.
+	 */
+	private eventAdapters: Array<{ dispose(): void }> = [];
+
+	/**
 	 * Plugin lifecycle method called when the plugin is loaded.
 	 *
 	 * Initializes the authentication, API, and converter components,
@@ -137,6 +156,25 @@ export default class GranolaImporterPlugin extends Plugin {
 				void this.handleAuthCallback(code);
 			}
 		});
+
+		if (this.settings.plugin?.flags?.useEventBus) {
+			this.serviceContainer = new ServiceContainer();
+			const events = new PluginEvents();
+			this.pluginEvents = events;
+
+			const pluginEventsKey = Symbol.for('granola.plugin.events');
+			const pluginInstanceKey = Symbol.for('granola.plugin.instance');
+
+			this.serviceContainer.registerSingleton(pluginEventsKey, async () => events);
+			this.serviceContainer.registerSingleton(pluginInstanceKey, async () => this);
+
+			this.eventAdapters = [
+				new VaultIndexerEventsAdapter(events),
+				new CostTrackerEventsAdapter(events),
+			];
+
+			await events.emit('plugin:initialized');
+		}
 
 		// Initialize selective import services
 		this.duplicateDetector = new DuplicateDetector(this.app.vault);
@@ -206,6 +244,10 @@ export default class GranolaImporterPlugin extends Plugin {
 	onunload(): void {
 		// Clean up resources when plugin is disabled
 		void this.api?.disconnect();
+		this.eventAdapters.forEach(adapter => adapter.dispose());
+		this.eventAdapters = [];
+		this.pluginEvents?.clearAll();
+		this.serviceContainer?.clearScoped();
 	}
 
 	private async handleAuthCallback(code: string): Promise<void> {
@@ -604,6 +646,16 @@ export default class GranolaImporterPlugin extends Plugin {
 		} = (savedData ?? {}) as GranolaAuthData & Partial<GranolaSettings>;
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, settingsData);
 
+		// Ensure new plugin flag defaults are preserved when loading legacy settings
+		this.settings.plugin = {
+			...DEFAULT_SETTINGS.plugin,
+			...this.settings.plugin,
+			flags: {
+				...DEFAULT_SETTINGS.plugin.flags,
+				...this.settings.plugin?.flags,
+			},
+		};
+
 		// Migration: If user has custom template but no toggle setting, enable it
 		if (
 			savedData?.content?.filenameTemplate &&
@@ -636,6 +688,10 @@ export default class GranolaImporterPlugin extends Plugin {
 		// Update metadata service settings if it exists
 		if (this.metadataService) {
 			this.metadataService.updateSettings(this.settings);
+		}
+
+		if (this.serviceContainer) {
+			await this.serviceContainer.reloadSettings(this.settings);
 		}
 	}
 }
