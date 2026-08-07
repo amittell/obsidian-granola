@@ -457,12 +457,22 @@ export class GranolaSettingTab extends PluginSettingTab {
 				this.plugin.settings.connection.lastValidated = Date.now();
 				await this.plugin.saveSettings();
 
+				// A connection that yields zero meetings is technically alive but
+				// useless for importing, so say so instead of a bare success.
+				const hasMeetings = response.docs.length > 0;
 				statusEl.empty();
 				statusEl.createEl('span', {
-					text: '✅ Connected successfully!',
+					text: hasMeetings
+						? '✅ Connected successfully!'
+						: '✅ Connected, but no meetings found in the last 30 days',
 					cls: 'granola-connection-success',
 				});
-				new Notice('✅ Granola connection test successful!', 3000);
+				new Notice(
+					hasMeetings
+						? '✅ Granola connection test successful!'
+						: '✅ Connected to Granola, but no meetings were found in the last 30 days.',
+					3000
+				);
 			} else {
 				throw new Error('Invalid response format');
 			}
