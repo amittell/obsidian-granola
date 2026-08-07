@@ -232,7 +232,9 @@ describe('GranolaAPI', () => {
 		mockCallTool.mockImplementation(({ name }) => {
 			if (name === 'list_meetings') {
 				return Promise.resolve(
-					toolText('<meetings_data from="Jul 9, 2026" to="Aug 7, 2026" count="0">\n</meetings_data>')
+					toolText(
+						'<meetings_data from="Jul 9, 2026" to="Aug 7, 2026" count="0">\n</meetings_data>'
+					)
 				);
 			}
 			return Promise.resolve(toolText('', true));
