@@ -50,6 +50,7 @@ describe('ProseMirrorConverter', () => {
 			expect(result.content).toContain('# Test Heading');
 			expect(result.content).toContain('Test content');
 			expect(result.frontmatter).toEqual({
+				id: 'test-doc-id',
 				created: '2024-01-01T10:00:00Z',
 				source: 'Granola',
 			});
@@ -521,9 +522,31 @@ describe('ProseMirrorConverter', () => {
 
 			const result = (converter as any).generateFrontmatter(doc);
 			expect(result).toEqual({
+				id: 'test-id',
 				created: '2024-01-01T10:00:00Z',
 				source: 'Granola',
 			});
+		});
+
+		it('should always include the document id regardless of settings', () => {
+			// The id is the duplicate-detection identity for every import, so it
+			// must be written even with all optional frontmatter settings off
+			mockSettings.content.includeEnhancedFrontmatter = false;
+			mockSettings.content.includeGranolaUrl = false;
+			converter.updateSettings(mockSettings);
+
+			const doc: GranolaDocument = {
+				id: 'doc-uuid-123',
+				title: 'Test Title',
+				created_at: '2024-01-01T10:00:00Z',
+				updated_at: '2024-01-01T11:00:00Z',
+				content: { type: 'doc', content: [] },
+			};
+
+			const result = (converter as any).generateFrontmatter(doc);
+			expect(result.id).toBe('doc-uuid-123');
+			expect(result.title).toBeUndefined();
+			expect(result.updated).toBeUndefined();
 		});
 
 		it('should create enhanced frontmatter when setting is enabled', () => {

@@ -46,7 +46,7 @@ export interface NoteFrontmatter {
 	/** Source attribution, always "Granola" for imported documents */
 	source: string;
 
-	/** Optional: Original Granola document identifier (when enhanced frontmatter enabled) */
+	/** Original Granola document identifier (always written; used for duplicate detection) */
 	id?: string;
 
 	/** Optional: Document title, escaped for YAML compatibility (when enhanced frontmatter enabled) */
@@ -1374,13 +1374,15 @@ export class ProseMirrorConverter {
 	 */
 	private generateFrontmatter(doc: GranolaDocument): NoteFrontmatter {
 		const frontmatter: NoteFrontmatter = {
+			// Always write the document id: it is the identity duplicate
+			// detection relies on, independent of any display settings
+			id: doc.id,
 			created: doc.created_at,
 			source: 'Granola',
 		};
 
 		// Add enhanced fields if setting is enabled
 		if (this.settings.content.includeEnhancedFrontmatter) {
-			frontmatter.id = doc.id;
 			// Decode HTML entities in title
 			frontmatter.title = decodeHtmlEntities(doc.title || 'Untitled');
 			frontmatter.updated = doc.updated_at;

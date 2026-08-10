@@ -185,7 +185,9 @@ describe('SelectiveImportManager', () => {
 		});
 
 		// Setup default mock implementations
-		(mockConverter.convertDocument as jest.Mock).mockResolvedValue({
+		// convertDocument is synchronous in the real converter, so the mock
+		// must return the object directly rather than a Promise
+		(mockConverter.convertDocument as jest.Mock).mockReturnValue({
 			filename: 'test-document.md',
 			content: '# Test\n\nMarkdown content',
 			frontmatter: {
@@ -522,6 +524,64 @@ describe('SelectiveImportManager', () => {
 
 			expect(result.total).toBe(2);
 		});
+
+		it('should update the detector-identified file even when the user renamed it', async () => {
+			// The existing note was renamed, so the generated filename resolves
+			// to nothing; identity comes from the duplicate detector, never the filename
+			const renamedFile = createMockFile('Renamed by user.md');
+			const metadata = [
+				{
+					...mockDocumentMetadata[0],
+					importStatus: {
+						status: 'UPDATED' as const,
+						reason: 'Granola version is newer',
+						requiresUserChoice: false,
+						existingFile: renamedFile,
+					},
+				},
+			];
+			(mockVault.getAbstractFileByPath as jest.Mock).mockReturnValue(null);
+
+			const result = await importManager.importDocuments(
+				metadata,
+				[mockGranolaDocuments[0]],
+				{ ...defaultOptions, strategy: 'update' }
+			);
+
+			expect(result.completed).toBe(1);
+			expect(mockVault.modify).toHaveBeenCalledWith(renamedFile, expect.any(String));
+			expect(mockVault.create).not.toHaveBeenCalled();
+		});
+
+		it('should overwrite the detector-identified file during conflict resolution of renamed notes', async () => {
+			const renamedFile = createMockFile('Renamed conflicted note.md');
+			const metadata = [
+				{
+					...mockDocumentMetadata[0],
+					importStatus: {
+						status: 'CONFLICT' as const,
+						reason: 'Local modifications detected - requires user choice',
+						requiresUserChoice: true,
+						existingFile: renamedFile,
+					},
+				},
+			];
+			(mockVault.getAbstractFileByPath as jest.Mock).mockReturnValue(null);
+			mockConflictResolutionModal.showConflictResolution.mockResolvedValue({
+				action: 'overwrite',
+				createBackup: false,
+			});
+
+			const result = await importManager.importDocuments(
+				metadata,
+				[mockGranolaDocuments[0]],
+				{ ...defaultOptions, strategy: 'update' }
+			);
+
+			expect(result.completed).toBe(1);
+			expect(mockVault.modify).toHaveBeenCalledWith(renamedFile, expect.any(String));
+			expect(mockVault.create).not.toHaveBeenCalled();
+		});
 	});
 
 	// Removed concurrency control tests as maxConcurrency and delayBetweenImports were removed
@@ -660,6 +720,11 @@ describe('SelectiveImportManager', () => {
 				ConflictResolutionModal: mockConflictClass,
 			}));
 
+			// The dynamic import may already be cached with the module-level
+			// mock (if an earlier test triggered a conflict), so set the skip
+			// resolution there too
+			mockConflictResolutionModal.showConflictResolution.mockResolvedValue(mockResolution);
+
 			const result = await importManager.importDocuments(
 				conflictMetadata,
 				[mockGranolaDocuments[0]],
@@ -748,9 +813,10 @@ describe('SelectiveImportManager', () => {
 			try {
 				// Access private method via reflection
 				await (importManager as any).applyConflictResolution(
+					mockDocumentMetadata[0],
 					doc,
 					invalidResolution,
-					defaultOptions
+					{ filename: 'test-document.md', content: '# Test' }
 				);
 			} catch (error) {
 				caughtError = error as Error;

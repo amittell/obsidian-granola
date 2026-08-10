@@ -557,6 +557,266 @@ Normal paragraph text without any special Obsidian patterns.`;
 		});
 	});
 
+	describe('granola_url ID recovery', () => {
+		const uuid = '01890a5d-ac96-774b-bcce-b302099a8057';
+		let docWithUuid: GranolaDocument;
+
+		beforeEach(() => {
+			docWithUuid = { ...mockDocument, id: uuid };
+		});
+
+		it('should recover the Granola ID from granola_url when id is absent', async () => {
+			// Frontmatter shape written when enhanced frontmatter is OFF but
+			// "include Granola URL" is ON (no id/updated/title fields)
+			const mockFile = createMockFile('2026-08-05 - QNTM Sync.md');
+			const content = `---
+created: 2026-08-05T14:30:00Z
+source: Granola
+granola_url: https://notes.granola.ai/d/${uuid}
+tags:
+  - meeting
+---
+
+# QNTM Sync
+
+Meeting content here.`;
+
+			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([mockFile]);
+			(mockVault.read as jest.Mock).mockResolvedValue(content);
+
+			await detector.refresh();
+			const result = await detector.checkDocument(docWithUuid);
+
+			expect(result.status).toBe('EXISTS');
+			expect(result.existingFile).toBe(mockFile);
+		});
+
+		it('should treat updated and title as optional when id is present', async () => {
+			const mockFile = createMockFile('2023-01-01 - Test Document.md');
+			const content = `---
+id: test-doc-1
+created: 2023-01-01T10:00:00Z
+source: Granola
+---
+
+# Test Document`;
+
+			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([mockFile]);
+			(mockVault.read as jest.Mock).mockResolvedValue(content);
+
+			await detector.refresh();
+			const result = await detector.checkDocument(mockDocument);
+
+			expect(result.status).toBe('EXISTS');
+			expect(result.existingFile).toBe(mockFile);
+		});
+
+		it('should identify renamed notes by ID and never by filename', async () => {
+			// Filename bears no relation to the document title or date
+			const mockFile = createMockFile('Renamed by Ally.md');
+			const content = `---
+created: 2026-08-05T14:30:00Z
+source: Granola
+granola_url: https://notes.granola.ai/d/${uuid}
+---
+
+Meeting content.`;
+
+			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([mockFile]);
+			(mockVault.read as jest.Mock).mockResolvedValue(content);
+
+			await detector.refresh();
+			const result = await detector.checkDocument(docWithUuid);
+
+			expect(result.status).toBe('EXISTS');
+			expect(result.existingFile).toBe(mockFile);
+		});
+
+		it('should classify notes without an updated timestamp as EXISTS even when Granola is newer', async () => {
+			const mockFile = createMockFile('note.md');
+			const content = `---
+created: 2023-01-01T10:00:00Z
+source: Granola
+granola_url: https://notes.granola.ai/d/${uuid}
+---
+
+Content.`;
+
+			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([mockFile]);
+			(mockVault.read as jest.Mock).mockResolvedValue(content);
+
+			await detector.refresh();
+			const newerDoc = { ...docWithUuid, updated_at: '2026-12-31T00:00:00Z' };
+			const result = await detector.checkDocument(newerDoc);
+
+			expect(result.status).toBe('EXISTS');
+		});
+
+		it('should not flag legacy notes without updated timestamps as conflicts', async () => {
+			// Legacy notes are routinely edited (wikilinks, tags) after import;
+			// without an updated timestamp there is nothing to compare, so they
+			// must show as EXISTS rather than CONFLICT
+			const mockFile = createMockFile('note.md');
+			const content = `---
+created: 2023-01-01T10:00:00Z
+source: Granola
+granola_url: https://notes.granola.ai/d/${uuid}
+---
+
+Discussed [[QNTM Rollout]] with the team. #followup`;
+
+			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([mockFile]);
+			(mockVault.read as jest.Mock).mockResolvedValue(content);
+
+			await detector.refresh();
+			const result = await detector.checkDocument(docWithUuid);
+
+			expect(result.status).toBe('EXISTS');
+		});
+
+		it('should recognize notes with granola_url but no source field', async () => {
+			const mockFile = createMockFile('note.md');
+			const content = `---
+created: 2023-01-01T10:00:00Z
+granola_url: https://notes.granola.ai/d/${uuid}
+---
+
+Content.`;
+
+			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([mockFile]);
+			(mockVault.read as jest.Mock).mockResolvedValue(content);
+
+			await detector.refresh();
+			const result = await detector.checkDocument(docWithUuid);
+
+			expect(result.status).toBe('EXISTS');
+		});
+
+		it('should not match documents against notes with a different granola_url UUID', async () => {
+			const mockFile = createMockFile('Some Other Meeting.md');
+			const content = `---
+created: 2023-01-01T10:00:00Z
+source: Granola
+granola_url: https://notes.granola.ai/d/ffffffff-0000-0000-0000-000000000000
+---
+
+Content.`;
+
+			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([mockFile]);
+			(mockVault.read as jest.Mock).mockResolvedValue(content);
+
+			await detector.refresh();
+			const result = await detector.checkDocument(docWithUuid);
+
+			expect(result.status).toBe('NEW');
+		});
+
+		it('should parse quoted frontmatter values written by Linter-style formatters', async () => {
+			const mockFile = createMockFile('note.md');
+			const content = `---
+created: "2026-08-05T14:30:00Z"
+source: "Granola"
+granola_url: "https://notes.granola.ai/d/${uuid}"
+---
+
+Content.`;
+
+			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([mockFile]);
+			(mockVault.read as jest.Mock).mockResolvedValue(content);
+
+			await detector.refresh();
+			const result = await detector.checkDocument(docWithUuid);
+
+			expect(result.status).toBe('EXISTS');
+		});
+
+		it('should exclude notes without updated timestamps from oldest/newest statistics', async () => {
+			const datedFile = createMockFile('dated.md');
+			const undatedFile = createMockFile('undated.md');
+			const datedContent = `---
+id: dated-doc
+updated: 2023-06-01T10:00:00Z
+source: Granola
+---
+Content`;
+			const undatedContent = `---
+created: 2023-01-01T10:00:00Z
+source: Granola
+granola_url: https://notes.granola.ai/d/${uuid}
+---
+Content`;
+
+			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([datedFile, undatedFile]);
+			(mockVault.read as jest.Mock)
+				.mockResolvedValueOnce(datedContent)
+				.mockResolvedValueOnce(undatedContent);
+
+			await detector.initialize();
+			const stats = detector.getStatistics();
+
+			expect(stats.totalGranolaDocuments).toBe(2);
+			expect(stats.oldestDocument).toBe('2023-06-01T10:00:00Z');
+			expect(stats.newestDocument).toBe('2023-06-01T10:00:00Z');
+		});
+	});
+
+	describe('metadataCache frontmatter parsing', () => {
+		const uuid = '01890a5d-ac96-774b-bcce-b302099a8057';
+
+		it('should prefer metadataCache frontmatter over content parsing', async () => {
+			const mockFile = createMockFile('cached.md');
+			const mockCache = {
+				getFileCache: jest.fn().mockReturnValue({
+					frontmatter: {
+						source: 'Granola',
+						granola_url: `https://notes.granola.ai/d/${uuid}`,
+						created: '2026-08-05T14:30:00Z',
+					},
+				}),
+			};
+
+			// Content parsing alone would find nothing (no frontmatter block)
+			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([mockFile]);
+			(mockVault.read as jest.Mock).mockResolvedValue('# Just a body, no frontmatter');
+
+			const cachedDetector = new DuplicateDetector(
+				mockVault,
+				mockCache as unknown as import('obsidian').MetadataCache
+			);
+			await cachedDetector.initialize();
+			const result = await cachedDetector.checkDocument({ ...mockDocument, id: uuid });
+
+			expect(mockCache.getFileCache).toHaveBeenCalledWith(mockFile);
+			expect(result.status).toBe('EXISTS');
+		});
+
+		it('should fall back to content parsing when the cache has no entry', async () => {
+			const mockFile = createMockFile('uncached.md');
+			const mockCache = {
+				getFileCache: jest.fn().mockReturnValue(null),
+			};
+			const content = `---
+created: 2026-08-05T14:30:00Z
+source: Granola
+granola_url: https://notes.granola.ai/d/${uuid}
+---
+
+Content.`;
+
+			(mockVault.getMarkdownFiles as jest.Mock).mockReturnValue([mockFile]);
+			(mockVault.read as jest.Mock).mockResolvedValue(content);
+
+			const cachedDetector = new DuplicateDetector(
+				mockVault,
+				mockCache as unknown as import('obsidian').MetadataCache
+			);
+			await cachedDetector.initialize();
+			const result = await cachedDetector.checkDocument({ ...mockDocument, id: uuid });
+
+			expect(result.status).toBe('EXISTS');
+		});
+	});
+
 	describe('error handling', () => {
 		it('should handle initialization failure', async () => {
 			(mockVault.getMarkdownFiles as jest.Mock).mockImplementation(() => {

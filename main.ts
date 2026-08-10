@@ -177,7 +177,7 @@ export default class GranolaImporterPlugin extends Plugin {
 		}
 
 		// Initialize selective import services
-		this.duplicateDetector = new DuplicateDetector(this.app.vault);
+		this.duplicateDetector = new DuplicateDetector(this.app.vault, this.app.metadataCache);
 		this.metadataService = new DocumentMetadataService(this.settings);
 		this.importManager = new SelectiveImportManager(
 			this.app,

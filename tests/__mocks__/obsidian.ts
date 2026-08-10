@@ -36,6 +36,60 @@ export function stringifyYaml(obj: any): string {
 	return lines.join('\n');
 }
 
+// Mock parseYaml function - parses simple YAML frontmatter into an object.
+// Supports the subset the plugin writes: key: value pairs (optionally quoted),
+// inline arrays [a, b], and block lists under a key.
+export function parseYaml(yaml: string): any {
+	const stripQuotes = (value: string): string => {
+		if (
+			(value.startsWith('"') && value.endsWith('"')) ||
+			(value.startsWith("'") && value.endsWith("'"))
+		) {
+			return value.slice(1, -1).replace(/\\"/g, '"');
+		}
+		return value;
+	};
+
+	const result: Record<string, unknown> = {};
+	let currentKey: string | null = null;
+
+	for (const line of yaml.split('\n')) {
+		if (!line.trim() || line.trim().startsWith('#')) {
+			continue;
+		}
+
+		const listMatch = line.match(/^\s+-\s*(.+)$/);
+		if (listMatch && currentKey) {
+			if (!Array.isArray(result[currentKey])) {
+				result[currentKey] = [];
+			}
+			(result[currentKey] as unknown[]).push(stripQuotes(listMatch[1].trim()));
+			continue;
+		}
+
+		const kvMatch = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+		if (kvMatch) {
+			const key = kvMatch[1];
+			const value = kvMatch[2].trim();
+			currentKey = key;
+
+			if (!value) {
+				result[key] = null;
+			} else if (value.startsWith('[') && value.endsWith(']')) {
+				result[key] = value
+					.slice(1, -1)
+					.split(',')
+					.map(item => stripQuotes(item.trim()))
+					.filter(item => item.length > 0);
+			} else {
+				result[key] = stripQuotes(value);
+			}
+		}
+	}
+
+	return result;
+}
+
 // Mock htmlToMarkdown function - converts HTML to plain text for testing
 export function htmlToMarkdown(html: string): string {
 	if (!html || typeof html !== 'string') {

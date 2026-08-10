@@ -1,4 +1,4 @@
-import { TFile, Vault } from 'obsidian';
+import { MetadataCache, TFile, Vault, parseYaml } from 'obsidian';
 import { GranolaDocument } from '../api';
 import { decodeHtmlEntities } from '../utils/html';
 
@@ -19,11 +19,11 @@ export interface ExistingDocument {
 	/** File reference in the vault */
 	file: TFile;
 
-	/** Granola document ID from frontmatter */
+	/** Granola document ID from frontmatter (id field or granola_url) */
 	granolaId: string;
 
-	/** Last updated timestamp from frontmatter */
-	lastUpdated: string;
+	/** Last updated timestamp from frontmatter, when present */
+	lastUpdated?: string;
 
 	/** Whether the file appears to have local modifications */
 	hasLocalModifications: boolean;
@@ -59,6 +59,7 @@ export interface DuplicateCheckResult {
  */
 export class DuplicateDetector {
 	private vault: Vault;
+	private metadataCache?: MetadataCache;
 	private existingDocuments: Map<string, ExistingDocument> = new Map();
 	private filenameToGranolaId: Map<string, string> = new Map();
 	private isInitialized: boolean = false;
@@ -67,9 +68,13 @@ export class DuplicateDetector {
 	 * Creates a new duplicate detector instance.
 	 *
 	 * @param {Vault} vault - The Obsidian vault to scan
+	 * @param {MetadataCache} [metadataCache] - Obsidian's metadata cache; when
+	 *   provided, frontmatter is read from the cache so external YAML
+	 *   reformatting (e.g. the Linter plugin) cannot break detection
 	 */
-	constructor(vault: Vault) {
+	constructor(vault: Vault, metadataCache?: MetadataCache) {
 		this.vault = vault;
+		this.metadataCache = metadataCache;
 	}
 
 	/**
@@ -209,14 +214,15 @@ export class DuplicateDetector {
 			};
 		}
 
-		const sorted = documents.sort(
-			(a, b) => new Date(a.lastUpdated).getTime() - new Date(b.lastUpdated).getTime()
-		);
+		// Only documents with a known updated timestamp can be ranked
+		const dated = documents
+			.filter((d): d is ExistingDocument & { lastUpdated: string } => !!d.lastUpdated)
+			.sort((a, b) => new Date(a.lastUpdated).getTime() - new Date(b.lastUpdated).getTime());
 
 		return {
 			totalGranolaDocuments: documents.length,
-			oldestDocument: sorted[0]?.lastUpdated || null,
-			newestDocument: sorted[sorted.length - 1]?.lastUpdated || null,
+			oldestDocument: dated[0]?.lastUpdated || null,
+			newestDocument: dated[dated.length - 1]?.lastUpdated || null,
 			documentsWithConflicts: documents.filter(d => d.hasLocalModifications).length,
 		};
 	}
@@ -234,14 +240,22 @@ export class DuplicateDetector {
 		for (const file of markdownFiles) {
 			try {
 				const content = await this.vault.read(file);
-				const granolaInfo = this.extractGranolaMetadata(content);
+				const frontmatter = this.getFrontmatter(file, content);
+				const granolaInfo = this.extractGranolaMetadata(frontmatter);
 
 				if (granolaInfo) {
+					// Without an updated timestamp there is no import baseline to
+					// compare against, so modification heuristics would only
+					// produce false conflicts on legacy notes
+					const hasLocalModifications = granolaInfo.updated
+						? this.detectLocalModifications(content, granolaInfo)
+						: false;
+
 					const existingDoc: ExistingDocument = {
 						file,
 						granolaId: granolaInfo.id,
 						lastUpdated: granolaInfo.updated,
-						hasLocalModifications: this.detectLocalModifications(content, granolaInfo),
+						hasLocalModifications,
 					};
 
 					this.existingDocuments.set(granolaInfo.id, existingDoc);
@@ -256,41 +270,112 @@ export class DuplicateDetector {
 	}
 
 	/**
-	 * Extracts Granola metadata from file content frontmatter.
+	 * Reads a file's frontmatter as a parsed object.
+	 *
+	 * Prefers Obsidian's metadata cache, which tolerates any YAML formatting.
+	 * Falls back to parsing the frontmatter block out of the raw content for
+	 * files the cache has not indexed yet.
 	 *
 	 * @private
-	 * @param {string} content - File content to analyze
+	 * @param {TFile} file - The file being scanned
+	 * @param {string} content - Raw file content (fallback source)
+	 * @returns {Record<string, unknown> | undefined} Parsed frontmatter or undefined
+	 */
+	private getFrontmatter(file: TFile, content: string): Record<string, unknown> | undefined {
+		const cached = this.metadataCache?.getFileCache(file)?.frontmatter;
+		if (cached) {
+			return cached;
+		}
+
+		const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+		if (!frontmatterMatch) {
+			return undefined;
+		}
+
+		try {
+			const parsed: unknown = parseYaml(frontmatterMatch[1]);
+			return parsed && typeof parsed === 'object'
+				? (parsed as Record<string, unknown>)
+				: undefined;
+		} catch {
+			return undefined;
+		}
+	}
+
+	/**
+	 * Extracts Granola metadata from parsed frontmatter.
+	 *
+	 * A note is considered a Granola import when its frontmatter has
+	 * `source: Granola` or a `granola_url`. The document ID comes from the
+	 * `id` field when present, otherwise it is recovered from the UUID in
+	 * `granola_url` (imports made without enhanced frontmatter never wrote
+	 * an `id` field). `updated` and `title` are optional.
+	 *
+	 * @private
+	 * @param {Record<string, unknown> | undefined} frontmatter - Parsed frontmatter
 	 * @returns {object | null} Granola metadata or null if not a Granola document
 	 */
 	private extractGranolaMetadata(
-		content: string
-	): { id: string; updated: string; title: string } | null {
-		const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-		if (!frontmatterMatch) {
+		frontmatter: Record<string, unknown> | undefined
+	): { id: string; updated?: string; title?: string } | null {
+		if (!frontmatter) {
 			return null;
 		}
 
-		const frontmatter = frontmatterMatch[1];
+		const source = this.asOptionalString(frontmatter.source);
+		const granolaUrl = this.asOptionalString(frontmatter.granola_url);
+		const urlId = granolaUrl ? this.extractIdFromGranolaUrl(granolaUrl) : null;
 
-		// Check if this is a Granola document
-		if (!frontmatter.includes('source: Granola')) {
+		if (source !== 'Granola' && !urlId) {
 			return null;
 		}
 
-		// Extract required fields
-		const idMatch = frontmatter.match(/^id:\s*(.+)$/m);
-		const updatedMatch = frontmatter.match(/^updated:\s*(.+)$/m);
-		const titleMatch = frontmatter.match(/^title:\s*"?([^"]+)"?$/m);
-
-		if (!idMatch || !updatedMatch || !titleMatch) {
+		const id = this.asOptionalString(frontmatter.id) ?? urlId;
+		if (!id) {
 			return null;
 		}
 
 		return {
-			id: idMatch[1].trim(),
-			updated: updatedMatch[1].trim(),
-			title: titleMatch[1].trim(),
+			id,
+			updated: this.asOptionalString(frontmatter.updated),
+			title: this.asOptionalString(frontmatter.title),
 		};
+	}
+
+	/**
+	 * Extracts the Granola document UUID from a granola_url value.
+	 *
+	 * @private
+	 * @param {string} url - The granola_url frontmatter value
+	 * @returns {string | null} The document ID or null if the URL doesn't match
+	 */
+	private extractIdFromGranolaUrl(url: string): string | null {
+		const match = url.match(/^https?:\/\/[\w.-]*granola\.ai\/d\/([A-Za-z0-9-]+)/i);
+		return match ? match[1] : null;
+	}
+
+	/**
+	 * Normalizes a frontmatter value to a non-empty string when possible.
+	 *
+	 * The metadata cache can surface YAML scalars as non-string types
+	 * (e.g. timestamps as Date objects), so coerce the ones we can use.
+	 *
+	 * @private
+	 * @param {unknown} value - Raw frontmatter value
+	 * @returns {string | undefined} Trimmed string value or undefined
+	 */
+	private asOptionalString(value: unknown): string | undefined {
+		if (typeof value === 'string') {
+			const trimmed = value.trim();
+			return trimmed.length > 0 ? trimmed : undefined;
+		}
+		if (typeof value === 'number') {
+			return String(value);
+		}
+		if (value instanceof Date && !isNaN(value.getTime())) {
+			return value.toISOString();
+		}
+		return undefined;
 	}
 
 	/**
@@ -305,9 +390,6 @@ export class DuplicateDetector {
 		newDocument: GranolaDocument,
 		existingDoc: ExistingDocument
 	): DuplicateCheckResult {
-		const existingDate = new Date(existingDoc.lastUpdated);
-		const newDate = new Date(newDocument.updated_at);
-
 		// Check if local modifications exist
 		if (existingDoc.hasLocalModifications) {
 			return {
@@ -317,6 +399,20 @@ export class DuplicateDetector {
 				requiresUserChoice: true,
 			};
 		}
+
+		// Without an updated timestamp in the note there is nothing to compare;
+		// the note is a confirmed import of this document
+		if (!existingDoc.lastUpdated) {
+			return {
+				status: 'EXISTS',
+				existingFile: existingDoc.file,
+				reason: 'Document already imported (identified by Granola ID)',
+				requiresUserChoice: false,
+			};
+		}
+
+		const existingDate = new Date(existingDoc.lastUpdated);
+		const newDate = new Date(newDocument.updated_at);
 
 		// Check if new version is available
 		if (newDate > existingDate) {
@@ -347,7 +443,7 @@ export class DuplicateDetector {
 	 */
 	private detectLocalModifications(
 		content: string,
-		metadata: { id: string; updated: string }
+		metadata: { id: string; updated?: string }
 	): boolean {
 		// Extract the content after frontmatter
 		const contentAfterFrontmatter = this.extractContentAfterFrontmatter(content);
