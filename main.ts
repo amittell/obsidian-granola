@@ -6,6 +6,8 @@ import { DuplicateDetector } from './src/services/duplicate-detector';
 import { DocumentMetadataService } from './src/services/document-metadata';
 import { SelectiveImportManager } from './src/services/import-manager';
 import { DocumentSelectionModal } from './src/ui/document-selection-modal';
+import { AutoImportScheduler, AUTO_IMPORT_TICK_MS } from './src/services/auto-import-scheduler';
+import { ImportLogWriter } from './src/services/import-log';
 import { GranolaSettings, DEFAULT_SETTINGS, Logger } from './src/types';
 import { ServiceContainer } from './src/core/di/ServiceContainer';
 import {
@@ -82,6 +84,13 @@ export default class GranolaImporterPlugin extends Plugin {
 	 * @private
 	 */
 	private importManager!: SelectiveImportManager;
+
+	/**
+	 * Scheduler for opt-in unattended imports of new Granola notes.
+	 * The enable switch is device-local; see {@link AutoImportScheduler}.
+	 * @public
+	 */
+	autoImportScheduler!: AutoImportScheduler;
 
 	/**
 	 * Plugin settings with default values and persistence.
@@ -186,6 +195,24 @@ export default class GranolaImporterPlugin extends Plugin {
 			this.logger,
 			this.settings
 		);
+
+		this.autoImportScheduler = new AutoImportScheduler({
+			app: this.app,
+			api: this.api,
+			duplicateDetector: this.duplicateDetector,
+			metadataService: this.metadataService,
+			importManager: this.importManager,
+			importLog: new ImportLogWriter(this.app.vault),
+			logger: this.logger,
+		});
+
+		// Heartbeat: a cheap per-minute check; actual runs are gated to
+		// hourly slots inside the daytime window. The layout-ready tick
+		// provides the startup catch-up run.
+		this.registerInterval(
+			window.setInterval(() => void this.autoImportScheduler.tick(), AUTO_IMPORT_TICK_MS)
+		);
+		this.app.workspace.onLayoutReady(() => void this.autoImportScheduler.tick());
 
 		// Register settings tab
 		this.addSettingTab(new GranolaSettingTab(this.app, this));

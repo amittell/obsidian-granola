@@ -141,6 +141,9 @@ export class Plugin {
 	onunload() {}
 	addCommand(command: any) {}
 	addSettingTab(tab: any) {}
+	registerInterval(id: number) {
+		return id;
+	}
 	registerObsidianProtocolHandler(
 		action: string,
 		handler: (params: Record<string, string>) => void
@@ -349,6 +352,8 @@ export class MockVault {
 export class MockWorkspace {
 	private leaves: MockWorkspaceLeaf[] = [];
 	private activeLeaf: MockWorkspaceLeaf | null = null;
+
+	onLayoutReady = jest.fn();
 
 	getLeaf = jest.fn().mockImplementation((type?: 'tab' | 'split' | 'window') => {
 		const leaf = new MockWorkspaceLeaf();

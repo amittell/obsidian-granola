@@ -178,6 +178,24 @@ describe('GranolaImporterPlugin Integration', () => {
 		});
 	});
 
+	describe('Auto-import scheduling', () => {
+		it('creates the scheduler and registers the heartbeat on load', async () => {
+			const registerIntervalSpy = jest.spyOn(plugin, 'registerInterval');
+
+			await plugin.onload();
+
+			expect(plugin.autoImportScheduler).toBeDefined();
+			expect(registerIntervalSpy).toHaveBeenCalledTimes(1);
+			expect(mockApp.workspace.onLayoutReady).toHaveBeenCalledWith(expect.any(Function));
+		});
+
+		it('leaves auto-import disabled by default', async () => {
+			await plugin.onload();
+
+			expect(plugin.autoImportScheduler.isEnabled()).toBe(false);
+		});
+	});
+
 	describe('Ribbon Icon', () => {
 		it('should add ribbon icon on load', async () => {
 			const addRibbonIconSpy = jest.spyOn(plugin, 'addRibbonIcon');

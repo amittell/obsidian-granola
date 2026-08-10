@@ -667,6 +667,10 @@ describe('GranolaSettingTab class', () => {
 			logger: {
 				updateSettings: jest.fn(),
 			},
+			autoImportScheduler: {
+				isEnabled: jest.fn().mockReturnValue(false),
+				setEnabled: jest.fn(),
+			},
 		} as unknown as GranolaImporterPlugin;
 
 		// Mock containerEl with all needed methods
@@ -696,6 +700,29 @@ describe('GranolaSettingTab class', () => {
 			// Call display - should not throw
 			expect(() => settingTab.display()).not.toThrow();
 			expect(mockContainerEl.empty).toHaveBeenCalled();
+		});
+	});
+
+	describe('automatic import section', () => {
+		it('reads the toggle state from the device-local scheduler', () => {
+			settingTab.display();
+
+			expect(mockPlugin.autoImportScheduler.isEnabled).toHaveBeenCalled();
+		});
+
+		it('persists toggle changes through the scheduler, not plugin settings', async () => {
+			const before = callbacks.toggleCallbacks.length;
+			settingTab.display();
+			const rendered = callbacks.toggleCallbacks.slice(before);
+			expect(rendered.length).toBeGreaterThan(0);
+
+			// The automatic import section renders last, so its toggle is the
+			// last one registered by this display() call
+			const autoImportToggle = rendered[rendered.length - 1];
+			await autoImportToggle(true);
+
+			expect(mockPlugin.autoImportScheduler.setEnabled).toHaveBeenCalledWith(true);
+			expect(mockPlugin.saveSettings).not.toHaveBeenCalled();
 		});
 	});
 
