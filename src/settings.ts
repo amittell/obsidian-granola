@@ -1,9 +1,5 @@
 import { App, PluginSettingTab, Setting, Notice } from 'obsidian';
 import type GranolaImporterPlugin from '../main';
-import {
-	AUTO_IMPORT_WINDOW_START_HOUR,
-	AUTO_IMPORT_WINDOW_END_HOUR,
-} from './services/auto-import-scheduler';
 import { IMPORT_LOG_FILENAME } from './services/import-log';
 import { LogLevel, ImportStrategy, DatePrefixFormat } from './types';
 
@@ -52,17 +48,58 @@ export class GranolaSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('Enable scheduled auto-import on this device')
 			.setDesc(
-				`Import new Granola notes automatically every hour between ` +
-					`${AUTO_IMPORT_WINDOW_START_HOUR}:00 and ${AUTO_IMPORT_WINDOW_END_HOUR}:00 ` +
-					`while Obsidian is open. Only new notes are imported; existing notes ` +
-					`and conflicts are never touched. Errors show a notice and are logged ` +
-					`to "${IMPORT_LOG_FILENAME}". This switch is stored per device and ` +
-					`does not sync, so enable it on one machine only.`
+				`Import new Granola notes automatically every hour inside the time ` +
+					`window below, while Obsidian is open. Only new notes are imported; ` +
+					`existing notes and conflicts are never touched. Errors show a notice ` +
+					`and are logged to "${IMPORT_LOG_FILENAME}". This switch is stored ` +
+					`per device and does not sync, so enable it on one machine only.`
 			)
 			.addToggle(toggle => {
 				toggle.setValue(this.plugin.autoImportScheduler.isEnabled()).onChange(value => {
 					this.plugin.autoImportScheduler.setEnabled(value);
 				});
+			});
+
+		new Setting(containerEl)
+			.setName('Start hour')
+			.setDesc('Local time when the daily auto-import window opens.')
+			.addDropdown(dropdown => {
+				for (let hour = 0; hour <= 23; hour++) {
+					dropdown.addOption(String(hour), `${hour}:00`);
+				}
+				dropdown
+					.setValue(String(this.plugin.settings.autoImport.startHour))
+					.onChange(async value => {
+						const hour = parseInt(value, 10);
+						if (hour >= this.plugin.settings.autoImport.endHour) {
+							new Notice('Auto-import start hour must be before the end hour.');
+							dropdown.setValue(String(this.plugin.settings.autoImport.startHour));
+							return;
+						}
+						this.plugin.settings.autoImport.startHour = hour;
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(containerEl)
+			.setName('End hour')
+			.setDesc('Local time when the daily auto-import window closes.')
+			.addDropdown(dropdown => {
+				for (let hour = 1; hour <= 24; hour++) {
+					dropdown.addOption(String(hour), `${hour}:00`);
+				}
+				dropdown
+					.setValue(String(this.plugin.settings.autoImport.endHour))
+					.onChange(async value => {
+						const hour = parseInt(value, 10);
+						if (hour <= this.plugin.settings.autoImport.startHour) {
+							new Notice('Auto-import end hour must be after the start hour.');
+							dropdown.setValue(String(this.plugin.settings.autoImport.endHour));
+							return;
+						}
+						this.plugin.settings.autoImport.endHour = hour;
+						await this.plugin.saveSettings();
+					});
 			});
 	}
 

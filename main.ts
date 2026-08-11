@@ -204,6 +204,7 @@ export default class GranolaImporterPlugin extends Plugin {
 			importManager: this.importManager,
 			importLog: new ImportLogWriter(this.app.vault),
 			logger: this.logger,
+			settings: this.settings,
 		});
 
 		// Heartbeat: a cheap per-minute check; actual runs are gated to
@@ -683,6 +684,12 @@ export default class GranolaImporterPlugin extends Plugin {
 			},
 		};
 
+		// Same for the auto-import window: legacy data.json has no autoImport key
+		this.settings.autoImport = {
+			...DEFAULT_SETTINGS.autoImport,
+			...this.settings.autoImport,
+		};
+
 		// Migration: If user has custom template but no toggle setting, enable it
 		if (
 			savedData?.content?.filenameTemplate &&
@@ -715,6 +722,11 @@ export default class GranolaImporterPlugin extends Plugin {
 		// Update metadata service settings if it exists
 		if (this.metadataService) {
 			this.metadataService.updateSettings(this.settings);
+		}
+
+		// Update auto-import scheduler settings if it exists
+		if (this.autoImportScheduler) {
+			this.autoImportScheduler.updateSettings(this.settings);
 		}
 
 		if (this.serviceContainer) {

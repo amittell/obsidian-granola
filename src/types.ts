@@ -129,6 +129,14 @@ export interface GranolaSettings {
 		includeHost: boolean;
 	};
 
+	/** Scheduled auto-import settings (the enable switch itself is device-local) */
+	autoImport: {
+		/** First hour of the daily polling window, local time (inclusive) */
+		startHour: number;
+		/** End hour of the daily polling window, local time (exclusive) */
+		endHour: number;
+	};
+
 	/** Internal connection state (not user-facing) */
 	connection: {
 		/** Last successful connection test timestamp */
@@ -181,6 +189,10 @@ export const DEFAULT_SETTINGS: GranolaSettings = {
 		myName: '',
 		tagTemplate: 'person/{name}',
 		includeHost: false,
+	},
+	autoImport: {
+		startHour: 8,
+		endHour: 19,
 	},
 	connection: {
 		lastValidated: 0,

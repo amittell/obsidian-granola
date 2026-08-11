@@ -389,6 +389,8 @@ describe('DEFAULT_SETTINGS', () => {
 		expect(DEFAULT_SETTINGS.connection.lastValidated).toBe(0);
 		expect(DEFAULT_SETTINGS.connection.isConnected).toBe(false);
 		expect(DEFAULT_SETTINGS.connection.timeoutMs).toBe(30000);
+
+		expect(DEFAULT_SETTINGS.autoImport).toEqual({ startHour: 8, endHour: 19 });
 	});
 
 	it('should be a valid GranolaSettings object', () => {
@@ -704,10 +706,59 @@ describe('GranolaSettingTab class', () => {
 	});
 
 	describe('automatic import section', () => {
+		beforeEach(() => {
+			// Deep copy: the shared DEFAULT_SETTINGS object must not be
+			// mutated by window-hour changes made in these tests
+			mockPlugin.settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+		});
+
 		it('reads the toggle state from the device-local scheduler', () => {
 			settingTab.display();
 
 			expect(mockPlugin.autoImportScheduler.isEnabled).toHaveBeenCalled();
+		});
+
+		it('persists valid window hour changes through plugin settings', async () => {
+			const before = callbacks.dropdownCallbacks.length;
+			settingTab.display();
+			const rendered = callbacks.dropdownCallbacks.slice(before);
+			expect(rendered.length).toBeGreaterThanOrEqual(2);
+
+			// The window dropdowns render last: start hour, then end hour
+			const startCallback = rendered[rendered.length - 2];
+			const endCallback = rendered[rendered.length - 1];
+
+			await startCallback('6');
+			expect(mockPlugin.settings.autoImport.startHour).toBe(6);
+
+			await endCallback('22');
+			expect(mockPlugin.settings.autoImport.endHour).toBe(22);
+
+			expect(mockPlugin.saveSettings).toHaveBeenCalledTimes(2);
+		});
+
+		it('rejects a start hour at or after the end hour', async () => {
+			const before = callbacks.dropdownCallbacks.length;
+			settingTab.display();
+			const rendered = callbacks.dropdownCallbacks.slice(before);
+			const startCallback = rendered[rendered.length - 2];
+
+			await startCallback('19');
+
+			expect(mockPlugin.settings.autoImport.startHour).toBe(8);
+			expect(mockPlugin.saveSettings).not.toHaveBeenCalled();
+		});
+
+		it('rejects an end hour at or before the start hour', async () => {
+			const before = callbacks.dropdownCallbacks.length;
+			settingTab.display();
+			const rendered = callbacks.dropdownCallbacks.slice(before);
+			const endCallback = rendered[rendered.length - 1];
+
+			await endCallback('8');
+
+			expect(mockPlugin.settings.autoImport.endHour).toBe(19);
+			expect(mockPlugin.saveSettings).not.toHaveBeenCalled();
 		});
 
 		it('persists toggle changes through the scheduler, not plugin settings', async () => {

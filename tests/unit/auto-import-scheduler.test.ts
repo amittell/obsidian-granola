@@ -149,6 +149,7 @@ function createHarness(options?: {
 		importManager: importManager as never,
 		importLog: importLog as never,
 		logger: new Logger(settings),
+		settings,
 		now: () => now,
 	});
 
@@ -276,6 +277,66 @@ describe('AutoImportScheduler tick gating', () => {
 		expect(h.localStore.has(AUTO_IMPORT_LAST_RUN_KEY)).toBe(false);
 		expect(mockNoticeMessages).toHaveLength(0);
 
+		await h.scheduler.tick();
+		expect(h.importManager.importDocuments).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('AutoImportScheduler configurable window', () => {
+	function windowSettings(startHour: number, endHour: number): GranolaSettings {
+		return {
+			...DEFAULT_SETTINGS,
+			import: { ...DEFAULT_SETTINGS.import },
+			autoImport: { startHour, endHour },
+		};
+	}
+
+	it('honors a custom daytime window from settings', async () => {
+		const h = createHarness({
+			documents: [makeDocument({ id: 'new-1' })],
+			statuses: new Map([['new-1', status('NEW')]]),
+			settings: windowSettings(6, 22),
+		});
+		h.scheduler.setEnabled(true);
+
+		h.setNow('2026-08-10T06:30:00');
+		await h.scheduler.tick();
+		expect(h.importManager.importDocuments).toHaveBeenCalledTimes(1);
+
+		h.setNow('2026-08-10T22:00:00');
+		await h.scheduler.tick();
+		expect(h.importManager.importDocuments).toHaveBeenCalledTimes(1);
+	});
+
+	it('falls back to the default window when configured hours are invalid', async () => {
+		const h = createHarness({
+			documents: [makeDocument({ id: 'new-1' })],
+			statuses: new Map([['new-1', status('NEW')]]),
+			settings: windowSettings(20, 8),
+		});
+		h.scheduler.setEnabled(true);
+
+		h.setNow('2026-08-10T20:30:00');
+		await h.scheduler.tick();
+		expect(h.importManager.importDocuments).not.toHaveBeenCalled();
+
+		h.setNow('2026-08-11T10:00:00');
+		await h.scheduler.tick();
+		expect(h.importManager.importDocuments).toHaveBeenCalledTimes(1);
+	});
+
+	it('applies updated settings without recreating the scheduler', async () => {
+		const h = createHarness({
+			documents: [makeDocument({ id: 'new-1' })],
+			statuses: new Map([['new-1', status('NEW')]]),
+		});
+		h.scheduler.setEnabled(true);
+
+		h.setNow('2026-08-10T07:00:00');
+		await h.scheduler.tick();
+		expect(h.importManager.importDocuments).not.toHaveBeenCalled();
+
+		h.scheduler.updateSettings(windowSettings(6, 19));
 		await h.scheduler.tick();
 		expect(h.importManager.importDocuments).toHaveBeenCalledTimes(1);
 	});

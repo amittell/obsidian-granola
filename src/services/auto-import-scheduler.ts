@@ -1,6 +1,6 @@
 import { App, Notice } from 'obsidian';
 import { GranolaAPI, GranolaDocument } from '../api';
-import { Logger } from '../types';
+import { DEFAULT_SETTINGS, GranolaSettings, Logger } from '../types';
 import { isEmptyDocument } from '../utils/prosemirror';
 import { DuplicateDetector, DuplicateCheckResult } from './duplicate-detector';
 import { DocumentMetadataService } from './document-metadata';
@@ -26,12 +26,6 @@ export const AUTO_IMPORT_INTERVAL_MS = 60 * 60 * 1000;
 /** How often the scheduler heartbeat checks whether a run is due. */
 export const AUTO_IMPORT_TICK_MS = 60 * 1000;
 
-/** First hour of the local-time polling window (inclusive). */
-export const AUTO_IMPORT_WINDOW_START_HOUR = 8;
-
-/** End hour of the local-time polling window (exclusive). */
-export const AUTO_IMPORT_WINDOW_END_HOUR = 19;
-
 /**
  * Documents updated more recently than this are deferred to a later poll.
  * Granola fills notes in after a meeting ends, so a very fresh update may
@@ -54,6 +48,8 @@ export interface AutoImportSchedulerDeps {
 	>;
 	importLog: Pick<ImportLogWriter, 'append'>;
 	logger: Logger;
+	/** Plugin settings; the polling window hours are read from here. */
+	settings: GranolaSettings;
 	/** Clock override for tests; defaults to the system clock. */
 	now?: () => Date;
 }
@@ -62,7 +58,8 @@ export interface AutoImportSchedulerDeps {
  * Opt-in scheduler that imports new Granola notes without user interaction.
  *
  * Design constraints (all deliberate):
- * - Runs hourly, daytime only (8:00-19:00 local), while Obsidian is open.
+ * - Runs hourly inside a configurable local-time window (default
+ *   8:00-19:00), while Obsidian is open.
  * - Imports documents classified NEW only; anything that would need a
  *   choice (EXISTS/UPDATED/CONFLICT) is left for a manual import. No
  *   modals are ever opened from a scheduled run.
@@ -73,11 +70,18 @@ export interface AutoImportSchedulerDeps {
  */
 export class AutoImportScheduler {
 	private deps: AutoImportSchedulerDeps;
+	private settings: GranolaSettings;
 	private runInFlight = false;
 	private failureStreak = 0;
 
 	constructor(deps: AutoImportSchedulerDeps) {
 		this.deps = deps;
+		this.settings = deps.settings;
+	}
+
+	/** Applies updated plugin settings (window hours take effect next tick). */
+	updateSettings(settings: GranolaSettings): void {
+		this.settings = settings;
 	}
 
 	/** Whether auto-import is enabled on this device. */
@@ -220,8 +224,36 @@ export class AutoImportScheduler {
 	}
 
 	private isWithinWindow(now: Date): boolean {
+		const { startHour, endHour } = this.getWindow();
 		const hour = now.getHours();
-		return hour >= AUTO_IMPORT_WINDOW_START_HOUR && hour < AUTO_IMPORT_WINDOW_END_HOUR;
+		return hour >= startHour && hour < endHour;
+	}
+
+	/**
+	 * Returns the configured polling window, falling back to the defaults
+	 * when the stored values are unusable (e.g. a hand-edited data.json
+	 * with start at or after end). Falling back keeps imports flowing
+	 * instead of silently never running.
+	 */
+	private getWindow(): { startHour: number; endHour: number } {
+		const configured: Partial<GranolaSettings['autoImport']> = this.settings.autoImport ?? {};
+		const { startHour, endHour } = configured;
+
+		if (
+			typeof startHour === 'number' &&
+			typeof endHour === 'number' &&
+			Number.isInteger(startHour) &&
+			Number.isInteger(endHour) &&
+			startHour >= 0 &&
+			startHour <= 23 &&
+			endHour >= 1 &&
+			endHour <= 24 &&
+			startHour < endHour
+		) {
+			return { startHour, endHour };
+		}
+
+		return { ...DEFAULT_SETTINGS.autoImport };
 	}
 
 	/**
