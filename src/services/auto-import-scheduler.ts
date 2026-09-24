@@ -27,11 +27,12 @@ export const AUTO_IMPORT_INTERVAL_MS = 60 * 60 * 1000;
 export const AUTO_IMPORT_TICK_MS = 60 * 1000;
 
 /**
- * Documents updated more recently than this are deferred to a later poll.
- * Granola fills notes in after a meeting ends, so a very fresh update may
- * still be half-written.
+ * A meeting without Granola's summary is imported only once its date is at
+ * least this old. Granola writes the summary after the meeting ends, so a
+ * recent meeting without one may still be in progress. `updated_at` cannot
+ * tell: on the MCP path it is the meeting date, same as `created_at`.
  */
-export const RECENT_EDIT_BUFFER_MS = 10 * 60 * 1000;
+export const UNSUMMARIZED_MIN_AGE_MS = 3 * 60 * 60 * 1000;
 
 /**
  * Dependencies for the auto-import scheduler, narrowed to what it uses so
@@ -64,6 +65,8 @@ export interface AutoImportSchedulerDeps {
  *   choice (EXISTS/UPDATED/CONFLICT) is left for a manual import. No
  *   modals are ever opened from a scheduled run.
  * - Empty documents are never imported and are re-evaluated on later polls.
+ * - A meeting is imported once Granola's summary exists, or, without one,
+ *   once the meeting is three hours old; see UNSUMMARIZED_MIN_AGE_MS.
  * - Notifications on errors only, at most once per failure streak; every
  *   run that imports something or fails is appended to the log note.
  * - The enable switch and last-run timestamp are device-local.
@@ -215,12 +218,12 @@ export class AutoImportScheduler {
 			return false;
 		}
 
-		const updatedAt = new Date(doc.updated_at).getTime();
-		if (!isNaN(updatedAt) && now.getTime() - updatedAt < RECENT_EDIT_BUFFER_MS) {
-			return false;
+		if (doc.has_summary) {
+			return true;
 		}
 
-		return true;
+		const meetingTime = new Date(doc.created_at).getTime();
+		return !isNaN(meetingTime) && now.getTime() - meetingTime >= UNSUMMARIZED_MIN_AGE_MS;
 	}
 
 	private isWithinWindow(now: Date): boolean {

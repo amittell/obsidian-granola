@@ -416,23 +416,59 @@ describe('AutoImportScheduler document selection', () => {
 		expect(granolaDocs.map(d => d.id)).toEqual(['new-1']);
 	});
 
-	it('defers documents updated in the last 10 minutes to a later poll', async () => {
-		const h = await runWith(
-			[
-				makeDocument({ id: 'fresh-1', updated_at: '2026-08-10T09:55:00' }),
-				makeDocument({ id: 'settled-1', updated_at: '2026-08-10T09:40:00' }),
-			],
-			new Map([
-				['fresh-1', status('NEW')],
-				['settled-1', status('NEW')],
-			])
-		);
-
+	function importedIds(h: Harness): string[] {
+		if (h.importManager.importDocuments.mock.calls.length === 0) {
+			return [];
+		}
 		const [, granolaDocs] = h.importManager.importDocuments.mock.calls[0] as [
 			unknown,
 			GranolaDocument[],
 		];
-		expect(granolaDocs.map(d => d.id)).toEqual(['settled-1']);
+		return granolaDocs.map(d => d.id);
+	}
+
+	function meetingAt(id: string, localTime: string, hasSummary: boolean): GranolaDocument {
+		const iso = new Date(localTime).toISOString();
+		return makeDocument({ id, created_at: iso, updated_at: iso, has_summary: hasSummary });
+	}
+
+	it('waits for the summary of a meeting from the last three hours', async () => {
+		const h = await runWith(
+			[meetingAt('in-progress', '2026-08-10T09:45:00', false)],
+			new Map([['in-progress', status('NEW')]])
+		);
+		expect(importedIds(h)).toEqual([]);
+	});
+
+	it('imports a recent meeting once Granola has written its summary', async () => {
+		const h = await runWith(
+			[meetingAt('summarized', '2026-08-10T09:45:00', true)],
+			new Map([['summarized', status('NEW')]])
+		);
+		expect(importedIds(h)).toEqual(['summarized']);
+	});
+
+	it('imports a meeting without a summary once it is three hours old', async () => {
+		const h = await runWith(
+			[
+				meetingAt('three-hours', '2026-08-10T07:00:00', false),
+				meetingAt('two-and-a-half', '2026-08-10T07:30:00', false),
+			],
+			new Map([
+				['three-hours', status('NEW')],
+				['two-and-a-half', status('NEW')],
+			])
+		);
+		expect(importedIds(h)).toEqual(['three-hours']);
+	});
+
+	it('imports a summarized meeting whose date did not parse', async () => {
+		// parseGranolaDate falls back to the current time for dates like "... BST"
+		const h = await runWith(
+			[meetingAt('unparsed-date', '2026-08-10T10:00:00', true)],
+			new Map([['unparsed-date', status('NEW')]])
+		);
+		expect(importedIds(h)).toEqual(['unparsed-date']);
 	});
 
 	it('refreshes the duplicate detector before checking documents', async () => {
