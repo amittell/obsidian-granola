@@ -45,6 +45,7 @@ export class DocumentSelectionModal extends Modal {
 	private metadataService: DocumentMetadataService;
 	private importManager: SelectiveImportManager;
 	private converter: ProseMirrorConverter;
+	private onClosed?: () => void;
 
 	// Data state
 	private granolaDocuments: GranolaDocument[] = [];
@@ -89,6 +90,7 @@ export class DocumentSelectionModal extends Modal {
 	 * @param {DocumentMetadataService} metadataService - Service for document metadata
 	 * @param {SelectiveImportManager} importManager - Service for managing imports
 	 * @param {ProseMirrorConverter} converter - Document converter
+	 * @param {() => void} [onClosed] - Called after the modal closes
 	 */
 	constructor(
 		app: App,
@@ -96,7 +98,8 @@ export class DocumentSelectionModal extends Modal {
 		duplicateDetector: DuplicateDetector,
 		metadataService: DocumentMetadataService,
 		importManager: SelectiveImportManager,
-		converter: ProseMirrorConverter
+		converter: ProseMirrorConverter,
+		onClosed?: () => void
 	) {
 		super(app);
 		this.api = api;
@@ -104,6 +107,7 @@ export class DocumentSelectionModal extends Modal {
 		this.metadataService = metadataService;
 		this.importManager = importManager;
 		this.converter = converter;
+		this.onClosed = onClosed;
 	}
 
 	/**
@@ -139,6 +143,7 @@ export class DocumentSelectionModal extends Modal {
 		this.timersToCleanup.clear();
 
 		this.cleanup();
+		this.onClosed?.();
 	}
 
 	/**

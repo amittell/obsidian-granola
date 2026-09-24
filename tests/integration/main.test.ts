@@ -232,6 +232,26 @@ describe('GranolaImporterPlugin Integration', () => {
 			openSpy.mockRestore();
 		});
 
+		it('treats an open import modal as a manual import in progress', async () => {
+			const { DocumentSelectionModal } = require('../../src/ui/document-selection-modal');
+			let opened: { onClose(): void } | undefined;
+			const openSpy = jest
+				.spyOn(DocumentSelectionModal.prototype, 'open')
+				.mockImplementation(function (this: { onClose(): void }) {
+					opened = this;
+				});
+			await plugin.onload();
+			expect(plugin.isManualImportActive()).toBe(false);
+
+			plugin.openImportModal();
+			expect(plugin.isManualImportActive()).toBe(true);
+
+			(opened as any).cleanup = jest.fn();
+			opened?.onClose();
+			expect(plugin.isManualImportActive()).toBe(false);
+			openSpy.mockRestore();
+		});
+
 		it('leaves auto-import disabled by default', async () => {
 			await plugin.onload();
 

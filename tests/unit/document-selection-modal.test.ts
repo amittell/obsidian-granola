@@ -314,6 +314,24 @@ describe('DocumentSelectionModal', () => {
 
 			expect(mockImportManager.cancel).not.toHaveBeenCalled();
 		});
+
+		it('should notify the opener once closed', () => {
+			const onClosed = jest.fn();
+			const notifyingModal = new DocumentSelectionModal(
+				mockApp,
+				mockAPI,
+				mockDuplicateDetector,
+				mockMetadataService,
+				mockImportManager,
+				mockConverter,
+				onClosed
+			);
+			(notifyingModal as any).cleanup = jest.fn();
+
+			notifyingModal.onClose();
+
+			expect(onClosed).toHaveBeenCalledTimes(1);
+		});
 	});
 
 	describe('modal behavior', () => {

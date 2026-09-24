@@ -99,6 +99,9 @@ export default class GranolaImporterPlugin extends Plugin {
 	 */
 	private scheduledImportManager!: SelectiveImportManager;
 
+	/** Whether the import modal is open; scheduled runs skip their slot meanwhile. */
+	private importModalOpen = false;
+
 	/**
 	 * Scheduler for opt-in unattended imports of new Granola notes.
 	 * The enable switch is device-local; see {@link AutoImportScheduler}.
@@ -619,13 +622,14 @@ export default class GranolaImporterPlugin extends Plugin {
 	}
 
 	/**
-	 * Whether a manual import currently owns the import pipeline. Scheduled
-	 * runs skip their slot while this is true.
+	 * Whether a manual import currently owns the import pipeline: the import
+	 * modal is open, or a manual import is running. Scheduled runs skip their
+	 * slot while this is true.
 	 *
-	 * @returns {boolean} True while a manual import is running
+	 * @returns {boolean} True while the modal is open or a manual import runs
 	 */
 	isManualImportActive(): boolean {
-		return this.importManager.getProgress().isRunning;
+		return this.importModalOpen || this.importManager.getProgress().isRunning;
 	}
 
 	/**
@@ -667,10 +671,15 @@ export default class GranolaImporterPlugin extends Plugin {
 				this.duplicateDetector,
 				this.metadataService,
 				this.importManager,
-				this.converter
+				this.converter,
+				() => {
+					this.importModalOpen = false;
+				}
 			);
+			this.importModalOpen = true;
 			modal.open();
 		} catch (error) {
+			this.importModalOpen = false;
 			this.logger.error('Failed to open import modal:', error);
 
 			// Provide user feedback for modal errors
