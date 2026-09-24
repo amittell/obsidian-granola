@@ -6,6 +6,7 @@ interface FakeVault {
 	getAbstractFileByPath: jest.Mock;
 	create: jest.Mock;
 	append: jest.Mock;
+	createFolder: jest.Mock;
 }
 
 function createFakeVault(existingFile: unknown = null): FakeVault {
@@ -13,6 +14,7 @@ function createFakeVault(existingFile: unknown = null): FakeVault {
 		getAbstractFileByPath: jest.fn().mockReturnValue(existingFile),
 		create: jest.fn(async () => new TFile(IMPORT_LOG_FILENAME)),
 		append: jest.fn(async () => undefined),
+		createFolder: jest.fn(async () => undefined),
 	};
 }
 
@@ -21,7 +23,7 @@ describe('ImportLogWriter', () => {
 		expect(IMPORT_LOG_FILENAME).toBe('Granola Import Log.md');
 	});
 
-	it('creates the log note with reference frontmatter when it does not exist', async () => {
+	it('creates the log note without frontmatter when it does not exist', async () => {
 		const vault = createFakeVault(null);
 		const writer = new ImportLogWriter(vault as never);
 
@@ -30,9 +32,21 @@ describe('ImportLogWriter', () => {
 		expect(vault.create).toHaveBeenCalledTimes(1);
 		const [path, content] = vault.create.mock.calls[0] as [string, string];
 		expect(path).toBe(IMPORT_LOG_FILENAME);
-		expect(content).toMatch(/^---\ntype: reference\n---\n/);
+		expect(content).toMatch(/^# Granola Import Log\n/);
+		expect(content).not.toContain('---');
 		expect(content).toContain('- 2026-08-10 10:00 imported "Standup"');
 		expect(vault.append).not.toHaveBeenCalled();
+	});
+
+	it('writes the log inside the import folder, creating the folder when missing', async () => {
+		const vault = createFakeVault(null);
+		const writer = new ImportLogWriter(vault as never, () => 'Meetings/Granola/');
+
+		await writer.append(['- line']);
+
+		expect(vault.createFolder.mock.calls).toEqual([['Meetings'], ['Meetings/Granola']]);
+		const [path] = vault.create.mock.calls[0] as [string, string];
+		expect(path).toBe(`Meetings/Granola/${IMPORT_LOG_FILENAME}`);
 	});
 
 	it('appends to the existing note without rewriting it', async () => {

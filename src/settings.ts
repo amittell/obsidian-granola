@@ -51,7 +51,7 @@ export class GranolaSettingTab extends PluginSettingTab {
 				`Import new Granola notes automatically every hour inside the time ` +
 					`window below, while Obsidian is open. Only new notes are imported; ` +
 					`existing notes and conflicts are never touched. Errors show a notice ` +
-					`and are logged to "${IMPORT_LOG_FILENAME}". This switch is stored ` +
+					`and are logged to "${IMPORT_LOG_FILENAME}" in the import folder. This switch is stored ` +
 					`per device and does not sync, so enable it on one machine only.`
 			)
 			.addToggle(toggle => {

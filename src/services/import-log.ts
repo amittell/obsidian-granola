@@ -7,10 +7,6 @@ import { TFile, Vault } from 'obsidian';
 export const IMPORT_LOG_FILENAME = 'Granola Import Log.md';
 
 const LOG_HEADER = [
-	'---',
-	'type: reference',
-	'---',
-	'',
 	'# Granola Import Log',
 	'',
 	'Append-only log of scheduled Granola auto-import runs.',
@@ -20,14 +16,21 @@ const LOG_HEADER = [
 /**
  * Append-only writer for the auto-import log note in the vault.
  *
- * The note is created on first use with minimal frontmatter; afterwards
- * entries are only ever appended so user edits above are preserved.
+ * The note lives in the import folder and is created on first use;
+ * afterwards entries are only ever appended so user edits above are
+ * preserved.
  */
 export class ImportLogWriter {
 	private vault: Vault;
+	private getFolder: () => string;
 
-	constructor(vault: Vault) {
+	/**
+	 * @param {Vault} vault - The vault to write to
+	 * @param {() => string} [getFolder] - Returns the import folder (empty for the vault root)
+	 */
+	constructor(vault: Vault, getFolder: () => string = () => '') {
 		this.vault = vault;
+		this.getFolder = getFolder;
 	}
 
 	/**
@@ -41,7 +44,9 @@ export class ImportLogWriter {
 		}
 
 		const data = lines.join('\n') + '\n';
-		const existing = this.vault.getAbstractFileByPath(IMPORT_LOG_FILENAME);
+		const folder = this.getFolder().trim().replace(/\/+$/, '');
+		const path = folder ? `${folder}/${IMPORT_LOG_FILENAME}` : IMPORT_LOG_FILENAME;
+		const existing = this.vault.getAbstractFileByPath(path);
 
 		if (existing instanceof TFile) {
 			await this.vault.append(existing, data);
@@ -49,9 +54,20 @@ export class ImportLogWriter {
 		}
 
 		if (existing) {
-			throw new Error(`${IMPORT_LOG_FILENAME} exists but is not a file`);
+			throw new Error(`${path} exists but is not a file`);
 		}
 
-		await this.vault.create(IMPORT_LOG_FILENAME, LOG_HEADER + data);
+		await this.ensureFolder(folder);
+		await this.vault.create(path, LOG_HEADER + data);
+	}
+
+	private async ensureFolder(folder: string): Promise<void> {
+		let current = '';
+		for (const part of folder.split('/').filter(Boolean)) {
+			current = current ? `${current}/${part}` : part;
+			if (!this.vault.getAbstractFileByPath(current)) {
+				await this.vault.createFolder(current);
+			}
+		}
 	}
 }

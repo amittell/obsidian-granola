@@ -232,7 +232,10 @@ export default class GranolaImporterPlugin extends Plugin {
 			metadataService: this.metadataService,
 			importManager: this.scheduledImportManager,
 			isManualImportActive: () => this.isManualImportActive(),
-			importLog: new ImportLogWriter(this.app.vault),
+			importLog: new ImportLogWriter(
+				this.app.vault,
+				() => this.settings.import.defaultFolder
+			),
 			logger: this.logger,
 			settings: this.settings,
 		});
