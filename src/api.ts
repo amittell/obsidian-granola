@@ -26,6 +26,8 @@ export interface GranolaDocument {
 	created_at: string;
 	updated_at: string;
 	user_id: string;
+	/** MCP only: whether Granola returned its AI summary (`<summary>`) for the meeting */
+	has_summary?: boolean;
 	people?:
 		| string[]
 		| {
@@ -416,6 +418,7 @@ function toGranolaDocument(meeting: ParsedMeeting): GranolaDocument {
 		created_at: timestamp,
 		updated_at: timestamp,
 		user_id: '',
+		has_summary: meeting.summary.trim().length > 0,
 		people: toPeople(meeting),
 	};
 }

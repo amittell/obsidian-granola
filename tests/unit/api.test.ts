@@ -164,6 +164,30 @@ describe('GranolaAPI', () => {
 		});
 	});
 
+	it('flags whether Granola returned a summary for each meeting', async () => {
+		mockCallTool.mockImplementation(({ name }) => {
+			if (name === 'list_meetings') {
+				return Promise.resolve(toolText(listResponse));
+			}
+			if (name === 'get_meetings') {
+				return Promise.resolve(
+					toolText(`
+<meeting id="meeting-1" title="Alpha &amp; Beta" date="Mar 3, 2026 3:00 PM">
+	<private_notes>Typed during the call</private_notes>
+</meeting>
+<meeting id="meeting-2" title="Planning" date="Mar 4, 2026 10:15 AM">
+	<summary>Planning summary</summary>
+</meeting>`)
+				);
+			}
+			return Promise.resolve(toolText('', true));
+		});
+
+		const docs = await api.getAllDocuments();
+
+		expect(docs.map(doc => doc.has_summary)).toEqual([false, true]);
+	});
+
 	it('fetches all listed meetings without the default page size cap', async () => {
 		const docs = await api.getAllDocuments();
 

@@ -1,11 +1,13 @@
 import { Plugin, Notice } from 'obsidian';
-import { GranolaAuth, GranolaAuthData } from './src/auth';
+import { GranolaAuth, GranolaAuthData, GranolaAuthStorage } from './src/auth';
 import { GranolaAPI } from './src/api';
 import { ProseMirrorConverter } from './src/converter';
 import { DuplicateDetector } from './src/services/duplicate-detector';
 import { DocumentMetadataService } from './src/services/document-metadata';
 import { SelectiveImportManager } from './src/services/import-manager';
 import { DocumentSelectionModal } from './src/ui/document-selection-modal';
+import { AutoImportScheduler, AUTO_IMPORT_TICK_MS } from './src/services/auto-import-scheduler';
+import { ImportLogWriter } from './src/services/import-log';
 import { GranolaSettings, DEFAULT_SETTINGS, Logger } from './src/types';
 import { ServiceContainer } from './src/core/di/ServiceContainer';
 import {
@@ -84,6 +86,30 @@ export default class GranolaImporterPlugin extends Plugin {
 	private importManager!: SelectiveImportManager;
 
 	/**
+	 * Granola client for scheduled runs only: non-interactive, and separate
+	 * from {@link api} so neither can disconnect the other.
+	 * @private
+	 */
+	private scheduledApi!: GranolaAPI;
+
+	/**
+	 * Import manager used only by scheduled runs, so they never reset the
+	 * manual import's progress or failed-import records.
+	 * @private
+	 */
+	private scheduledImportManager!: SelectiveImportManager;
+
+	/** Whether the import modal is open; scheduled runs skip their slot meanwhile. */
+	private importModalOpen = false;
+
+	/**
+	 * Scheduler for opt-in unattended imports of new Granola notes.
+	 * The enable switch is device-local; see {@link AutoImportScheduler}.
+	 * @public
+	 */
+	autoImportScheduler!: AutoImportScheduler;
+
+	/**
 	 * Plugin settings with default values and persistence.
 	 * Contains all configuration options for the plugin.
 	 * @public
@@ -137,7 +163,7 @@ export default class GranolaImporterPlugin extends Plugin {
 		}
 
 		// Initialize core components
-		this.auth = new GranolaAuth({
+		const authStorage: GranolaAuthStorage = {
 			getData: async () =>
 				((await this.loadData()) ?? {}) as GranolaAuthData & Record<string, unknown>,
 			saveData: async data => {
@@ -146,8 +172,12 @@ export default class GranolaImporterPlugin extends Plugin {
 			openUrl: url => {
 				window.open(url);
 			},
-		});
+		};
+		this.auth = new GranolaAuth(authStorage);
 		this.api = new GranolaAPI(this.auth);
+		// Scheduled runs get their own MCP client, and an expired session
+		// fails with a notice instead of opening the sign-in page unattended
+		this.scheduledApi = new GranolaAPI(new GranolaAuth(authStorage, { interactive: false }));
 		this.converter = new ProseMirrorConverter(this.logger, this.settings);
 
 		this.registerObsidianProtocolHandler('granola-auth', params => {
@@ -186,6 +216,37 @@ export default class GranolaImporterPlugin extends Plugin {
 			this.logger,
 			this.settings
 		);
+
+		this.scheduledImportManager = new SelectiveImportManager(
+			this.app,
+			this.app.vault,
+			this.converter,
+			this.logger,
+			this.settings
+		);
+
+		this.autoImportScheduler = new AutoImportScheduler({
+			app: this.app,
+			api: this.scheduledApi,
+			duplicateDetector: this.duplicateDetector,
+			metadataService: this.metadataService,
+			importManager: this.scheduledImportManager,
+			isManualImportActive: () => this.isManualImportActive(),
+			importLog: new ImportLogWriter(
+				this.app.vault,
+				() => this.settings.import.defaultFolder
+			),
+			logger: this.logger,
+			settings: this.settings,
+		});
+
+		// Heartbeat: a cheap per-minute check; actual runs are gated to
+		// hourly slots inside the daytime window. The layout-ready tick
+		// provides the startup catch-up run.
+		this.registerInterval(
+			window.setInterval(() => void this.autoImportScheduler.tick(), AUTO_IMPORT_TICK_MS)
+		);
+		this.app.workspace.onLayoutReady(() => void this.autoImportScheduler.tick());
 
 		// Register settings tab
 		this.addSettingTab(new GranolaSettingTab(this.app, this));
@@ -244,6 +305,7 @@ export default class GranolaImporterPlugin extends Plugin {
 	onunload(): void {
 		// Clean up resources when plugin is disabled
 		void this.api?.disconnect();
+		void this.scheduledApi?.disconnect();
 		this.eventAdapters.forEach(adapter => adapter.dispose());
 		this.eventAdapters = [];
 		this.pluginEvents?.clearAll();
@@ -563,6 +625,17 @@ export default class GranolaImporterPlugin extends Plugin {
 	}
 
 	/**
+	 * Whether a manual import currently owns the import pipeline: the import
+	 * modal is open, or a manual import is running. Scheduled runs skip their
+	 * slot while this is true.
+	 *
+	 * @returns {boolean} True while the modal is open or a manual import runs
+	 */
+	isManualImportActive(): boolean {
+		return this.importModalOpen || this.importManager.getProgress().isRunning;
+	}
+
+	/**
 	 * Opens the document selection modal for selective import.
 	 *
 	 * This method replaces the previous immediate import functionality with
@@ -589,6 +662,11 @@ export default class GranolaImporterPlugin extends Plugin {
 	 * @see {@link SelectiveImportManager} For import coordination
 	 */
 	openImportModal(): void {
+		if (this.autoImportScheduler?.isRunning()) {
+			new Notice('A scheduled Granola import is running. Try again in a minute.', 5000);
+			return;
+		}
+
 		try {
 			const modal = new DocumentSelectionModal(
 				this.app,
@@ -596,10 +674,15 @@ export default class GranolaImporterPlugin extends Plugin {
 				this.duplicateDetector,
 				this.metadataService,
 				this.importManager,
-				this.converter
+				this.converter,
+				() => {
+					this.importModalOpen = false;
+				}
 			);
+			this.importModalOpen = true;
 			modal.open();
 		} catch (error) {
+			this.importModalOpen = false;
 			this.logger.error('Failed to open import modal:', error);
 
 			// Provide user feedback for modal errors
@@ -656,6 +739,12 @@ export default class GranolaImporterPlugin extends Plugin {
 			},
 		};
 
+		// Same for the auto-import window: legacy data.json has no autoImport key
+		this.settings.autoImport = {
+			...DEFAULT_SETTINGS.autoImport,
+			...this.settings.autoImport,
+		};
+
 		// Migration: If user has custom template but no toggle setting, enable it
 		if (
 			savedData?.content?.filenameTemplate &&
@@ -688,6 +777,11 @@ export default class GranolaImporterPlugin extends Plugin {
 		// Update metadata service settings if it exists
 		if (this.metadataService) {
 			this.metadataService.updateSettings(this.settings);
+		}
+
+		// Update auto-import scheduler settings if it exists
+		if (this.autoImportScheduler) {
+			this.autoImportScheduler.updateSettings(this.settings);
 		}
 
 		if (this.serviceContainer) {

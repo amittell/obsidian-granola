@@ -2,7 +2,7 @@
 	"id": "granola-importer",
 	"name": "Granola Importer",
 	"version": "1.1.4",
-	"minAppVersion": "0.15.0",
+	"minAppVersion": "1.8.7",
 	"description": "Import your Granola notes with perfect formatting preservation",
 	"author": "amittell",
 	"authorUrl": "https://github.com/amittell",
