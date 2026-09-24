@@ -145,7 +145,7 @@ Access plugin settings via: **Settings → Plugin Options → Granola Importer**
 
 ### Content Processing
 
-- **Enhanced frontmatter** - Include additional metadata (id, title, updated timestamp)
+- **Enhanced frontmatter** - Include additional metadata (title, updated timestamp). The Granola document `id` is always written, since duplicate detection relies on it
 - **Include Granola URL** - Add direct link to original Granola note in frontmatter
 - **Custom filename templates** - Create personalized naming patterns:
   - Toggle between simple date prefix or advanced templates

@@ -244,9 +244,9 @@ export class DuplicateDetector {
 				const granolaInfo = this.extractGranolaMetadata(frontmatter);
 
 				if (granolaInfo) {
-					// Without an updated timestamp there is no import baseline to
-					// compare against, so modification heuristics would only
-					// produce false conflicts on legacy notes
+					// detectLocalModifications only scans the body. Notes without
+					// `updated` skip it and classify as EXISTS, which the import
+					// modal never writes over (it always uses strategy 'skip')
 					const hasLocalModifications = granolaInfo.updated
 						? this.detectLocalModifications(content, granolaInfo)
 						: false;
