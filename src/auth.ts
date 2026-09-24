@@ -33,6 +33,18 @@ export interface GranolaAuthStorage {
 	openUrl?(url: string): void;
 }
 
+export interface GranolaAuthOptions {
+	/**
+	 * When false, a session that needs a new sign-in fails with
+	 * {@link AUTHORIZATION_REQUIRED_MESSAGE} instead of opening the browser.
+	 * Scheduled imports run this way because nobody is watching them.
+	 */
+	interactive?: boolean;
+}
+
+export const AUTHORIZATION_REQUIRED_MESSAGE =
+	'Granola sign-in expired. Reconnect Granola in the plugin settings';
+
 export interface GranolaCredentials {
 	access_token: string;
 	refresh_token?: string;
@@ -64,7 +76,10 @@ export class GranolaAuth implements OAuthClientProvider {
 	private dataCache: (GranolaAuthData & Record<string, unknown>) | null = null;
 	private credentials: GranolaOAuthTokens | null = null;
 
-	constructor(private storage: GranolaAuthStorage = createMemoryStorage()) {}
+	constructor(
+		private storage: GranolaAuthStorage = createMemoryStorage(),
+		private options: GranolaAuthOptions = {}
+	) {}
 
 	get redirectUrl(): string {
 		return REDIRECT_URL;
@@ -132,6 +147,10 @@ export class GranolaAuth implements OAuthClientProvider {
 	}
 
 	async redirectToAuthorization(url: URL): Promise<void> {
+		if (this.options.interactive === false) {
+			throw new Error(AUTHORIZATION_REQUIRED_MESSAGE);
+		}
+
 		const target = url.toString();
 		if (this.storage.openUrl) {
 			this.storage.openUrl(target);
@@ -142,6 +161,12 @@ export class GranolaAuth implements OAuthClientProvider {
 	}
 
 	async saveCodeVerifier(verifier: string): Promise<void> {
+		// A non-interactive run never redirects, so it must not replace the
+		// verifier of a sign-in the user may have started
+		if (this.options.interactive === false) {
+			return;
+		}
+
 		await this.updateData(data => {
 			data.oauthCodeVerifier = verifier;
 		});

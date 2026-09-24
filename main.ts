@@ -1,5 +1,5 @@
 import { Plugin, Notice } from 'obsidian';
-import { GranolaAuth, GranolaAuthData } from './src/auth';
+import { GranolaAuth, GranolaAuthData, GranolaAuthStorage } from './src/auth';
 import { GranolaAPI } from './src/api';
 import { ProseMirrorConverter } from './src/converter';
 import { DuplicateDetector } from './src/services/duplicate-detector';
@@ -86,6 +86,13 @@ export default class GranolaImporterPlugin extends Plugin {
 	private importManager!: SelectiveImportManager;
 
 	/**
+	 * Granola client for scheduled runs only: non-interactive, and separate
+	 * from {@link api} so neither can disconnect the other.
+	 * @private
+	 */
+	private scheduledApi!: GranolaAPI;
+
+	/**
 	 * Scheduler for opt-in unattended imports of new Granola notes.
 	 * The enable switch is device-local; see {@link AutoImportScheduler}.
 	 * @public
@@ -146,7 +153,7 @@ export default class GranolaImporterPlugin extends Plugin {
 		}
 
 		// Initialize core components
-		this.auth = new GranolaAuth({
+		const authStorage: GranolaAuthStorage = {
 			getData: async () =>
 				((await this.loadData()) ?? {}) as GranolaAuthData & Record<string, unknown>,
 			saveData: async data => {
@@ -155,8 +162,12 @@ export default class GranolaImporterPlugin extends Plugin {
 			openUrl: url => {
 				window.open(url);
 			},
-		});
+		};
+		this.auth = new GranolaAuth(authStorage);
 		this.api = new GranolaAPI(this.auth);
+		// Scheduled runs get their own MCP client, and an expired session
+		// fails with a notice instead of opening the sign-in page unattended
+		this.scheduledApi = new GranolaAPI(new GranolaAuth(authStorage, { interactive: false }));
 		this.converter = new ProseMirrorConverter(this.logger, this.settings);
 
 		this.registerObsidianProtocolHandler('granola-auth', params => {
@@ -198,7 +209,7 @@ export default class GranolaImporterPlugin extends Plugin {
 
 		this.autoImportScheduler = new AutoImportScheduler({
 			app: this.app,
-			api: this.api,
+			api: this.scheduledApi,
 			duplicateDetector: this.duplicateDetector,
 			metadataService: this.metadataService,
 			importManager: this.importManager,
@@ -272,6 +283,7 @@ export default class GranolaImporterPlugin extends Plugin {
 	onunload(): void {
 		// Clean up resources when plugin is disabled
 		void this.api?.disconnect();
+		void this.scheduledApi?.disconnect();
 		this.eventAdapters.forEach(adapter => adapter.dispose());
 		this.eventAdapters = [];
 		this.pluginEvents?.clearAll();

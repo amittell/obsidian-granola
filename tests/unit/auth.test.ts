@@ -1,4 +1,9 @@
-import { GranolaAuth, GranolaAuthData, GranolaAuthStorage } from '../../src/auth';
+import {
+	AUTHORIZATION_REQUIRED_MESSAGE,
+	GranolaAuth,
+	GranolaAuthData,
+	GranolaAuthStorage,
+} from '../../src/auth';
 
 function createStorage(initialData: GranolaAuthData = {}) {
 	let data: GranolaAuthData & Record<string, unknown> = { ...initialData };
@@ -117,6 +122,19 @@ describe('GranolaAuth', () => {
 		await auth.redirectToAuthorization(new URL('https://mcp.granola.ai/auth'));
 
 		expect(storage.openUrl).toHaveBeenCalledWith('https://mcp.granola.ai/auth');
+	});
+
+	it('fails instead of opening the browser when non-interactive', async () => {
+		const fixture = createStorage();
+		const auth = new GranolaAuth(fixture.storage, { interactive: false });
+
+		await auth.saveCodeVerifier('verifier');
+		await expect(
+			auth.redirectToAuthorization(new URL('https://mcp.granola.ai/auth'))
+		).rejects.toThrow(AUTHORIZATION_REQUIRED_MESSAGE);
+
+		expect(fixture.storage.openUrl).not.toHaveBeenCalled();
+		expect(fixture.data.oauthCodeVerifier).toBeUndefined();
 	});
 
 	it('clears persisted OAuth state', async () => {

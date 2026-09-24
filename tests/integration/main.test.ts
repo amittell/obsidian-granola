@@ -189,6 +189,27 @@ describe('GranolaImporterPlugin Integration', () => {
 			expect(mockApp.workspace.onLayoutReady).toHaveBeenCalledWith(expect.any(Function));
 		});
 
+		it('gives scheduled runs their own non-interactive Granola client', async () => {
+			const { GranolaAuth } = require('../../src/auth');
+			const { GranolaAPI } = require('../../src/api');
+
+			await plugin.onload();
+
+			expect(GranolaAuth).toHaveBeenCalledWith(expect.any(Object), { interactive: false });
+			expect(GranolaAPI).toHaveBeenCalledTimes(2);
+		});
+
+		it('disconnects the scheduled Granola client on unload', async () => {
+			await plugin.onload();
+			const scheduledApi = (plugin as any).scheduledApi;
+			scheduledApi.disconnect = jest.fn(async () => undefined);
+			(plugin as any).api.disconnect = jest.fn(async () => undefined);
+
+			plugin.onunload();
+
+			expect(scheduledApi.disconnect).toHaveBeenCalledTimes(1);
+		});
+
 		it('leaves auto-import disabled by default', async () => {
 			await plugin.onload();
 
