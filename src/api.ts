@@ -294,12 +294,22 @@ function extractToolText(result: ToolResult): string {
 
 function parseMeetingsResponse(text: string): ParsedMeeting[] {
 	const meetings: ParsedMeeting[] = [];
-	const meetingRegex =
-		/<meeting\s+id="([^"]+)"\s+title="([^"]*?)"\s+date="([^"]*?)">([\s\S]*?)<\/meeting>/g;
+	// Granola adds, removes, and reorders <meeting> attributes between releases
+	// (e.g. captured_by_me/listed_as_participant appeared after date in Aug 2026),
+	// so attributes are parsed by name rather than by position.
+	const meetingBlockRegex = /<meeting\b([^>]*)>([\s\S]*?)<\/meeting>/g;
+	let unrecognized = 0;
 
 	let match: RegExpExecArray | null;
-	while ((match = meetingRegex.exec(text)) !== null) {
-		const [, id, title, date, body] = match;
+	while ((match = meetingBlockRegex.exec(text)) !== null) {
+		const [, attributeText, body] = match;
+		const attributes = parseTagAttributes(attributeText);
+
+		if (!attributes.id) {
+			unrecognized += 1;
+			continue;
+		}
+
 		const participantsMatch = body.match(
 			/<known_participants>\s*([\s\S]*?)\s*<\/known_participants>/
 		);
@@ -307,9 +317,9 @@ function parseMeetingsResponse(text: string): ParsedMeeting[] {
 		const summaryMatch = body.match(/<summary>\s*([\s\S]*?)\s*<\/summary>/);
 
 		meetings.push({
-			id: decodeXml(id),
-			title: decodeXml(title),
-			date: decodeXml(date),
+			id: attributes.id,
+			title: attributes.title ?? '',
+			date: attributes.date ?? '',
 			participants: participantsMatch
 				? parseParticipants(decodeXml(participantsMatch[1]))
 				: [],
@@ -318,7 +328,46 @@ function parseMeetingsResponse(text: string): ParsedMeeting[] {
 		});
 	}
 
+	assertNoSilentParseFailure(text, meetings.length, unrecognized);
 	return meetings;
+}
+
+function parseTagAttributes(text: string): Record<string, string> {
+	const attributes: Record<string, string> = {};
+	const attributeRegex = /([\w-]+)\s*=\s*"([^"]*)"/g;
+
+	let match: RegExpExecArray | null;
+	while ((match = attributeRegex.exec(text)) !== null) {
+		attributes[match[1]] = decodeXml(match[2]);
+	}
+
+	return attributes;
+}
+
+/**
+ * Granola's MCP response format drifts over time. A drifted format used to
+ * parse as zero meetings, which downstream code (including the settings-tab
+ * connection test) treated as a healthy empty account. Fail loudly instead.
+ */
+function assertNoSilentParseFailure(
+	text: string,
+	parsedCount: number,
+	unrecognizedCount: number
+): void {
+	if (unrecognizedCount > 0) {
+		throw new Error(
+			`Granola returned ${unrecognizedCount} meeting ${
+				unrecognizedCount === 1 ? 'entry' : 'entries'
+			} in an unrecognized format. The Granola API response format may have changed; please report this at https://github.com/amittell/obsidian-granola/issues`
+		);
+	}
+
+	const countMatch = text.match(/<meetings_data\b[^>]*\bcount="(\d+)"/);
+	if (countMatch && parsedCount < parseInt(countMatch[1], 10)) {
+		throw new Error(
+			`Granola reported ${countMatch[1]} meetings but only ${parsedCount} could be parsed. The Granola API response format may have changed; please report this at https://github.com/amittell/obsidian-granola/issues`
+		);
+	}
 }
 
 function parseParticipants(text: string): ParsedParticipant[] {
