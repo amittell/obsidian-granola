@@ -87,6 +87,7 @@ interface Harness {
 		getFailedDocuments: jest.Mock;
 	};
 	importLog: { append: jest.Mock };
+	isManualImportActive: jest.Mock;
 	setNow: (isoLocal: string) => void;
 	settings: GranolaSettings;
 }
@@ -139,6 +140,7 @@ function createHarness(options?: {
 	};
 	let currentDocumentProgress: DocumentProgress[] = [];
 	const importLog = { append: jest.fn(async () => undefined) };
+	const isManualImportActive = jest.fn(() => false);
 
 	let now = new Date('2026-08-10T10:00:00');
 	const scheduler = new AutoImportScheduler({
@@ -148,6 +150,7 @@ function createHarness(options?: {
 		metadataService: new DocumentMetadataService(settings),
 		importManager: importManager as never,
 		importLog: importLog as never,
+		isManualImportActive,
 		logger: new Logger(settings),
 		settings,
 		now: () => now,
@@ -160,6 +163,7 @@ function createHarness(options?: {
 		detector,
 		importManager,
 		importLog,
+		isManualImportActive,
 		setNow: (isoLocal: string) => {
 			now = new Date(isoLocal);
 		},
@@ -270,7 +274,7 @@ describe('AutoImportScheduler tick gating', () => {
 			statuses: new Map([['doc-1', status('NEW')]]),
 		});
 		h.scheduler.setEnabled(true);
-		h.importManager.getProgress.mockReturnValueOnce(makeProgress({ isRunning: true }));
+		h.isManualImportActive.mockReturnValueOnce(true);
 		h.setNow('2026-08-10T10:00:00');
 		await h.scheduler.tick();
 		expect(h.importManager.importDocuments).not.toHaveBeenCalled();
@@ -279,6 +283,32 @@ describe('AutoImportScheduler tick gating', () => {
 
 		await h.scheduler.tick();
 		expect(h.importManager.importDocuments).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('AutoImportScheduler run state', () => {
+	it('reports a run in flight until it finishes', async () => {
+		const h = createHarness({
+			documents: [makeDocument()],
+			statuses: new Map([['doc-1', status('NEW')]]),
+		});
+		let finishImport: () => void = () => undefined;
+		h.importManager.importDocuments.mockImplementationOnce(
+			() =>
+				new Promise(resolve => {
+					finishImport = () => resolve(makeProgress());
+				})
+		);
+		h.scheduler.setEnabled(true);
+		h.setNow('2026-08-10T10:00:00');
+
+		const run = h.scheduler.tick();
+		await new Promise(resolve => setTimeout(resolve, 0));
+		expect(h.scheduler.isRunning()).toBe(true);
+
+		finishImport();
+		await run;
+		expect(h.scheduler.isRunning()).toBe(false);
 	});
 });
 

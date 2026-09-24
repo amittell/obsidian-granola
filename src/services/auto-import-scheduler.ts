@@ -43,10 +43,13 @@ export interface AutoImportSchedulerDeps {
 	api: Pick<GranolaAPI, 'loadCredentials' | 'getAllDocuments'>;
 	duplicateDetector: Pick<DuplicateDetector, 'refresh' | 'checkDocuments'>;
 	metadataService: Pick<DocumentMetadataService, 'extractBulkMetadata'>;
+	/** The scheduler's own manager, so a run never resets the manual import's state. */
 	importManager: Pick<
 		SelectiveImportManager,
-		'importDocuments' | 'getProgress' | 'getAllDocumentProgress' | 'getFailedDocuments'
+		'importDocuments' | 'getAllDocumentProgress' | 'getFailedDocuments'
 	>;
+	/** Whether a manual import currently owns the pipeline. */
+	isManualImportActive: () => boolean;
 	importLog: Pick<ImportLogWriter, 'append'>;
 	logger: Logger;
 	/** Plugin settings; the polling window hours are read from here. */
@@ -97,6 +100,11 @@ export class AutoImportScheduler {
 		this.deps.app.saveLocalStorage(AUTO_IMPORT_ENABLED_KEY, value);
 	}
 
+	/** Whether a scheduled run is in flight right now. */
+	isRunning(): boolean {
+		return this.runInFlight;
+	}
+
 	/** Timestamp (ms) of the last run on this device, or 0 if never run. */
 	getLastRunTime(): number {
 		const raw = this.deps.app.loadLocalStorage(AUTO_IMPORT_LAST_RUN_KEY) as unknown;
@@ -116,7 +124,7 @@ export class AutoImportScheduler {
 
 		// A manual import owns the pipeline right now; try again next tick
 		// without consuming this hour's slot.
-		if (this.deps.importManager.getProgress().isRunning) {
+		if (this.deps.isManualImportActive()) {
 			return;
 		}
 

@@ -210,6 +210,28 @@ describe('GranolaImporterPlugin Integration', () => {
 			expect(scheduledApi.disconnect).toHaveBeenCalledTimes(1);
 		});
 
+		it('runs scheduled imports through their own import manager', async () => {
+			const { SelectiveImportManager } = require('../../src/services/import-manager');
+
+			await plugin.onload();
+
+			const scheduledManager = (plugin as any).scheduledImportManager;
+			expect(scheduledManager).toBeInstanceOf(SelectiveImportManager);
+			expect(scheduledManager).not.toBe((plugin as any).importManager);
+		});
+
+		it('does not open the import modal while a scheduled run is in flight', async () => {
+			const { DocumentSelectionModal } = require('../../src/ui/document-selection-modal');
+			const openSpy = jest.spyOn(DocumentSelectionModal.prototype, 'open');
+			await plugin.onload();
+			jest.spyOn(plugin.autoImportScheduler, 'isRunning').mockReturnValue(true);
+
+			plugin.openImportModal();
+
+			expect(openSpy).not.toHaveBeenCalled();
+			openSpy.mockRestore();
+		});
+
 		it('leaves auto-import disabled by default', async () => {
 			await plugin.onload();
 

@@ -93,6 +93,13 @@ export default class GranolaImporterPlugin extends Plugin {
 	private scheduledApi!: GranolaAPI;
 
 	/**
+	 * Import manager used only by scheduled runs, so they never reset the
+	 * manual import's progress or failed-import records.
+	 * @private
+	 */
+	private scheduledImportManager!: SelectiveImportManager;
+
+	/**
 	 * Scheduler for opt-in unattended imports of new Granola notes.
 	 * The enable switch is device-local; see {@link AutoImportScheduler}.
 	 * @public
@@ -207,12 +214,21 @@ export default class GranolaImporterPlugin extends Plugin {
 			this.settings
 		);
 
+		this.scheduledImportManager = new SelectiveImportManager(
+			this.app,
+			this.app.vault,
+			this.converter,
+			this.logger,
+			this.settings
+		);
+
 		this.autoImportScheduler = new AutoImportScheduler({
 			app: this.app,
 			api: this.scheduledApi,
 			duplicateDetector: this.duplicateDetector,
 			metadataService: this.metadataService,
-			importManager: this.importManager,
+			importManager: this.scheduledImportManager,
+			isManualImportActive: () => this.isManualImportActive(),
 			importLog: new ImportLogWriter(this.app.vault),
 			logger: this.logger,
 			settings: this.settings,
@@ -603,6 +619,16 @@ export default class GranolaImporterPlugin extends Plugin {
 	}
 
 	/**
+	 * Whether a manual import currently owns the import pipeline. Scheduled
+	 * runs skip their slot while this is true.
+	 *
+	 * @returns {boolean} True while a manual import is running
+	 */
+	isManualImportActive(): boolean {
+		return this.importManager.getProgress().isRunning;
+	}
+
+	/**
 	 * Opens the document selection modal for selective import.
 	 *
 	 * This method replaces the previous immediate import functionality with
@@ -629,6 +655,11 @@ export default class GranolaImporterPlugin extends Plugin {
 	 * @see {@link SelectiveImportManager} For import coordination
 	 */
 	openImportModal(): void {
+		if (this.autoImportScheduler?.isRunning()) {
+			new Notice('A scheduled Granola import is running. Try again in a minute.', 5000);
+			return;
+		}
+
 		try {
 			const modal = new DocumentSelectionModal(
 				this.app,
