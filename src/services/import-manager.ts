@@ -568,7 +568,7 @@ export class SelectiveImportManager {
 				}
 
 				// Apply the resolution using the already converted note
-				await this.applyConflictResolution(doc, resolution, convertedNote, options);
+				await this.applyConflictResolution(meta, doc, resolution, convertedNote);
 				return;
 			}
 
@@ -589,9 +589,9 @@ export class SelectiveImportManager {
 			const fullPath = this.getFullPath(convertedNote.filename);
 
 			let file: TFile;
-			const existingFile = this.vault.getAbstractFileByPath(fullPath);
+			const existingFile = this.resolveExistingTarget(meta, fullPath);
 
-			if (existingFile && existingFile instanceof TFile) {
+			if (existingFile) {
 				if (options.strategy === 'skip') {
 					// Skip if file already exists and strategy is skip
 					this.updateDocumentProgress(doc.id, {
@@ -836,6 +836,29 @@ export class SelectiveImportManager {
 	}
 
 	/**
+	 * Resolves the vault file an import should write over, if any.
+	 *
+	 * Identity comes from the duplicate detector's match (found via Granola ID
+	 * in frontmatter), so renamed notes are still updated in place. The
+	 * generated filename is only a fallback for plain path collisions and is
+	 * never treated as document identity.
+	 *
+	 * @private
+	 * @param {DocumentDisplayMetadata} meta - Document metadata with import status
+	 * @param {string} fullPath - Generated target path for the note
+	 * @returns {TFile | null} The existing file to write over, or null
+	 */
+	private resolveExistingTarget(meta: DocumentDisplayMetadata, fullPath: string): TFile | null {
+		const identityFile = meta.importStatus.existingFile;
+		if (identityFile instanceof TFile) {
+			return identityFile;
+		}
+
+		const pathFile = this.vault.getAbstractFileByPath(fullPath);
+		return pathFile instanceof TFile ? pathFile : null;
+	}
+
+	/**
 	 * Resolves conflicts by showing the user resolution options.
 	 * Uses dynamic imports for optimal bundle size - modal is only loaded when needed.
 	 *
@@ -863,15 +886,16 @@ export class SelectiveImportManager {
 	 *
 	 * @private
 	 * @async
+	 * @param {DocumentDisplayMetadata} meta - Document metadata with import status
 	 * @param {GranolaDocument} doc - Document to import
 	 * @param {ConflictResolution} resolution - User's choice
-	 * @param {ImportOptions} options - Import options
+	 * @param {{filename: string, content: string}} convertedNote - Converted document
 	 */
 	private async applyConflictResolution(
+		meta: DocumentDisplayMetadata,
 		doc: GranolaDocument,
 		resolution: ConflictResolution,
-		convertedNote: { filename: string; content: string },
-		options: ImportOptions
+		convertedNote: { filename: string; content: string }
 	): Promise<void> {
 		this.updateDocumentProgress(doc.id, {
 			status: 'importing',
@@ -881,11 +905,11 @@ export class SelectiveImportManager {
 
 		switch (resolution.action) {
 			case 'overwrite':
-				await this.handleOverwrite(convertedNote, resolution.createBackup);
+				await this.handleOverwrite(meta, convertedNote, resolution.createBackup);
 				break;
 
 			case 'merge':
-				await this.handleMerge(convertedNote, resolution.strategy);
+				await this.handleMerge(meta, convertedNote, resolution.strategy);
 				break;
 
 			case 'rename':
@@ -913,18 +937,20 @@ export class SelectiveImportManager {
 	 *
 	 * @private
 	 * @async
+	 * @param {DocumentDisplayMetadata} meta - Document metadata with import status
 	 * @param {{filename: string, content: string}} convertedNote - Converted document
 	 * @param {boolean} createBackup - Whether to create backup
 	 */
 	private async handleOverwrite(
+		meta: DocumentDisplayMetadata,
 		convertedNote: { filename: string; content: string },
 		createBackup: boolean
 	): Promise<void> {
 		// Get full path with import folder
 		const fullPath = this.getFullPath(convertedNote.filename);
-		const existingFile = this.vault.getAbstractFileByPath(fullPath);
+		const existingFile = this.resolveExistingTarget(meta, fullPath);
 
-		if (existingFile && existingFile instanceof TFile) {
+		if (existingFile) {
 			if (createBackup) {
 				// Create backup in the same folder as the original file
 				const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -952,18 +978,20 @@ export class SelectiveImportManager {
 	 *
 	 * @private
 	 * @async
+	 * @param {DocumentDisplayMetadata} meta - Document metadata with import status
 	 * @param {{filename: string, content: string}} convertedNote - Converted document
 	 * @param {'append' | 'prepend'} strategy - Merge strategy
 	 */
 	private async handleMerge(
+		meta: DocumentDisplayMetadata,
 		convertedNote: { filename: string; content: string },
 		strategy: 'append' | 'prepend'
 	): Promise<void> {
 		// Get full path with import folder
 		const fullPath = this.getFullPath(convertedNote.filename);
-		const existingFile = this.vault.getAbstractFileByPath(fullPath);
+		const existingFile = this.resolveExistingTarget(meta, fullPath);
 
-		if (existingFile && existingFile instanceof TFile) {
+		if (existingFile) {
 			const existingContent = await this.vault.read(existingFile);
 
 			// Extract content after frontmatter from both files

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Meeting list parsing now tolerates added or reordered attributes in Granola MCP responses. The August 2026 format added `captured_by_me`, `listed_as_participant`, and `is_workspace_visible` after the `date` attribute, which made the previous fixed-order regex match zero meetings, so the importer found nothing while the connection test still reported success
 - The parser now throws a descriptive error instead of silently returning zero meetings when meeting entries are present but unrecognizable, so future Granola format changes fail loudly in both the connection test and the import flow
 - The connection test now says when the account has no meetings in the last 30 days instead of showing a bare success
+- Duplicate detection now recognizes notes imported without enhanced frontmatter: the document id is recovered from `granola_url` when `id` is absent, frontmatter is read through Obsidian's metadata cache, and updates target the matched note even after it was renamed or moved
+
+### Changed
+- New imports always write the Granola document `id:` to frontmatter, regardless of the enhanced frontmatter setting, so later imports can match them
 
 ## [1.1.2] - 2025-10-05
 
