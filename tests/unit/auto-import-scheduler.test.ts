@@ -181,6 +181,14 @@ describe('AutoImportScheduler enable switch', () => {
 		expect(h.scheduler.isEnabled()).toBe(false);
 	});
 
+	it('requires an Obsidian version that has app.loadLocalStorage (1.8.7)', () => {
+		const { minAppVersion } = jest.requireActual('../../manifest.json') as {
+			minAppVersion: string;
+		};
+		const [major, minor, patch] = minAppVersion.split('.').map(Number);
+		expect(major * 1e6 + minor * 1e3 + patch).toBeGreaterThanOrEqual(1008007);
+	});
+
 	it('persists the enable flag device-locally', () => {
 		const h = createHarness();
 		h.scheduler.setEnabled(true);
